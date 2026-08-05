@@ -1,0 +1,104 @@
+<!-- pages/map/index.wxml — 地图首页 -->
+<view class="page-map">
+  <!-- 全屏地图 -->
+  <map
+    id="campMap"
+    class="camp-map"
+    latitude="{{latitude}}"
+    longitude="{{longitude}}"
+    scale="{{scale}}"
+    markers="{{markers}}"
+    circles="{{circles}}"
+    show-location="{{showLocation}}"
+    enable-zoom="{{true}}"
+    enable-scroll="{{true}}"
+    enable-rotate="{{false}}"
+    bindmarkertap="onMarkerTap"
+    bindregionchange="onRegionChange"
+  >
+    <!-- 顶部搜索栏 -->
+    <cover-view class="map-topbar">
+      <cover-view class="city-sel" bindtap="onCityTap">
+        <cover-view class="city-name">{{cityName}}</cover-view>
+        <cover-view class="city-arrow">▼</cover-view>
+      </cover-view>
+      <cover-view class="search-box" bindtap="onSearchTap">
+        <cover-view class="search-icon">🔍</cover-view>
+        <cover-view class="search-ph">搜索营地名称或地址</cover-view>
+      </cover-view>
+      <cover-view class="filter-btn" bindtap="openFilter">
+        <cover-view class="filter-icon">⚙</cover-view>
+        <cover-view wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</cover-view>
+      </cover-view>
+    </cover-view>
+
+    <!-- 地图图例 -->
+    <cover-view class="map-legend">
+      <cover-view class="lg">
+        <cover-view class="lg-dot free"></cover-view>
+        <cover-view class="lg-text">免费</cover-view>
+      </cover-view>
+      <cover-view class="lg">
+        <cover-view class="lg-dot paid"></cover-view>
+        <cover-view class="lg-text">收费</cover-view>
+      </cover-view>
+      <cover-view class="lg">
+        <cover-view class="lg-sq"></cover-view>
+        <cover-view class="lg-text">房车</cover-view>
+      </cover-view>
+    </cover-view>
+
+    <!-- 筛选摘要条 -->
+    <cover-view wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearFilters">
+      <cover-view class="filter-summary-text">{{filterSummaryText}}</cover-view>
+      <cover-view class="filter-summary-x">✕</cover-view>
+    </cover-view>
+
+    <!-- 浮动按钮组 -->
+    <cover-view class="fab-group">
+      <cover-view class="fab fab-add" bindtap="goSubmit">+</cover-view>
+      <cover-view class="fab fab-loc" bindtap="locateMe">⊕</cover-view>
+    </cover-view>
+
+    <!-- 营地底部卡片 -->
+    <cover-view wx:if="{{showBottomCard}}" class="bottom-card">
+      <cover-view class="bc-head">
+        <cover-view class="bc-info">
+          <cover-view class="bc-name">{{selectedCamp.name}}</cover-view>
+          <cover-view class="bc-addr">📍 {{selectedCamp.address || '暂无地址'}}</cover-view>
+        </cover-view>
+        <cover-view class="bc-close" bindtap="closeBottomCard">✕</cover-view>
+      </cover-view>
+      <cover-view class="bc-tags">
+        <cover-view wx:for="{{bottomCardTags}}" wx:key="label"
+          class="bc-tag {{item.on ? '' : 'off'}}">{{item.label}}</cover-view>
+      </cover-view>
+      <cover-view class="bc-foot">
+        <cover-view class="bc-dist">距您约 {{selectedCampDist}} km</cover-view>
+        <cover-view class="bc-btn" bindtap="viewDetail">查看详情</cover-view>
+      </cover-view>
+    </cover-view>
+  </map>
+
+  <!-- 筛选弹窗组件 -->
+  <filter-sheet
+    visible="{{filterVisible}}"
+    filters="{{filters}}"
+    camp-count="{{filteredCount}}"
+    bind:confirm="onFilterConfirm"
+    bind:reset="onFilterReset"
+    bind:close="onFilterClose"
+  />
+
+  <!-- 积分不足弹窗 -->
+  <view wx:if="{{showPointsModal}}" class="modal-mask" bindtap="closePointsModal">
+    <view class="pe-card" catchtap="">
+      <view class="pe-close" bindtap="closePointsModal">✕</view>
+      <view class="pe-icon">✕</view>
+      <view class="pe-title">积分不足</view>
+      <view class="pe-desc">当前积分 <text class="pe-points">{{userPoints}}</text>，查看营地详情需 1 积分</view>
+      <view class="pe-btn" bindtap="onModalCheckin">立即签到 +10积分</view>
+      <view class="pe-tip">签到后即可查看营地详情</view>
+    </view>
+  </view>
+</view>

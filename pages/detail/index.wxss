@@ -1,0 +1,356 @@
+/* pages/detail/index.wxss — 营地详情页样式 */
+
+.page-detail {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 160rpx;
+}
+
+/* ============ 顶部渐变 + 导航 ============ */
+.detail-hero {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-3) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.dn-bar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 24rpx;
+  gap: 12rpx;
+  position: relative;
+  z-index: 2;
+}
+
+.dn-back {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #fff;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dn-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.dn-badge {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+}
+
+.hero-content {
+  height: 272rpx;
+  padding: 0 36rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-deco {
+  position: absolute;
+  right: 36rpx;
+  top: 16rpx;
+  font-size: 140rpx;
+  opacity: 0.16;
+  z-index: 1;
+  line-height: 1;
+}
+
+.hero-name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+}
+
+/* ============ 主体 ============ */
+.detail-body {
+  padding: 28rpx;
+  margin-top: -28rpx;
+  border-radius: 32rpx 32rpx 0 0;
+  background: var(--bg);
+  position: relative;
+  z-index: 3;
+}
+
+/* ============ 地址 / 坐标 ============ */
+.addr-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.addr-pin {
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.addr-text {
+  flex: 1;
+}
+
+.geo-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.geo-label {
+  font-size: 22rpx;
+  color: var(--green);
+  background: var(--green-light);
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.geo-val {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+/* ============ 营地简介 ============ */
+.intro-text {
+  font-size: 26rpx;
+  color: var(--text-2);
+  line-height: 1.75;
+}
+
+.intro-text:not(.expanded) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.intro-toggle {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: var(--green-2);
+  text-align: center;
+}
+
+/* ============ 充电桩状态 ============ */
+.charge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.charge-status {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.charge-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+}
+
+.charge-dot.on {
+  background: var(--green-3);
+  box-shadow: 0 0 0 6rpx rgba(82, 183, 136, 0.18);
+}
+
+.charge-dot.off {
+  background: var(--text-ph);
+}
+
+.charge-text {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.charge-text.on {
+  color: var(--green);
+}
+
+.charge-text.off {
+  color: var(--text-2);
+}
+
+.charge-info {
+  font-size: 24rpx;
+  color: var(--text-2);
+  text-align: right;
+}
+
+/* ============ 配套设施 ============ */
+.fac-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.fac-group-title {
+  font-size: 24rpx;
+  color: var(--text-2);
+  margin-bottom: 14rpx;
+  font-weight: 600;
+}
+
+.fac-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.fac-tag {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+}
+
+.fac-tag.on {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+.fac-tag.off {
+  background: #f0f2f0;
+  color: var(--text-ph);
+}
+
+.fac-emoji {
+  font-size: 26rpx;
+}
+
+.fac-label {
+  font-size: 24rpx;
+}
+
+/* ============ 营地备注 ============ */
+.memo-card {
+  background: var(--yellow-bg);
+  border: 2rpx solid var(--yellow-bd);
+  box-shadow: none;
+}
+
+.memo-h {
+  color: #b8860b;
+}
+
+.memo-h .dot.memo-dot {
+  background: var(--orange);
+}
+
+.memo-text {
+  font-size: 26rpx;
+  color: #8a6d3b;
+  line-height: 1.7;
+}
+
+/* ============ 最新动态 ============ */
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.news-item {
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+}
+
+.news-date {
+  font-size: 22rpx;
+  color: var(--green-2);
+  background: var(--green-light);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.news-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.bottom-spacer {
+  height: 40rpx;
+}
+
+/* ============ 底部操作栏 ============ */
+.detail-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.ab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  padding: 10rpx 0;
+}
+
+.ab-btn .ab-icon {
+  font-size: 36rpx;
+}
+
+.ab-btn .ab-label {
+  font-size: 22rpx;
+  color: var(--text-2);
+}
+
+.ab-primary {
+  flex: 1.4;
+  background: var(--green);
+  border-radius: 44rpx;
+  margin-left: 24rpx;
+  padding: 20rpx 0;
+}
+
+.ab-primary .ab-icon {
+  font-size: 34rpx;
+}
+
+.ab-primary .ab-label {
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 600;
+}

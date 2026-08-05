@@ -1,0 +1,116 @@
+<!-- pages/submit/index.wxml — 营地录入页 -->
+<view class="page-submit">
+  <!-- 自定义导航栏 -->
+  <view class="navbar-wrap" style="padding-top: {{statusBarHeight}}px;">
+    <view class="navbar-inner">
+      <view class="nav-back" bindtap="onBack">‹</view>
+      <view class="nav-title">营地录入</view>
+      <view class="nav-right"></view>
+    </view>
+  </view>
+
+  <!-- 表单主体 -->
+  <view class="form-body">
+    <!-- 1. 营地照片 -->
+    <view class="form-section">
+      <view class="fs-title">📸 营地照片</view>
+      <view class="fs-sub">添加营地实景照片，最多 9 张</view>
+      <view class="photo-grid">
+        <view wx:for="{{photos}}" wx:key="id" class="photo-thumb">
+          <text class="ph-emoji">{{item.emoji}}</text>
+          <view class="del" catchtap="delPhoto" data-idx="{{index}}">✕</view>
+        </view>
+        <view wx:if="{{photos.length < 9}}" class="photo-add" bindtap="addPhoto">
+          <text class="add-icon">+</text>
+          <text class="add-txt">添加</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 2. 基础信息 -->
+    <view class="form-section">
+      <view class="fs-title">📍 基础信息</view>
+      <view class="field">
+        <view class="field-label">营地名称<text class="req">*</text></view>
+        <input class="form-input" placeholder="请输入营地名称" placeholder-class="ph"
+          data-key="subName" value="{{subName}}" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="field-label">详细地址<text class="req">*</text></view>
+        <input class="form-input" placeholder="请输入详细地址" placeholder-class="ph"
+          data-key="subAddr" value="{{subAddr}}" bindinput="onInput" />
+        <view class="loc-btn" bindtap="pickLocation">🗺 地图选点</view>
+      </view>
+    </view>
+
+    <!-- 3. 费用 & 停车 -->
+    <view class="form-section">
+      <view class="fs-title">🅿️ 费用 &amp; 停车</view>
+      <view class="sub-label">停车费用（单选）</view>
+      <view class="chip-row">
+        <view wx:for="{{feeOptions}}" wx:key="v"
+          class="chip {{feeSelected === item.v ? 'on' : ''}}"
+          data-v="{{item.v}}" bindtap="pickFee">{{item.l}}</view>
+      </view>
+      <view class="sub-label">停车类型（可多选）</view>
+      <view class="chip-row">
+        <view wx:for="{{parkOptions}}" wx:key="v"
+          class="chip {{parkSelected.indexOf(item.v) > -1 ? 'on' : ''}}"
+          data-v="{{item.v}}" bindtap="togglePark">{{item.l}}</view>
+      </view>
+    </view>
+
+    <!-- 4. 配套设施 -->
+    <view class="form-section">
+      <view class="fs-title">🏠 配套设施</view>
+      <view class="fs-sub">点击选择营地具备的设施</view>
+      <view class="facility-grid">
+        <view wx:for="{{facItems}}" wx:key="v"
+          class="fg-item {{facSelected.indexOf(item.v) > -1 ? 'on' : ''}}"
+          data-v="{{item.v}}" bindtap="toggleFac">
+          <text class="fg-emoji">{{item.e}}</text>
+          <text class="fg-label">{{item.l}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 5. 更多选项 -->
+    <view class="form-section">
+      <view class="fs-title">✨ 更多选项</view>
+      <view class="chip-row">
+        <view wx:for="{{moreOptions}}" wx:key="v"
+          class="chip {{moreSelected.indexOf(item.v) > -1 ? 'on' : ''}}"
+          data-v="{{item.v}}" bindtap="toggleMore">{{item.l}}</view>
+      </view>
+    </view>
+
+    <!-- 6. 联系人信息 -->
+    <view class="form-section">
+      <view class="fs-title">👤 联系人信息</view>
+      <view class="field">
+        <view class="field-label">姓名<text class="req">*</text></view>
+        <input class="form-input" placeholder="请输入联系人姓名" placeholder-class="ph"
+          data-key="subContact" value="{{subContact}}" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="field-label">电话<text class="req">*</text></view>
+        <input class="form-input" type="tel" maxlength="11" placeholder="请输入手机号码" placeholder-class="ph"
+          data-key="subPhone" value="{{subPhone}}" bindinput="onInput" />
+      </view>
+    </view>
+
+    <!-- 7. 营地简介 -->
+    <view class="form-section">
+      <view class="fs-title">📝 营地简介</view>
+      <textarea class="form-textarea" placeholder="介绍一下这个营地，比如环境、特色、注意事项等" placeholder-class="ph"
+        maxlength="200" data-key="subIntro" value="{{subIntro}}" bindinput="onInput"></textarea>
+      <view class="ta-count">{{subIntro.length || 0}}/200</view>
+    </view>
+  </view>
+
+  <!-- 底部提交栏 -->
+  <view class="submit-bar safe-bottom">
+    <view class="sb-tip">🪙 审核通过后可获得 {{rewardPoints}} 积分奖励</view>
+    <view class="sb-btn {{submitting ? 'disabled' : ''}}" bindtap="submitCamp">提交审核</view>
+  </view>
+</view>

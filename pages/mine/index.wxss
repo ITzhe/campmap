@@ -1,0 +1,227 @@
+/* pages/mine/index.wxss — 我的页面样式 */
+
+.page-mine {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* ============ 顶部渐变区 ============ */
+.top-wrap {
+  background: linear-gradient(160deg, var(--green), var(--green-2));
+}
+
+.navbar-inner {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32rpx;
+}
+
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ============ 头部 ============ */
+.mine-header {
+  height: 240rpx;
+  padding: 0 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mh-info {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.mh-avatar {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+  line-height: 1;
+}
+
+.mh-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.mh-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mh-days {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mh-gear {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #fff;
+}
+
+/* ============ 签到栏 ============ */
+.checkin-bar {
+  margin: -44rpx 24rpx 0;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.cb-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.cb-label {
+  font-size: 22rpx;
+  color: var(--text-2);
+}
+
+.pts {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--orange);
+  line-height: 1.1;
+}
+
+.cb-streak {
+  font-size: 22rpx;
+  color: var(--text-2);
+}
+
+.cb-mid {
+  font-size: 24rpx;
+  color: var(--green);
+  padding: 0 12rpx;
+  font-weight: 500;
+}
+
+.cb-btn {
+  background: var(--green);
+  color: #fff;
+  border-radius: 28rpx;
+  padding: 16rpx 28rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cb-btn.done {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+/* ============ 功能网格 ============ */
+.grid-section {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28rpx 0;
+}
+
+.gs-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 28rpx 20rpx;
+}
+
+.func-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0 12rpx;
+}
+
+.func-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 0;
+}
+
+.func-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 22rpx;
+  background: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+.func-label {
+  font-size: 22rpx;
+  color: var(--text-2);
+}
+
+/* ============ 设置列表 ============ */
+.settings-list {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.set-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx;
+  border-bottom: 2rpx solid var(--line);
+}
+
+.set-item:last-child {
+  border-bottom: none;
+}
+
+.set-label {
+  font-size: 28rpx;
+  color: var(--text);
+}
+
+.set-item.danger .set-label {
+  color: var(--red);
+}
+
+.set-arrow {
+  font-size: 32rpx;
+  color: var(--text-ph);
+}
+
+.set-item.danger .set-arrow {
+  color: var(--red);
+}

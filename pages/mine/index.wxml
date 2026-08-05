@@ -1,0 +1,70 @@
+<!-- pages/mine/index.wxml — 我的页面 -->
+<view class="page-mine">
+  <!-- 顶部渐变区：自定义导航栏 + 头部 -->
+  <view class="top-wrap" style="padding-top: {{statusBarHeight}}px;">
+    <view class="navbar-inner">
+      <view class="nav-title">我的</view>
+    </view>
+
+    <!-- 头部 -->
+    <view class="mine-header">
+      <view class="mh-info">
+        <view class="mh-avatar">{{avatar}}</view>
+        <view class="mh-text">
+          <view class="mh-name">{{userName}}</view>
+          <view class="mh-days">已加入 {{joinDays}} 天</view>
+        </view>
+      </view>
+      <view class="mh-gear" bindtap="tapGear">⚙</view>
+    </view>
+  </view>
+
+  <!-- 签到栏 -->
+  <view class="checkin-bar">
+    <view class="cb-left">
+      <view class="cb-label">积分</view>
+      <view class="pts">{{points}}</view>
+      <view class="cb-streak">已签到 {{streak}} 天</view>
+    </view>
+    <view class="cb-mid" bindtap="goPoints">明细 ›</view>
+    <view class="cb-btn {{checkedToday ? 'done' : ''}}" bindtap="doCheckin">
+      {{checkinBtnText}}
+    </view>
+  </view>
+
+  <!-- 核心功能 -->
+  <view class="grid-section">
+    <view class="gs-title">核心功能</view>
+    <view class="func-grid">
+      <view wx:for="{{coreFuncs}}" wx:key="key" class="func-item"
+        data-key="{{item.key}}" bindtap="onFuncTap">
+        <view class="func-icon">{{item.icon}}</view>
+        <view class="func-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 其他功能 -->
+  <view class="grid-section">
+    <view class="gs-title">其他功能</view>
+    <view class="func-grid">
+      <view wx:for="{{otherFuncs}}" wx:key="key" class="func-item"
+        data-key="{{item.key}}" bindtap="onFuncTap">
+        <view class="func-icon">{{item.icon}}</view>
+        <view class="func-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置列表 -->
+  <view class="settings-list">
+    <view wx:for="{{settings}}" wx:key="key"
+      class="set-item {{item.danger ? 'danger' : ''}}"
+      data-key="{{item.key}}" bindtap="onSettingTap">
+      <view class="set-label">{{item.label}}</view>
+      <view class="set-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

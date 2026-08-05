@@ -1,0 +1,103 @@
+<!-- pages/detail/index.wxml — 营地详情页 -->
+<view class="page-detail">
+  <!-- 顶部渐变区 + 自定义导航 -->
+  <view class="detail-hero" style="padding-top: {{statusBarHeight}}px;">
+    <view class="dn-bar">
+      <view class="dn-back" bindtap="goBack">‹</view>
+      <view class="dn-title">营地详情</view>
+      <view class="dn-badge">−1积分</view>
+    </view>
+    <view class="hero-content">
+      <view class="hero-deco">🏕</view>
+      <view class="hero-name">{{camp.name || '营地详情'}}</view>
+    </view>
+  </view>
+
+  <!-- 主体 -->
+  <view class="detail-body">
+    <!-- 地址 -->
+    <view class="addr-line">
+      <text class="addr-pin">📍</text>
+      <text class="addr-text">{{camp.address || '暂无地址信息'}}</text>
+    </view>
+
+    <!-- 地理坐标 -->
+    <view class="geo-line">
+      <text class="geo-label">地理坐标</text>
+      <text class="geo-val">{{camp.latitude}}, {{camp.longitude}}</text>
+    </view>
+
+    <!-- 营地简介 -->
+    <view class="card">
+      <view class="card-h"><view class="dot"></view>营地简介</view>
+      <view class="intro-text {{introExpanded ? 'expanded' : ''}}">{{camp.intro || '暂无简介'}}</view>
+      <view class="intro-toggle" bindtap="toggleIntro">
+        {{introExpanded ? '收起 ▲' : '展开 ▼'}}
+      </view>
+    </view>
+
+    <!-- 充电桩状态 -->
+    <view class="card">
+      <view class="card-h"><view class="dot"></view>充电桩状态</view>
+      <view class="charge-row">
+        <view class="charge-status">
+          <view class="charge-dot {{chargingOn ? 'on' : 'off'}}"></view>
+          <text class="charge-text {{chargingOn ? 'on' : 'off'}}">{{chargingText}}</text>
+        </view>
+        <text class="charge-info">{{chargingInfo}}</text>
+      </view>
+    </view>
+
+    <!-- 配套设施 -->
+    <view class="card">
+      <view class="card-h"><view class="dot"></view>配套设施</view>
+      <view class="fac-groups">
+        <view class="fac-group" wx:for="{{facGroups}}" wx:for-item="group" wx:key="title">
+          <view class="fac-group-title">{{group.title}}</view>
+          <view class="fac-tags">
+            <view class="fac-tag {{item.on ? 'on' : 'off'}}"
+              wx:for="{{group.items}}" wx:for-item="item" wx:key="key">
+              <text class="fac-emoji">{{item.emoji}}</text>
+              <text class="fac-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 营地备注 -->
+    <view class="card memo-card" wx:if="{{hasMemo}}">
+      <view class="card-h memo-h"><view class="dot memo-dot"></view>营地备注</view>
+      <view class="memo-text">{{camp.memo}}</view>
+    </view>
+
+    <!-- 最新动态 -->
+    <view class="card">
+      <view class="card-h"><view class="dot"></view>最新动态</view>
+      <view class="news-list">
+        <view class="news-item" wx:for="{{newsList}}" wx:key="date">
+          <view class="news-date">{{item.date}}</view>
+          <view class="news-text">{{item.text}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-spacer"></view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="detail-actionbar safe-bottom">
+    <view class="ab-btn" bindtap="navigateCamp">
+      <text class="ab-icon">🧭</text>
+      <text class="ab-label">导航</text>
+    </view>
+    <view class="ab-btn" bindtap="copyCoord">
+      <text class="ab-icon">📋</text>
+      <text class="ab-label">复制坐标</text>
+    </view>
+    <view class="ab-btn ab-primary" bindtap="checkinCamp">
+      <text class="ab-icon">📍</text>
+      <text class="ab-label">打卡</text>
+    </view>
+  </view>
+</view>

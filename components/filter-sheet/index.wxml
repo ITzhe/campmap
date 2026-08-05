@@ -1,0 +1,66 @@
+<!-- components/filter-sheet/index.wxml — 筛选弹窗组件 -->
+<view wx:if="{{visible}}" class="fs-mask" bindtap="onClose"></view>
+
+<view class="fs-sheet {{visible ? 'show' : ''}}">
+  <view class="fs-title">筛选营地</view>
+
+  <!-- 费用 (单选) -->
+  <view class="fs-grp">
+    <view class="fs-grp-h">
+      <text>费用</text>
+      <text class="fs-hint">单选</text>
+    </view>
+    <view class="chip-row">
+      <view
+        wx:for="{{feeOptions}}"
+        wx:key="value"
+        class="chip {{innerFilters.fee === item.value ? 'on' : ''}}"
+        data-key="fee"
+        data-value="{{item.value}}"
+        bindtap="pickSingle"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 停车类型 (多选) -->
+  <view class="fs-grp">
+    <view class="fs-grp-h">
+      <text>停车类型</text>
+      <text class="fs-hint">多选</text>
+    </view>
+    <view class="chip-row">
+      <view
+        wx:for="{{parkOptions}}"
+        wx:key="value"
+        class="chip {{innerFilters.park.indexOf(item.value) > -1 ? 'on' : ''}}"
+        data-key="park"
+        data-value="{{item.value}}"
+        bindtap="toggleMulti"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 设施条件 (多选) -->
+  <view class="fs-grp">
+    <view class="fs-grp-h">
+      <text>设施条件</text>
+      <text class="fs-hint">多选</text>
+    </view>
+    <view class="chip-row">
+      <view
+        wx:for="{{facOptions}}"
+        wx:key="value"
+        class="chip {{innerFilters.fac.indexOf(item.value) > -1 ? 'on' : ''}}"
+        data-key="fac"
+        data-value="{{item.value}}"
+        bindtap="toggleMulti"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="fs-foot">
+    <view class="fs-btn-reset" bindtap="onReset">重置</view>
+    <view class="fs-btn-confirm" bindtap="onConfirm">确定 ({{matchCount}})</view>
+  </view>
+</view>

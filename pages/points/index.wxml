@@ -1,0 +1,81 @@
+<!-- pages/points/index.wxml — 积分页面 -->
+<view class="page-points">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">我的积分</view>
+  </view>
+
+  <!-- 积分英雄区 -->
+  <view class="points-hero">
+    <view class="ph-num">{{points}}</view>
+    <view class="ph-label">当前积分</view>
+    <view class="ph-streak">🔥 连续签到 {{streak}} 天</view>
+  </view>
+
+  <!-- 每日签到周历卡片 -->
+  <view class="week-cal">
+    <view class="card-h">
+      <view class="dot"></view>
+      <text>每日签到</text>
+    </view>
+    <view class="week-row">
+      <view
+        wx:for="{{weekDays}}"
+        wx:key="weekday"
+        class="week-day {{item.isChecked ? 'checked' : ''}} {{item.isToday ? 'today' : ''}}"
+      >
+        <view class="week-label">{{item.weekday}}</view>
+        <view class="week-circle">
+          <text wx:if="{{item.isChecked}}">✓</text>
+          <text wx:else>{{item.date}}</text>
+        </view>
+      </view>
+    </view>
+    <view
+      class="points-checkin-btn {{checkedToday ? 'done' : ''}}"
+      bindtap="doCheckin"
+    >
+      <text wx:if="{{checkedToday}}">✓ 今日已签到</text>
+      <text wx:else>📅 立即签到 +{{checkinReward}}</text>
+    </view>
+  </view>
+
+  <!-- 积分规则卡片 -->
+  <view class="rules-card">
+    <view class="card-h">
+      <view class="dot"></view>
+      <text>积分规则</text>
+    </view>
+    <view wx:for="{{rules}}" wx:key="label" class="rule-item">
+      <text class="l">{{item.label}}</text>
+      <text class="v {{item.v < 0 ? 'neg' : ''}}">{{item.vStr}}</text>
+    </view>
+  </view>
+
+  <!-- 积分明细 -->
+  <view class="detail-section">
+    <view class="detail-h">积分明细</view>
+    <view
+      wx:for="{{historyGroups}}"
+      wx:key="date"
+      class="detail-group"
+    >
+      <view class="detail-group-h">{{item.date}}</view>
+      <view
+        wx:for="{{item.items}}"
+        wx:for-item="log"
+        wx:key="index"
+        class="points-item"
+      >
+        <view class="pi-desc">{{log.t}}</view>
+        <text class="val {{log.v > 0 ? 'add' : 'sub'}}">{{log.vStr}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

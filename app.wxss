@@ -1,0 +1,180 @@
+/* app.wxss — 全局样式 & 设计系统 */
+
+/* ============ 设计系统变量 ============ */
+page {
+  --green: #2d6a4f;
+  --green-2: #40916c;
+  --green-3: #52b788;
+  --green-light: #d8f3dc;
+  --orange: #f4a261;
+  --red: #ee6c4d;
+  --blue: #277da1;
+  --purple: #7b2cbf;
+  --bg: #f4f7f5;
+  --text: #1a2e1f;
+  --text-2: #6b7c70;
+  --text-ph: #adb5bd;
+  --line: #dde6e0;
+  --white: #ffffff;
+  --yellow-bg: #fff8e1;
+  --yellow-bd: #ffe082;
+  --radius: 24rpx;
+  --radius-sm: 16rpx;
+  --shadow: 0 4rpx 24rpx rgba(45, 106, 79, 0.12);
+  --shadow-fab: 0 8rpx 28rpx rgba(0, 0, 0, 0.18);
+
+  background: var(--bg);
+  color: var(--text);
+  font-size: 28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  box-sizing: border-box;
+}
+
+/* ============ 通用重置 ============ */
+view, text, image, input, textarea, button, scroll-view, picker {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  line-height: normal;
+  font-size: inherit;
+}
+
+button::after {
+  border: none;
+}
+
+/* ============ 通用导航栏 ============ */
+.navbar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  background: var(--green);
+  color: #fff;
+  padding: 0 24rpx;
+  gap: 20rpx;
+}
+
+.navbar .nav-back {
+  font-size: 40rpx;
+  width: 56rpx;
+  text-align: center;
+  line-height: 1;
+}
+
+.navbar .nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-right: 76rpx;
+}
+
+.navbar .nav-title.lone {
+  margin: 0;
+}
+
+.navbar .nav-badge {
+  font-size: 22rpx;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+}
+
+/* ============ 通用卡片 ============ */
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 26rpx 28rpx;
+  margin-top: 24rpx;
+  box-shadow: var(--shadow);
+}
+
+.card-h {
+  font-size: 28rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.card-h .dot {
+  width: 8rpx;
+  height: 28rpx;
+  background: var(--green);
+  border-radius: 4rpx;
+}
+
+/* ============ 通用 chip ============ */
+.chip {
+  padding: 12rpx 28rpx;
+  border-radius: 32rpx;
+  border: 2rpx solid var(--line);
+  font-size: 24rpx;
+  color: var(--text-2);
+  background: #fff;
+  transition: all 0.15s;
+}
+
+.chip.on {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+/* ============ 通用 toast 提示样式 ============ */
+.toast-mask {
+  position: fixed;
+  top: 108rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  padding: 16rpx 36rpx;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  z-index: 9999;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ============ loading ============ */
+.loading-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 6rpx solid var(--green-light);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ 安全区 ============ */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

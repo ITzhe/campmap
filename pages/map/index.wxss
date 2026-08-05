@@ -1,0 +1,376 @@
+/* pages/map/index.wxss — 地图首页样式 */
+
+.page-map {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.camp-map {
+  width: 100%;
+  height: 100vh;
+}
+
+/* ============ 顶部搜索栏 ============ */
+.map-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx 20rpx;
+  background: var(--green);
+  padding-top: calc(16rpx + env(safe-area-inset-top));
+}
+
+.city-sel {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  color: #fff;
+}
+
+.city-name {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.city-arrow {
+  font-size: 18rpx;
+}
+
+.search-box {
+  flex: 1;
+  height: 64rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 24rpx;
+  margin: 0 16rpx;
+}
+
+.search-icon {
+  font-size: 24rpx;
+  color: var(--green-2);
+}
+
+.search-ph {
+  font-size: 26rpx;
+  color: var(--text-ph);
+}
+
+.filter-btn {
+  position: relative;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: var(--green-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-icon {
+  font-size: 32rpx;
+  color: #fff;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: var(--red);
+  color: #fff;
+  font-size: 20rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+  font-weight: 700;
+  border: 3rpx solid #fff;
+}
+
+/* ============ 图例 ============ */
+.map-legend {
+  position: absolute;
+  top: calc(192rpx + env(safe-area-inset-top));
+  right: 24rpx;
+  z-index: 400;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 20rpx;
+  padding: 16rpx 20rpx;
+  box-shadow: var(--shadow);
+}
+
+.lg {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  height: 40rpx;
+}
+
+.lg-dot {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 50%;
+}
+
+.lg-dot.free {
+  background: var(--green);
+}
+
+.lg-dot.paid {
+  background: var(--orange);
+}
+
+.lg-sq {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 4rpx;
+  background: var(--purple);
+}
+
+.lg-text {
+  font-size: 22rpx;
+  color: var(--text);
+}
+
+/* ============ 筛选摘要条 ============ */
+.filter-summary {
+  position: absolute;
+  left: 24rpx;
+  bottom: 192rpx;
+  z-index: 400;
+  background: #fff;
+  border-radius: 36rpx;
+  padding: 14rpx 24rpx 14rpx 28rpx;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.filter-summary-text {
+  font-size: 24rpx;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.filter-summary-x {
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  background: var(--green-light);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+}
+
+/* ============ 浮动按钮组 ============ */
+.fab-group {
+  position: absolute;
+  right: 24rpx;
+  bottom: 192rpx;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  align-items: center;
+}
+
+.fab {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  box-shadow: var(--shadow-fab);
+}
+
+.fab-add {
+  background: var(--green);
+  color: #fff;
+}
+
+.fab-loc {
+  background: #fff;
+  color: var(--green);
+  font-size: 40rpx;
+}
+
+/* ============ 营地底部卡片 ============ */
+.bottom-card {
+  position: absolute;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: 28rpx;
+  z-index: 500;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  box-shadow: var(--shadow);
+}
+
+.bc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.bc-info {
+  flex: 1;
+}
+
+.bc-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bc-addr {
+  font-size: 24rpx;
+  color: var(--text-2);
+  margin-top: 6rpx;
+}
+
+.bc-close {
+  color: var(--text-ph);
+  font-size: 36rpx;
+}
+
+.bc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.bc-tag {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 10rpx;
+  background: var(--green-light);
+  color: var(--green);
+}
+
+.bc-tag.off {
+  background: #eef0ee;
+  color: var(--text-ph);
+}
+
+.bc-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 22rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid var(--line);
+}
+
+.bc-dist {
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+.bc-btn {
+  background: var(--green);
+  color: #fff;
+  padding: 14rpx 32rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+/* ============ 积分不足弹窗 ============ */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6500;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pe-card {
+  width: 560rpx;
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 48rpx 44rpx;
+  text-align: center;
+  position: relative;
+}
+
+.pe-close {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  color: var(--text-ph);
+  font-size: 36rpx;
+}
+
+.pe-icon {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  background: #fdecea;
+  color: var(--red);
+  font-size: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24rpx;
+  font-weight: 700;
+}
+
+.pe-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.pe-desc {
+  font-size: 26rpx;
+  color: var(--text-2);
+  margin-top: 12rpx;
+  line-height: 1.6;
+}
+
+.pe-points {
+  font-weight: 700;
+  color: var(--red);
+}
+
+.pe-btn {
+  margin-top: 36rpx;
+  width: 100%;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: var(--green);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pe-tip {
+  font-size: 24rpx;
+  color: var(--text-ph);
+  margin-top: 20rpx;
+}

@@ -1,0 +1,47 @@
+<!-- pages/about/index.wxml — 关于页面 -->
+<view class="page-about">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">关于我们</view>
+  </view>
+
+  <!-- 英雄区 -->
+  <view class="about-hero">
+    <view class="about-logo">🏕</view>
+    <view class="about-name">露营地图</view>
+    <view class="about-ver">版本 1.0.0</view>
+  </view>
+
+  <!-- 项目介绍 -->
+  <view class="about-card">
+    <view class="about-h">
+      <text class="about-h-emoji">📋</text>
+      <text>项目介绍</text>
+    </view>
+    <view class="about-p">露营地图是一款专注于房车、帐篷露营爱好者的营地发现工具。我们整合全国各地营地信息，提供精确的地图定位、设施查询与线路规划服务，帮助露营者轻松找到心仪的营地。</view>
+  </view>
+
+  <!-- 数据来源 -->
+  <view class="about-card">
+    <view class="about-h">
+      <text class="about-h-emoji">🗄</text>
+      <text>数据来源</text>
+    </view>
+    <view class="about-p">营地数据由用户共同提交并经审核后展示，同时整合公开的露营地信息。地图瓦片由高德地图提供，数据仅供参考，请以实地情况为准。</view>
+  </view>
+
+  <!-- 免责声明 -->
+  <view class="about-card">
+    <view class="about-h">
+      <text class="about-h-emoji">⚠️</text>
+      <text>免责声明</text>
+    </view>
+    <view class="about-p">本应用提供的营地信息可能存在时效性差异，露营前请务必与营地官方确认设施及收费情况。野外露营请注意安全，遵守当地法规，保护自然环境。因使用本应用信息产生的一切后果，本应用不承担责任。</view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

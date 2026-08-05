@@ -1,0 +1,209 @@
+/* pages/points/index.wxss — 积分页面样式 */
+
+.page-points {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 40rpx;
+}
+
+/* 状态栏占位 */
+.status-bar {
+  width: 100%;
+  background: var(--green);
+}
+
+/* ============ 积分英雄区 ============ */
+.points-hero {
+  background: linear-gradient(180deg, var(--green) 0%, var(--green-2) 100%);
+  padding: 48rpx 40rpx 60rpx;
+  text-align: center;
+  color: #fff;
+}
+
+.ph-num {
+  font-size: 84rpx;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.ph-label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 12rpx;
+}
+
+.ph-streak {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 28rpx;
+  padding: 10rpx 24rpx;
+  font-size: 24rpx;
+  color: #fff;
+  margin-top: 20rpx;
+}
+
+/* ============ 每日签到周历卡片 ============ */
+.week-cal {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 28rpx;
+  box-shadow: var(--shadow);
+}
+
+.week-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 24rpx 0;
+}
+
+.week-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.week-label {
+  font-size: 22rpx;
+  color: var(--text-2);
+}
+
+.week-circle {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+.week-day.today .week-circle {
+  border-color: var(--green);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.week-day.checked .week-circle {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+
+/* 签到按钮 */
+.points-checkin-btn {
+  width: 100%;
+  height: 84rpx;
+  border-radius: 42rpx;
+  background: var(--green);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12rpx;
+}
+
+.points-checkin-btn.done {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+/* ============ 积分规则卡片 ============ */
+.rules-card {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 28rpx;
+  box-shadow: var(--shadow);
+}
+
+.rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  font-size: 26rpx;
+  border-bottom: 2rpx solid var(--line);
+}
+
+.rule-item:last-child {
+  border-bottom: none;
+}
+
+.rule-item .l {
+  color: var(--text);
+}
+
+.rule-item .v {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.rule-item .v.neg {
+  color: var(--red);
+}
+
+/* ============ 积分明细 ============ */
+.detail-section {
+  margin-top: 8rpx;
+}
+
+.detail-h {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  padding: 28rpx 24rpx 12rpx;
+}
+
+.detail-group {
+  margin: 0 24rpx 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.detail-group-h {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-2);
+  padding: 28rpx 28rpx 12rpx;
+}
+
+.points-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22rpx 28rpx;
+  border-bottom: 2rpx solid var(--line);
+}
+
+.points-item:last-child {
+  border-bottom: none;
+}
+
+.points-item .pi-desc {
+  font-size: 28rpx;
+  color: var(--text);
+}
+
+.points-item .val {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.points-item .val.add {
+  color: var(--green);
+}
+
+.points-item .val.sub {
+  color: var(--red);
+}

@@ -1,0 +1,81 @@
+<!-- pages/route/index.wxml — 线路规划页 -->
+<view class="page-route">
+  <!-- 自定义导航栏 -->
+  <view class="rn-bar" style="padding-top: {{statusBarHeight}}px; height: {{navHeight}}px;">
+    <view class="rn-title">线路规划</view>
+  </view>
+
+  <!-- 路线输入 -->
+  <view class="route-input">
+    <view class="ri-row">
+      <view class="ri-dot start"></view>
+      <input class="ri-input" value="{{routeStart}}" bindinput="onStartInput" placeholder="输入起点" />
+    </view>
+    <view class="ri-row">
+      <view class="ri-dot end"></view>
+      <input class="ri-input" value="{{routeEnd}}" bindinput="onEndInput" placeholder="输入终点" />
+    </view>
+    <view class="ri-addway" bindtap="addWaypoint">＋ 添加途经点</view>
+    <button class="ri-btn" bindtap="calcRoute">规划路线</button>
+  </view>
+
+  <!-- 路线地图 -->
+  <map class="route-map"
+    latitude="{{latitude}}"
+    longitude="{{longitude}}"
+    scale="{{scale}}"
+    markers="{{markers}}"
+    polyline="{{polyline}}"
+    enable-zoom="{{true}}"
+    enable-scroll="{{true}}"
+  ></map>
+
+  <!-- 路线结果 -->
+  <view class="route-result" wx:if="{{showResult}}">
+    <view class="rr-stat">
+      <view class="s">
+        <view class="s-val">{{routeDist}}<text class="s-unit">km</text></view>
+        <view class="s-label">总里程</view>
+      </view>
+      <view class="s">
+        <view class="s-val">{{routeCamps}}<text class="s-unit">个</text></view>
+        <view class="s-label">沿途营地</view>
+      </view>
+      <view class="s">
+        <view class="s-val">{{routeTime}}</view>
+        <view class="s-label">预计时长</view>
+      </view>
+    </view>
+
+    <view class="rr-camph">沿途营地</view>
+    <view class="camp-list">
+      <view class="camp-list-item"
+        wx:for="{{routeCampList}}" wx:key="spot_code"
+        data-idx="{{index}}" bindtap="onCampTap">
+        <view class="cli-icon">🏕</view>
+        <view class="cli-info">
+          <view class="cli-name">{{item.name}}</view>
+          <view class="cli-addr">{{item.address}}</view>
+        </view>
+        <view class="cli-dist">{{item.distance}} km</view>
+      </view>
+      <view class="camp-empty" wx:if="{{routeCampList.length === 0}}">沿途暂无营地</view>
+    </view>
+  </view>
+
+  <!-- 最近路线 -->
+  <view class="section-header">📜 最近路线</view>
+  <view class="history-list">
+    <view class="history-item"
+      wx:for="{{historyList}}" wx:key="name"
+      data-idx="{{index}}" bindtap="onHistoryTap">
+      <view class="hi-main">
+        <view class="hi-name">{{item.name}}</view>
+        <view class="hi-meta">{{item.meta}}</view>
+      </view>
+      <view class="hi-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

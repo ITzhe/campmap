@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "filter-sheet": "/components/filter-sheet/index"
+  }
+}

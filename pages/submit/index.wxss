@@ -1,0 +1,287 @@
+/* pages/submit/index.wxss — 营地录入页样式 */
+
+.page-submit {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 180rpx;
+}
+
+/* ============ 自定义导航栏 ============ */
+.navbar-wrap {
+  background: var(--green);
+}
+
+.navbar-inner {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx;
+  gap: 16rpx;
+}
+
+.nav-back {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  text-align: center;
+  font-size: 52rpx;
+  color: #fff;
+}
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.nav-right {
+  width: 56rpx;
+}
+
+/* ============ 表单 ============ */
+.form-body {
+  padding-top: 12rpx;
+}
+
+.form-section {
+  background: #fff;
+  margin: 20rpx 24rpx;
+  border-radius: var(--radius);
+  padding: 28rpx;
+  box-shadow: var(--shadow);
+}
+
+.fs-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.fs-sub {
+  font-size: 22rpx;
+  color: var(--text-2);
+  margin-top: 8rpx;
+}
+
+.sub-label {
+  font-size: 24rpx;
+  color: var(--text-2);
+  margin: 24rpx 0 14rpx;
+}
+
+/* ============ 照片网格 ============ */
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.photo-thumb {
+  position: relative;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: var(--radius-sm);
+  background: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ph-emoji {
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.photo-thumb .del {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-size: 20rpx;
+  z-index: 2;
+}
+
+.photo-add {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: var(--radius-sm);
+  border: 2rpx dashed var(--text-ph);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-ph);
+  gap: 6rpx;
+}
+
+.add-icon {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.add-txt {
+  font-size: 20rpx;
+}
+
+/* ============ 输入框 ============ */
+.field {
+  margin-top: 24rpx;
+}
+
+.field-label {
+  font-size: 26rpx;
+  color: var(--text);
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.req {
+  color: var(--red);
+  margin-left: 4rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  border: 2rpx solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 24rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--green-3);
+}
+
+.ph {
+  color: var(--text-ph);
+}
+
+.loc-btn {
+  display: inline-block;
+  margin-top: 14rpx;
+  padding: 12rpx 28rpx;
+  background: var(--green-light);
+  color: var(--green);
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 140rpx;
+  border: 2rpx solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  margin-top: 16rpx;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.form-textarea:focus {
+  border-color: var(--green-3);
+}
+
+.ta-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-top: 8rpx;
+}
+
+/* ============ 配套设施网格 ============ */
+.facility-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14rpx;
+  margin-top: 20rpx;
+}
+
+.fg-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  border: 2rpx solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14rpx 4rpx;
+  background: #fff;
+  transition: all 0.15s;
+}
+
+.fg-item.on {
+  background: var(--green-light);
+  border-color: var(--green-3);
+}
+
+.fg-emoji {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.fg-label {
+  font-size: 20rpx;
+  color: var(--text-2);
+}
+
+.fg-item.on .fg-label {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* ============ 底部提交栏 ============ */
+.submit-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 2rpx solid var(--line);
+  padding: 18rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  z-index: 100;
+}
+
+.sb-tip {
+  flex: 1;
+  font-size: 22rpx;
+  color: var(--orange);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.sb-btn {
+  background: var(--green);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 20rpx 56rpx;
+  border-radius: 40rpx;
+  flex-shrink: 0;
+}
+
+.sb-btn.disabled {
+  opacity: 0.6;
+}

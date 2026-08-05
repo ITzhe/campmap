@@ -1,0 +1,57 @@
+{
+  "pages": [
+    "pages/map/index",
+    "pages/route/index",
+    "pages/mine/index",
+    "pages/detail/index",
+    "pages/submit/index",
+    "pages/points/index",
+    "pages/about/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "露营地图",
+    "navigationBarBackgroundColor": "#2d6a4f",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f4f7f5",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#6b7c70",
+    "selectedColor": "#2d6a4f",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/map/index",
+        "text": "地图",
+        "iconPath": "",
+        "selectedIconPath": ""
+      },
+      {
+        "pagePath": "pages/route/index",
+        "text": "线路",
+        "iconPath": "",
+        "selectedIconPath": ""
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "",
+        "selectedIconPath": ""
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于显示您附近的露营地"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}
