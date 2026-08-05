@@ -97,6 +97,25 @@
   border: 3rpx solid #fff;
 }
 
+/* ============ 营地数量提示 ============ */
+.camp-count-badge {
+  position: absolute;
+  top: calc(140rpx + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  background: rgba(45, 106, 79, 0.92);
+  border-radius: 24rpx;
+  padding: 8rpx 24rpx;
+  box-shadow: var(--shadow);
+}
+
+.cc-text {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
 /* ============ 图例 ============ */
 .map-legend {
   position: absolute;

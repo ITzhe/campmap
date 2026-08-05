@@ -32,6 +32,11 @@
       </cover-view>
     </cover-view>
 
+    <!-- 营地数量提示 -->
+    <cover-view wx:if="{{campCount > 0}}" class="camp-count-badge">
+      <cover-view class="cc-text">附近 {{campCount}} 个营地</cover-view>
+    </cover-view>
+
     <!-- 地图图例 -->
     <cover-view class="map-legend">
       <cover-view class="lg">

@@ -19,11 +19,11 @@ const config = {
     };
   },
 
-  // 默认城市中心 (青岛)
+  // 默认城市中心 (青岛, 定位失败时使用)
   CITY_CENTER: { latitude: 36.0671, longitude: 120.3826 },
-  CITY_NAME: '青岛市',
+  CITY_NAME: '当前位置',
   DEFAULT_ZOOM: 11,
-  RADIUS_KM: 15,
+  RADIUS_KM: 50, // 加载半径 km, 拖动地图时按可见范围加载
 
   // 设施中文名映射
   FAC_LABELS: {

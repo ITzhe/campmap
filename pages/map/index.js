@@ -9,7 +9,7 @@ Page({
     latitude: 36.0671,
     longitude: 120.3826,
     scale: 11,
-    cityName: '青岛市',
+    cityName: '定位中...',
     showLocation: true,
 
     // 营地数据
@@ -32,8 +32,16 @@ Page({
 
     // 积分
     userPoints: 0,
-    showPointsModal: false
+    showPointsModal: false,
+
+    // 状态
+    loadingCamps: false,
+    campCount: 0
   },
+
+  // 防抖定时器
+  _reloadTimer: null,
+  _firstLoad: true,
 
   onLoad() {
     const app = getApp();
@@ -43,7 +51,8 @@ Page({
       cityName: app.globalData.cityName,
       userPoints: app.globalData.points
     });
-    this.loadCamps();
+    // 先尝试定位，再加载营地
+    this.tryLocateAndLoad();
   },
 
   onShow() {
@@ -87,36 +96,90 @@ Page({
     }
   },
 
+  // ============ 定位 + 加载 ============
+  tryLocateAndLoad() {
+    wx.getLocation({
+      type: 'gcj02',
+      success: (res) => {
+        const app = getApp();
+        app.globalData.cityCenter = {
+          latitude: res.latitude,
+          longitude: res.longitude
+        };
+        this.setData({
+          latitude: res.latitude,
+          longitude: res.longitude,
+          scale: 12,
+          cityName: '当前位置'
+        });
+        this.loadCamps();
+      },
+      fail: () => {
+        // 定位失败，用默认中心
+        this.setData({ cityName: '青岛市' });
+        this.loadCamps();
+      }
+    });
+  },
+
+  // ============ 计算当前地图可见范围 ============
+  getMapBounds() {
+    const lat = this.data.latitude;
+    const lng = this.data.longitude;
+    // 大约 1° lat ≈ 111km, 1° lng ≈ 111*cos(lat) km
+    // 根据缩放级别调整范围
+    const scale = this.data.scale || 11;
+    const radiusDeg = Math.max(0.3, 5.0 / Math.pow(2, scale - 8));
+    return {
+      minLat: lat - radiusDeg,
+      maxLat: lat + radiusDeg,
+      minLng: lng - radiusDeg / Math.cos(lat * Math.PI / 180),
+      maxLng: lng + radiusDeg / Math.cos(lat * Math.PI / 180)
+    };
+  },
+
   // ============ 加载营地数据 ============
   async loadCamps() {
+    if (this.data.loadingCamps) return;
+    this.setData({ loadingCamps: true });
+
+    const bounds = this.getMapBounds();
+
+    // 如果有筛选条件，先加载全部再本地筛选
+    const hasFilter = this.data.filterCount > 0;
+    const fetchBounds = hasFilter ? null : bounds;
+
     util.showLoading('加载营地...');
     try {
-      const camps = await api.fetchCampsites(this.data.filters);
-      this.setData({ camps });
+      const camps = await api.fetchCampsites(this.data.filters, fetchBounds);
+      this.setData({
+        camps,
+        campCount: camps.length
+      });
       this.buildMarkers(camps);
       this.buildCircle();
     } catch (e) {
       util.showToast('加载失败，请重试');
     }
     util.hideLoading();
+    this.setData({ loadingCamps: false });
   },
 
   // ============ 构建地图标记 ============
   buildMarkers(camps) {
     const markers = camps.map((c, idx) => {
-      const isRV = c.rv_friendly == 1;
       const isFree = c.parking_status == 0;
       let iconPath = '/assets/markers/free.png';
-      if (isRV) iconPath = '/assets/markers/rv.png';
-      else if (!isFree) iconPath = '/assets/markers/paid.png';
+      if (!isFree) iconPath = '/assets/markers/paid.png';
+      if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
 
       return {
         id: idx,
         latitude: c.latitude,
         longitude: c.longitude,
         iconPath: iconPath,
-        width: isRV ? 24 : 28,
-        height: isRV ? 24 : 32,
+        width: 28,
+        height: 32,
         callout: {
           content: c.name,
           color: '#1a2e1f',
@@ -131,7 +194,7 @@ Page({
         }
       };
     });
-    this.setData({ markers });
+    this.setData({ markers, filteredCount: camps.length });
   },
 
   // ============ 构建15km范围圆 ============
@@ -229,7 +292,6 @@ Page({
         userPoints: result.points
       });
       util.showToast('签到成功 +10 积分');
-      // 自动打开详情
       setTimeout(() => this.viewDetail(), 800);
     } else {
       util.showToast(result.msg);
@@ -254,11 +316,9 @@ Page({
       filterCount: count
     });
 
-    // 保存到全局
     const app = getApp();
     app.globalData.filters = filters;
 
-    // 构建摘要文本
     if (count > 0) {
       let parts = [];
       if (filters.fee !== 'all') parts.push(filters.fee == '0' ? '免费' : '收费');
@@ -319,6 +379,7 @@ Page({
           scale: 13
         });
         this.buildCircle();
+        this.loadCamps();
         util.showToast('已定位到当前位置');
       },
       fail: () => {
@@ -327,10 +388,25 @@ Page({
     });
   },
 
-  // ============ 地图区域变化 ============
+  // ============ 地图区域变化 (拖动/缩放后重新加载) ============
   onRegionChange(e) {
-    if (e.type === 'end' && e.causedBy === 'drag') {
-      // 可选：拖动后重新加载该区域营地
+    if (e.type !== 'end') return;
+
+    // 更新中心坐标
+    if (e.detail && e.detail.latitude) {
+      this.setData({
+        latitude: e.detail.latitude,
+        longitude: e.detail.longitude,
+        scale: e.detail.scale || this.data.scale
+      });
+    }
+
+    // 仅在拖动结束时重新加载（防抖 1.5 秒）
+    if (e.causedBy === 'drag' || e.causedBy === 'scale') {
+      if (this._reloadTimer) clearTimeout(this._reloadTimer);
+      this._reloadTimer = setTimeout(() => {
+        this.loadCamps();
+      }, 1500);
     }
   },
 
