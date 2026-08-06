@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-公益露营地图 - 全国营地数据采集工具 v5.0
+公益露营地图 - 全国营地数据采集工具 v6.0
 从安营驻车 API 采集营地数据, 导入 Supabase 数据库
+
+覆盖全国 337 个地级行政区（地级市、自治州、地区、盟）
 
 使用方法:
     # 采集指定城市
     python collect_national.py --city 青岛
 
-    # 采集所有城市
+    # 采集整个省
+    python collect_national.py --province 山东省
+
+    # 采集所有城市（全国）
     python collect_national.py --all
 
     # 自定义城市间间隔(秒)
@@ -17,8 +22,20 @@
     # 仅采集不导入(导出JSON)
     python collect_national.py --city 青岛 --no-import
 
+    # 断点续采（跳过已采集的城市）
+    python collect_national.py --all --resume
+
+    # 指定从第 N 个城市开始
+    python collect_national.py --all --start-index 50
+
+    # 列出所有城市
+    python collect_national.py --list-cities
+
+    # 查看采集进度
+    python collect_national.py --progress
+
 环境变量:
-    SUPABASE_KEY: Supabase service_role key (必须)
+    SUPABASE_KEY: Supabase service_role key (导入时必须)
 
 依赖:
     pip install httpx
@@ -36,64 +53,69 @@ from typing import List, Dict, Optional
 
 import httpx
 
+# ======================== 城市数据 ========================
+from cities_data import CITIES
+
 # ======================== 配置 ========================
 
 SUPABASE_URL = "https://drktdyfwawpfughuzqvs.supabase.co"
 LIST_API = "https://zhuche.anying.wang/api/Marker/getmarkers"
 DETAIL_API = "https://zhuche.anying.wang/api/Marker/view"
 
-# 城市配置
-CITIES = [
-    {"name": "北京",   "lat_min": 39.4, "lat_max": 41.1, "lng_min": 115.4, "lng_max": 117.5, "province": "北京市"},
-    {"name": "上海",   "lat_min": 30.7, "lat_max": 31.9, "lng_min": 120.8, "lng_max": 122.2, "province": "上海市"},
-    {"name": "广州",   "lat_min": 22.5, "lat_max": 23.9, "lng_min": 112.8, "lng_max": 114.0, "province": "广东省"},
-    {"name": "深圳",   "lat_min": 22.4, "lat_max": 22.9, "lng_min": 113.7, "lng_max": 114.8, "province": "广东省"},
-    {"name": "成都",   "lat_min": 30.0, "lat_max": 31.5, "lng_min": 103.0, "lng_max": 104.8, "province": "四川省"},
-    {"name": "杭州",   "lat_min": 29.8, "lat_max": 30.6, "lng_min": 119.5, "lng_max": 120.8, "province": "浙江省"},
-    {"name": "南京",   "lat_min": 31.6, "lat_max": 32.6, "lng_min": 118.3, "lng_max": 119.3, "province": "江苏省"},
-    {"name": "武汉",   "lat_min": 29.9, "lat_max": 31.4, "lng_min": 113.7, "lng_max": 115.1, "province": "湖北省"},
-    {"name": "西安",   "lat_min": 33.8, "lat_max": 34.7, "lng_min": 108.5, "lng_max": 109.5, "province": "陕西省"},
-    {"name": "重庆",   "lat_min": 28.6, "lat_max": 30.0, "lng_min": 105.5, "lng_max": 107.5, "province": "重庆市"},
-    {"name": "天津",   "lat_min": 38.6, "lat_max": 40.2, "lng_min": 116.7, "lng_max": 118.1, "province": "天津市"},
-    {"name": "昆明",   "lat_min": 24.4, "lat_max": 25.6, "lng_min": 102.2, "lng_max": 103.5, "province": "云南省"},
-    {"name": "南宁",   "lat_min": 22.5, "lat_max": 23.3, "lng_min": 107.8, "lng_max": 108.9, "province": "广西壮族自治区"},
-    {"name": "贵阳",   "lat_min": 26.2, "lat_max": 27.3, "lng_min": 106.2, "lng_max": 107.3, "province": "贵州省"},
-    {"name": "长沙",   "lat_min": 27.8, "lat_max": 28.6, "lng_min": 112.6, "lng_max": 113.7, "province": "湖南省"},
-    {"name": "南昌",   "lat_min": 28.2, "lat_max": 29.2, "lng_min": 115.5, "lng_max": 116.7, "province": "江西省"},
-    {"name": "福州",   "lat_min": 25.4, "lat_max": 26.6, "lng_min": 118.8, "lng_max": 120.0, "province": "福建省"},
-    {"name": "厦门",   "lat_min": 24.0, "lat_max": 24.9, "lng_min": 117.5, "lng_max": 118.6, "province": "福建省"},
-    {"name": "郑州",   "lat_min": 34.2, "lat_max": 35.1, "lng_min": 113.0, "lng_max": 114.2, "province": "河南省"},
-    {"name": "济南",   "lat_min": 36.0, "lat_max": 36.9, "lng_min": 116.5, "lng_max": 117.8, "province": "山东省"},
-    {"name": "青岛",   "lat_min": 35.5, "lat_max": 37.5, "lng_min": 119.5, "lng_max": 121.5, "province": "山东省"},
-    {"name": "哈尔滨", "lat_min": 44.8, "lat_max": 46.2, "lng_min": 125.8, "lng_max": 127.5, "province": "黑龙江省"},
-    {"name": "长春",   "lat_min": 43.4, "lat_max": 44.3, "lng_min": 124.8, "lng_max": 126.2, "province": "吉林省"},
-    {"name": "沈阳",   "lat_min": 41.3, "lat_max": 42.4, "lng_min": 122.8, "lng_max": 124.0, "province": "辽宁省"},
-    {"name": "大连",   "lat_min": 38.5, "lat_max": 39.5, "lng_min": 120.8, "lng_max": 122.4, "province": "辽宁省"},
-    {"name": "呼和浩特","lat_min": 40.4, "lat_max": 41.5, "lng_min": 111.0, "lng_max": 112.5, "province": "内蒙古自治区"},
-    {"name": "乌鲁木齐","lat_min": 43.0, "lat_max": 44.3, "lng_min": 86.5, "lng_max": 88.0, "province": "新疆维吾尔自治区"},
-    {"name": "兰州",   "lat_min": 35.6, "lat_max": 36.6, "lng_min": 103.0, "lng_max": 104.2, "province": "甘肃省"},
-    {"name": "银川",   "lat_min": 37.8, "lat_max": 38.9, "lng_min": 105.5, "lng_max": 107.0, "province": "宁夏回族自治区"},
-    {"name": "西宁",   "lat_min": 36.0, "lat_max": 37.0, "lng_min": 100.8, "lng_max": 102.3, "province": "青海省"},
-    {"name": "拉萨",   "lat_min": 29.0, "lat_max": 30.2, "lng_min": 90.5, "lng_max": 92.0, "province": "西藏自治区"},
-    {"name": "海口",   "lat_min": 19.5, "lat_max": 20.3, "lng_min": 109.5, "lng_max": 111.0, "province": "海南省"},
-    {"name": "三亚",   "lat_min": 18.0, "lat_max": 18.6, "lng_min": 108.8, "lng_max": 110.0, "province": "海南省"},
-    {"name": "太原",   "lat_min": 37.3, "lat_max": 38.3, "lng_min": 111.5, "lng_max": 113.0, "province": "山西省"},
-    {"name": "石家庄", "lat_min": 37.7, "lat_max": 38.7, "lng_min": 113.8, "lng_max": 115.2, "province": "河北省"},
-    {"name": "合肥",   "lat_min": 31.3, "lat_max": 32.3, "lng_min": 116.5, "lng_max": 117.8, "province": "安徽省"},
-    {"name": "无锡",   "lat_min": 31.2, "lat_max": 32.0, "lng_min": 119.8, "lng_max": 120.8, "province": "江苏省"},
-    {"name": "苏州",   "lat_min": 30.7, "lat_max": 31.8, "lng_min": 119.8, "lng_max": 121.0, "province": "江苏省"},
-    {"name": "宁波",   "lat_min": 29.0, "lat_max": 30.3, "lng_min": 120.8, "lng_max": 122.3, "province": "浙江省"},
-    {"name": "温州",   "lat_min": 27.5, "lat_max": 28.5, "lng_min": 119.8, "lng_max": 121.2, "province": "浙江省"},
-    {"name": "珠海",   "lat_min": 21.8, "lat_max": 22.5, "lng_min": 113.0, "lng_max": 114.0, "province": "广东省"},
-    {"name": "佛山",   "lat_min": 22.8, "lat_max": 23.6, "lng_min": 112.3, "lng_max": 113.5, "province": "广东省"},
-    {"name": "东莞",   "lat_min": 22.6, "lat_max": 23.3, "lng_min": 113.5, "lng_max": 114.5, "province": "广东省"},
-]
+PROGRESS_FILE = "collect_progress.json"
 
 
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] {msg}", flush=True)
 
+
+# ======================== 进度管理 ========================
+
+def load_progress() -> Dict:
+    """加载采集进度"""
+    if os.path.exists(PROGRESS_FILE):
+        try:
+            with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return {"completed": [], "failed": [], "last_update": ""}
+
+
+def save_progress(progress: Dict):
+    """保存采集进度"""
+    progress["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
+        json.dump(progress, f, ensure_ascii=False, indent=2)
+
+
+def mark_completed(progress: Dict, city_name: str, count: int):
+    """标记城市采集完成"""
+    progress["completed"].append({
+        "city": city_name,
+        "count": count,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    save_progress(progress)
+
+
+def mark_failed(progress: Dict, city_name: str, reason: str):
+    """标记城市采集失败"""
+    progress["failed"].append({
+        "city": city_name,
+        "reason": reason,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    save_progress(progress)
+
+
+def is_completed(progress: Dict, city_name: str) -> bool:
+    """检查城市是否已完成"""
+    return any(c["city"] == city_name for c in progress["completed"])
+
+
+# ======================== API 采集 ========================
 
 def fetch_list(http: httpx.Client, lat_min, lat_max, lng_min, lng_max) -> List[Dict]:
     """获取网格内营地列表"""
@@ -283,53 +305,137 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
     return records
 
 
+# ======================== 主函数 ========================
+
 def main():
-    parser = argparse.ArgumentParser(description="公益露营地图 - 全国营地数据采集工具 v5.0")
+    parser = argparse.ArgumentParser(description="公益露营地图 - 全国营地数据采集工具 v6.0")
     parser.add_argument("--city", help="采集指定城市 (如: 青岛)")
-    parser.add_argument("--all", action="store_true", help="采集所有城市")
+    parser.add_argument("--province", help="采集整个省 (如: 山东省)")
+    parser.add_argument("--all", action="store_true", help="采集所有城市 (全国337个地级行政区)")
     parser.add_argument("--city-delay", type=int, default=180, help="城市间间隔秒数 (默认180)")
     parser.add_argument("--grid-delay", type=float, default=0.6, help="网格请求间隔秒数 (默认0.6)")
     parser.add_argument("--detail-delay", type=float, default=0.35, help="详情请求间隔秒数 (默认0.35)")
     parser.add_argument("--grid-size", type=float, default=0.5, help="网格大小 (默认0.5度)")
     parser.add_argument("--no-import", action="store_true", help="不导入数据库, 仅导出JSON")
+    parser.add_argument("--resume", action="store_true", help="断点续采, 跳过已完成的城市")
+    parser.add_argument("--start-index", type=int, default=0, help="从第N个城市开始 (0-based)")
     parser.add_argument("--list-cities", action="store_true", help="列出所有支持的城市")
+    parser.add_argument("--list-provinces", action="store_true", help="列出所有省份及城市数")
+    parser.add_argument("--progress", action="store_true", help="查看采集进度")
+    parser.add_argument("--reset-progress", action="store_true", help="清除采集进度")
     args = parser.parse_args()
 
-    if args.list_cities:
-        print("支持的城市:")
-        for c in CITIES:
-            print(f"  {c['name']:8s}  {c['province']}")
+    # ---- 查看进度 ----
+    if args.progress:
+        p = load_progress()
+        log(f"=" * 50)
+        log(f"采集进度报告")
+        log(f"=" * 50)
+        log(f"已完成: {len(p['completed'])} / {len(CITIES)} 个城市")
+        log(f"失败: {len(p['failed'])} 个城市")
+        log(f"最后更新: {p.get('last_update', '无')}")
+        if p["completed"]:
+            total_spots = sum(c["count"] for c in p["completed"])
+            log(f"已采集营地总数: {total_spots}")
+            log(f"\n已完成城市:")
+            for c in p["completed"][-20:]:
+                log(f"  {c['city']:12s}  {c['count']:4d} 条  {c['time']}")
+            if len(p["completed"]) > 20:
+                log(f"  ... (仅显示最近20个)")
+        if p["failed"]:
+            log(f"\n失败城市:")
+            for c in p["failed"]:
+                log(f"  {c['city']:12s}  {c['reason']}")
+        remaining = [city["name"] for city in CITIES
+                     if not is_completed(p, city["name"])]
+        log(f"\n剩余: {len(remaining)} 个城市未采集")
         return
 
-    if not args.city and not args.all:
-        print("请指定 --city 城市名 或 --all 采集全部")
+    # ---- 清除进度 ----
+    if args.reset_progress:
+        if os.path.exists(PROGRESS_FILE):
+            os.remove(PROGRESS_FILE)
+            log("采集进度已清除")
+        else:
+            log("无进度文件")
+        return
+
+    # ---- 列出省份 ----
+    if args.list_provinces:
+        from collections import Counter
+        prov_count = Counter(c["province"] for c in CITIES)
+        log(f"全国共 {len(CITIES)} 个地级行政区, {len(prov_count)} 个省级行政区:")
+        for prov, count in sorted(prov_count.items(), key=lambda x: -x[1]):
+            print(f"  {prov:16s}  {count:2d} 个")
+        return
+
+    # ---- 列出城市 ----
+    if args.list_cities:
+        current_prov = ""
+        for i, c in enumerate(CITIES):
+            if c["province"] != current_prov:
+                current_prov = c["province"]
+                print(f"\n{current_prov}:")
+            print(f"  [{i:3d}] {c['name']}")
+        print(f"\n共 {len(CITIES)} 个城市")
+        return
+
+    # ---- 确定要采集的城市 ----
+    if not args.city and not args.all and not args.province:
+        print("请指定 --city 城市名 / --province 省份 / --all 采集全部")
         print("使用 --list-cities 查看支持的城市")
+        print("使用 --list-provinces 查看省份列表")
         sys.exit(1)
 
-    # 确定要采集的城市
     if args.all:
         targets = CITIES
+    elif args.province:
+        targets = [c for c in CITIES if args.province in c["province"]]
+        if not targets:
+            print(f"未找到省份: {args.province}")
+            print("使用 --list-provinces 查看支持的省份")
+            sys.exit(1)
+        log(f"省份 {targets[0]['province']} 共 {len(targets)} 个城市")
     else:
         targets = [c for c in CITIES if args.city in c["name"]]
         if not targets:
             print(f"未找到城市: {args.city}, 使用 --list-cities 查看支持的城市")
             sys.exit(1)
 
-    # 获取 API key
+    # ---- 跳过已完成 ----
+    progress = load_progress()
+    if args.resume:
+        before = len(targets)
+        targets = [c for c in targets if not is_completed(progress, c["name"])]
+        skipped = before - len(targets)
+        log(f"断点续采: 跳过已完成 {skipped} 个城市, 剩余 {len(targets)} 个")
+
+    # ---- 起始索引 ----
+    if args.start_index > 0 and args.start_index < len(targets):
+        targets = targets[args.start_index:]
+        log(f"从第 {args.start_index} 个城市开始, 剩余 {len(targets)} 个")
+
+    if not targets:
+        log("没有需要采集的城市 (全部已完成)")
+        return
+
+    # ---- 获取 API key ----
     key = os.getenv("SUPABASE_KEY", "")
-    if not key:
-        print("[!] 请设置环境变量 SUPABASE_KEY")
+    if not key and not args.no_import:
+        print("[!] 请设置环境变量 SUPABASE_KEY, 或使用 --no-import 仅导出JSON")
         print("    export SUPABASE_KEY='your_service_role_key'")
         sys.exit(1)
 
     log(f"=" * 60)
-    log(f"公益露营地图 - 数据采集工具 v5.0")
-    log(f"待采集城市: {len(targets)} 个")
+    log(f"公益露营地图 - 数据采集工具 v6.0")
+    log(f"待采集城市: {len(targets)} 个 (全国共 {len(CITIES)} 个)")
     log(f"城市间间隔: {args.city_delay}秒")
     if args.no_import:
         log(f"模式: 仅导出JSON (不导入数据库)")
     else:
         log(f"模式: 采集 + 导入数据库")
+    if args.resume:
+        log(f"断点续采: 已启用")
     log(f"=" * 60)
 
     http = httpx.Client(timeout=30.0)
@@ -337,23 +443,47 @@ def main():
 
     total_imported = 0
     total_spots = 0
+    success_count = 0
+    fail_count = 0
 
     for ci, city in enumerate(targets):
-        records = collect_city(http, city, args.grid_size, args.grid_delay, args.detail_delay)
+        city_name = city["name"]
+        log(f"\n{'─' * 60}")
+        log(f"进度: {ci + 1}/{len(targets)} - {city_name} ({city['province']})")
 
-        if records:
-            total_spots += len(records)
+        try:
+            records = collect_city(http, city, args.grid_size, args.grid_delay, args.detail_delay)
 
-            if not args.no_import:
-                imported = import_to_db(db_client, key, records)
-                total_imported += imported
-                log(f"  导入数据库: {imported} 条")
+            if records:
+                total_spots += len(records)
+
+                if not args.no_import:
+                    imported = import_to_db(db_client, key, records)
+                    total_imported += imported
+                    log(f"  导入数据库: {imported} 条")
+                else:
+                    # 导出 JSON
+                    filename = f"camps_{city_name}.json"
+                    with open(filename, "w", encoding="utf-8") as f:
+                        json.dump(records, f, ensure_ascii=False, indent=2)
+                    log(f"  导出: {filename}")
+
+                mark_completed(progress, city_name, len(records))
+                success_count += 1
             else:
-                # 导出 JSON
-                filename = f"camps_{city['name']}.json"
-                with open(filename, "w", encoding="utf-8") as f:
-                    json.dump(records, f, ensure_ascii=False, indent=2)
-                log(f"  导出: {filename}")
+                mark_completed(progress, city_name, 0)
+                log(f"  {city_name} 无营地数据, 标记完成")
+
+        except KeyboardInterrupt:
+            log(f"\n[!] 用户中断, 保存进度...")
+            mark_failed(progress, city_name, "用户中断")
+            save_progress(progress)
+            log(f"已完成 {success_count} 个城市, 可使用 --resume 继续")
+            break
+        except Exception as e:
+            log(f"  [采集异常] {e}")
+            mark_failed(progress, city_name, str(e))
+            fail_count += 1
 
         # 城市间间隔
         if ci < len(targets) - 1:
@@ -363,10 +493,13 @@ def main():
 
     log(f"\n{'=' * 60}")
     log(f"采集任务完成!")
-    log(f"  采集城市: {len(targets)}")
+    log(f"  采集城市: {success_count} 成功, {fail_count} 失败")
     log(f"  总营地数: {total_spots}")
     if not args.no_import:
         log(f"  总导入数: {total_imported}")
+    log(f"  进度文件: {PROGRESS_FILE}")
+    log(f"  使用 --progress 查看详细进度")
+    log(f"  使用 --resume 断点续采")
     log(f"{'=' * 60}")
 
     http.close()
