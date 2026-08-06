@@ -50,8 +50,8 @@ Page({
   // ============ 加载营地数据 (全国范围,用于线路沿途搜索) ============
   async loadCamps() {
     try {
-      // 线路规划需要全国数据,不传 bounds
-      const camps = await api.fetchCampsites({ fee: 'all' }, null);
+      // 线路规划需要全国数据,不传 bounds, 拉取全部
+      const camps = await api.fetchCampsites({ fee: 'all' }, null, 10000);
       this.setData({ allCamps: camps || [] });
     } catch (e) {
       this.setData({ allCamps: [] });

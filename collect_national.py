@@ -168,6 +168,23 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
         if data.get("status") != "200":
             return None
         d = data.get("data", {})
+
+        # 解析 sheshi 设施代码 (JSON 字符串格式, 如 '["15","20"]')
+        # 代码映射: 15=房车, 20=拖挂, 25=帐篷, 40=钓鱼, 50=淋浴
+        sheshi_str = d.get("sheshi", "")
+        sheshi_codes = []
+        if sheshi_str:
+            try:
+                sheshi_codes = json.loads(sheshi_str)
+            except:
+                pass
+
+        rv_friendly = 1 if "15" in sheshi_codes else 0
+        trailer_friendly = 1 if "20" in sheshi_codes else 0
+        tent_friendly = 1 if "25" in sheshi_codes else 0
+        fishing_status = 1 if "40" in sheshi_codes else 0
+        shower_status = 1 if "50" in sheshi_codes else 0
+
         return {
             "name": d.get("name", ""),
             "longitude": float(d.get("longitude", 0)),
@@ -180,6 +197,11 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
             "water_status": int(d.get("jiashui", 0)),
             "power_status": int(d.get("jiedian", 0)),
             "charging_status": int(d.get("jiaqi", 0)),
+            "rv_friendly": rv_friendly,
+            "trailer_friendly": trailer_friendly,
+            "tent_friendly": tent_friendly,
+            "shower_status": shower_status,
+            "fishing_status": fishing_status,
         }
     except:
         return None
@@ -276,6 +298,11 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "water_status": detail["water_status"],
                 "power_status": detail["power_status"],
                 "charging_status": detail["charging_status"],
+                "rv_friendly": detail["rv_friendly"],
+                "trailer_friendly": detail["trailer_friendly"],
+                "tent_friendly": detail["tent_friendly"],
+                "shower_status": detail["shower_status"],
+                "fishing_status": detail["fishing_status"],
                 "province": city["province"],
                 "city": city_label,
             })
@@ -293,6 +320,11 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "water_status": 1 if spot["has_water"] else 0,
                 "power_status": 1 if spot["has_power"] else 0,
                 "charging_status": 0,
+                "rv_friendly": 0,
+                "trailer_friendly": 0,
+                "tent_friendly": 0,
+                "shower_status": 0,
+                "fishing_status": 0,
                 "province": city["province"],
                 "city": city_label,
             })

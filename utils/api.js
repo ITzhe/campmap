@@ -52,10 +52,11 @@ function normalizeCamp(camp) {
  * 获取营地列表 (带筛选 + 地理范围过滤)
  * @param {Object} filters - 筛选条件
  * @param {Object} bounds - 地理范围 {minLat, maxLat, minLng, maxLng}
+ * @param {number} limit - 返回数量限制 (默认200)
  */
-async function fetchCampsites(filters, bounds) {
+async function fetchCampsites(filters, bounds, limit) {
   // 只查询数据库中确定存在的字段
-  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo';
+  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status';
 
   let url = `${config.API_BASE}/camping_spots?select=${selectFields}`;
 
@@ -68,7 +69,7 @@ async function fetchCampsites(filters, bounds) {
   if (filters && filters.fee && filters.fee !== 'all') {
     url += `&parking_status=eq.${filters.fee}`;
   }
-  url += '&limit=200';
+  url += `&limit=${limit || 200}`;
 
   try {
     const data = await request(url, 'GET');
