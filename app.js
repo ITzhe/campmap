@@ -12,7 +12,8 @@ App({
     selectedCamp: null,
     filters: { fee: 'all', park: [], fac: [] },
     cityCenter: { latitude: 36.0671, longitude: 120.3826 },
-    cityName: '青岛市'
+    cityName: '当前位置',
+    cityChanged: false
   },
 
   onLaunch() {

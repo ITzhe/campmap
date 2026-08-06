@@ -1,0 +1,55 @@
+<!-- pages/city-picker/index.wxml — 城市选择 -->
+<view class="page-city">
+  <!-- 自定义导航栏 -->
+  <view class="cp-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="cp-back" bindtap="goBack">‹</view>
+    <view class="cp-title">选择城市</view>
+    <view class="cp-loc" bindtap="useLocation">📍 定位</view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="cp-search">
+    <view class="cp-search-box">
+      <text class="cp-search-icon">🔍</text>
+      <input class="cp-search-input" value="{{searchKey}}" bindinput="onSearchInput"
+        placeholder="输入城市名或省份" confirm-type="search" />
+      <view wx:if="{{searchKey}}" class="cp-search-clear" bindtap="clearSearch">✕</view>
+    </view>
+  </view>
+
+  <!-- 热门城市 (无搜索时显示) -->
+  <view wx:if="{{!searchKey}}" class="cp-section">
+    <view class="cp-section-title">热门城市</view>
+    <view class="cp-hot">
+      <view class="cp-hot-item" wx:for="{{hotCities}}" wx:key="name"
+        data-name="{{item.name}}" data-lat="{{item.lat}}" data-lng="{{item.lng}}"
+        bindtap="selectCity">{{item.name}}</view>
+    </view>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view wx:if="{{searchKey}}" class="cp-section">
+    <view class="cp-section-title">搜索结果 ({{filteredCities.length}})</view>
+    <view class="cp-list">
+      <view class="cp-list-item" wx:for="{{filteredCities}}" wx:key="name"
+        data-name="{{item.name}}" data-lat="{{item.lat}}" data-lng="{{item.lng}}"
+        bindtap="selectCity">
+        <text class="cp-item-name">{{item.name}}</text>
+        <text class="cp-item-prov">{{item.province}}</text>
+      </view>
+      <view wx:if="{{filteredCities.length === 0}}" class="cp-empty">未找到城市</view>
+    </view>
+  </view>
+
+  <!-- 按省份分组列表 -->
+  <view wx:if="{{!searchKey}}" class="cp-section" wx:for="{{groupedCities}}" wx:for-item="group" wx:key="province">
+    <view class="cp-section-title">{{group.province}}</view>
+    <view class="cp-grid">
+      <view class="cp-grid-item" wx:for="{{group.cities}}" wx:key="name"
+        data-name="{{item.name}}" data-lat="{{item.lat}}" data-lng="{{item.lng}}"
+        bindtap="selectCity">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

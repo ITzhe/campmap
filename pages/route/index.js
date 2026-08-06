@@ -3,24 +3,14 @@ const config = require('../../utils/config');
 const api = require('../../utils/api');
 const util = require('../../utils/util');
 
-// 常用 POI 坐标 (青岛)
-const POIS = {
-  '青岛火车站': { lat: 36.0648, lng: 120.3199 },
-  '崂山风景区': { lat: 36.1571, lng: 120.6240 },
-  '黄岛金沙滩': { lat: 35.9647, lng: 120.1669 },
-  '胶东国际机场': { lat: 36.3671, lng: 120.3730 },
-  '五四广场': { lat: 36.0661, lng: 120.3858 },
-  '栈桥': { lat: 36.0591, lng: 120.3176 },
-  '即墨鳌山湾': { lat: 36.3814, lng: 120.7122 },
-  '北九水': { lat: 36.2330, lng: 120.5910 }
-};
-
 Page({
   data: {
     statusBarHeight: 20,
     navHeight: 64,
-    routeStart: '青岛火车站',
-    routeEnd: '崂山风景区',
+    routeStart: '',
+    routeEnd: '',
+    startCoord: null,   // {lat, lng, name}
+    endCoord: null,     // {lat, lng, name}
     showResult: false,
     routeDist: 0,
     routeCamps: 0,
@@ -30,7 +20,7 @@ Page({
     // 地图
     latitude: 36.0671,
     longitude: 120.3826,
-    scale: 11,
+    scale: 5,
     markers: [],
     polyline: [],
 
@@ -68,47 +58,84 @@ Page({
     }
   },
 
-  // ============ 输入 ============
+  // ============ 选择起点 (使用地图选点) ============
+  chooseStart() {
+    const cur = this.data.startCoord || {
+      lat: this.data.latitude,
+      lng: this.data.longitude
+    };
+    wx.chooseLocation({
+      latitude: cur.lat,
+      longitude: cur.lng,
+      success: (res) => {
+        this.setData({
+          routeStart: res.name || res.address,
+          startCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
+        });
+      },
+      fail: () => {}
+    });
+  },
+
+  // ============ 选择终点 (使用地图选点) ============
+  chooseEnd() {
+    const cur = this.data.endCoord || this.data.startCoord || {
+      lat: this.data.latitude,
+      lng: this.data.longitude
+    };
+    wx.chooseLocation({
+      latitude: cur.lat,
+      longitude: cur.lng,
+      success: (res) => {
+        this.setData({
+          routeEnd: res.name || res.address,
+          endCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
+        });
+      },
+      fail: () => {}
+    });
+  },
+
+  // ============ 手动输入回退 ============
   onStartInput(e) {
-    this.setData({ routeStart: e.detail.value });
+    this.setData({ routeStart: e.detail.value, startCoord: null });
   },
 
   onEndInput(e) {
-    this.setData({ routeEnd: e.detail.value });
+    this.setData({ routeEnd: e.detail.value, endCoord: null });
   },
 
   addWaypoint() {
     util.showToast('途经点功能开发中');
   },
 
-  // ============ 地理编码 (POI 匹配) ============
-  geoCode(name) {
-    const key = (name || '').trim();
-    if (!key) return null;
-    if (POIS[key]) return POIS[key];
-    for (const k in POIS) {
-      if (k.indexOf(key) >= 0 || key.indexOf(k) >= 0) return POIS[k];
-    }
-    return null;
-  },
-
   // ============ 规划路线 ============
   calcRoute() {
     const startName = (this.data.routeStart || '').trim();
     const endName = (this.data.routeEnd || '').trim();
-    if (!startName) { util.showToast('请输入起点'); return; }
-    if (!endName) { util.showToast('请输入终点'); return; }
+    if (!startName) { util.showToast('请选择起点'); return; }
+    if (!endName) { util.showToast('请选择终点'); return; }
 
-    // 解析坐标 (未识别时使用默认城市中心偏移)
-    const s = this.geoCode(startName) || { lat: 36.0671, lng: 120.3826 };
-    const e = this.geoCode(endName) || { lat: 36.1571, lng: 120.6240 };
+    // 必须有坐标（通过 chooseLocation 选择）
+    let s = this.data.startCoord;
+    let e = this.data.endCoord;
+
+    // 如果没有坐标，提示用户通过地图选点
+    if (!s) {
+      util.showToast('请点击起点输入框选择位置');
+      return;
+    }
+    if (!e) {
+      util.showToast('请点击终点输入框选择位置');
+      return;
+    }
 
     // 里程 (直线距离 × 1.3 道路系数)
     const straight = util.distance(s.lat, s.lng, e.lat, e.lng);
     const dist = Math.round(straight * 1.3 * 10) / 10;
 
-    // 预计时长 (按 60km/h 均速)
-    const minutes = Math.max(1, Math.round(dist / 60 * 60));
+    // 预计时长 (按 80km/h 均速)
+    const minutes = Math.max(1, Math.round(dist / 80 * 60));
     const hh = Math.floor(minutes / 60);
     const mm = minutes % 60;
     const timeStr = hh > 0 ? `${hh}小时${mm}分` : `${mm}分钟`;
@@ -116,8 +143,9 @@ Page({
     // 沿途营地
     const campList = this.findCampsAlong(s.lat, s.lng, e.lat, e.lng);
 
-    // 路径点
-    const points = this.genRoutePoints(s.lat, s.lng, e.lat, e.lng);
+    // 路径点（根据距离自动增加采样点）
+    const stepCount = Math.max(8, Math.min(50, Math.round(dist / 20)));
+    const points = this.genRoutePoints(s.lat, s.lng, e.lat, e.lng, stepCount);
 
     // 起点 / 终点标记
     const markers = [
@@ -125,7 +153,6 @@ Page({
         id: 0,
         latitude: s.lat,
         longitude: s.lng,
-        iconPath: '/assets/markers/location.png',
         width: 30,
         height: 30,
         callout: {
@@ -144,7 +171,6 @@ Page({
         id: 1,
         latitude: e.lat,
         longitude: e.lng,
-        iconPath: '/assets/markers/location.png',
         width: 30,
         height: 30,
         callout: {
@@ -196,7 +222,15 @@ Page({
     // 地图中心 = 中点，缩放随距离调整
     const midLat = (s.lat + e.lat) / 2;
     const midLng = (s.lng + e.lng) / 2;
-    const scale = dist > 40 ? 9 : (dist > 20 ? 10 : 11);
+    // 根据距离自适应缩放级别
+    let scale;
+    if (dist > 800) scale = 5;
+    else if (dist > 400) scale = 6;
+    else if (dist > 200) scale = 7;
+    else if (dist > 100) scale = 8;
+    else if (dist > 50) scale = 9;
+    else if (dist > 20) scale = 10;
+    else scale = 11;
 
     this.setData({
       showResult: true,
@@ -215,9 +249,9 @@ Page({
   },
 
   // ============ 生成路径点 ============
-  genRoutePoints(lat1, lng1, lat2, lng2) {
+  genRoutePoints(lat1, lng1, lat2, lng2, steps) {
+    steps = steps || 8;
     const pts = [];
-    const steps = 8;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       pts.push({
@@ -255,7 +289,10 @@ Page({
 
   // ============ 查找沿途营地 ============
   findCampsAlong(lat1, lng1, lat2, lng2) {
-    const corridor = 8; // 8km 走廊宽度
+    // 走廊宽度根据距离自适应：长途路线宽一点，短途窄一点
+    const straight = util.distance(lat1, lng1, lat2, lng2);
+    const corridor = Math.max(8, Math.min(30, straight / 20));
+
     const list = this.data.allCamps.map(c => {
       const offset = this.distToSegment(c.latitude, c.longitude, lat1, lng1, lat2, lng2);
       const distFromStart = util.distance(c.latitude, c.longitude, lat1, lng1);
@@ -266,7 +303,6 @@ Page({
 
     return list.map(o => {
       const c = o.camp;
-      // 保留完整营地数据 + 距离信息
       const result = {};
       for (const k in c) { result[k] = c[k]; }
       result.distance = Math.round(o.distFromStart * 10) / 10;
@@ -279,7 +315,6 @@ Page({
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];
     if (!camp) return;
-    // 写入全局选中营地，供地图页展示底部卡片
     const app = getApp();
     app.globalData.selectedCamp = camp;
     app.globalData.pendingCampFocus = true;
@@ -294,7 +329,17 @@ Page({
     const parts = item.name.split('→').map(s => s.trim());
     if (parts.length === 2) {
       this.setData({ routeStart: parts[0], routeEnd: parts[1] });
-      this.calcRoute();
+      util.showToast('请重新选择起终点位置');
     }
+  },
+
+  // ============ 交换起终点 ============
+  swapRoute() {
+    this.setData({
+      routeStart: this.data.routeEnd,
+      routeEnd: this.data.routeStart,
+      startCoord: this.data.endCoord,
+      endCoord: this.data.startCoord
+    });
   }
 });

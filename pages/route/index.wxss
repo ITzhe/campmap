@@ -59,12 +59,47 @@
   font-size: 26rpx;
   color: var(--text);
   background: #fafbfa;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ri-input.placeholder {
+  color: var(--text-ph);
+}
+
+.ri-loc-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  padding: 0 8rpx;
+}
+
+.ri-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6rpx 0;
 }
 
 .ri-addway {
   font-size: 24rpx;
   color: var(--green-2);
   padding: 10rpx 0;
+}
+
+.ri-swap {
+  font-size: 24rpx;
+  color: var(--text-2);
+  padding: 10rpx 0;
+}
+
+.ri-hint {
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-top: 12rpx;
+  text-align: center;
 }
 
 .ri-btn {

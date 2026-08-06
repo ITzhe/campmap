@@ -301,6 +301,152 @@
   line-height: 1.6;
 }
 
+/* ============ 用户动态 ============ */
+.dynamics-card {
+  padding-bottom: 8rpx;
+}
+
+.dyn-count {
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-left: 8rpx;
+  font-weight: 400;
+}
+
+.dyn-publish {
+  background: #f8faf8;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.dyn-textarea {
+  width: 100%;
+  min-height: 80rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.dyn-publish-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+.dyn-char-count {
+  font-size: 22rpx;
+  color: var(--text-ph);
+}
+
+.dyn-publish-btn {
+  background: var(--green);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 10rpx 36rpx;
+  border-radius: 24rpx;
+}
+
+.dyn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.dyn-item {
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+}
+
+.dyn-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
+
+.dyn-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dyn-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
+}
+
+.dyn-nick {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dyn-type-tag {
+  font-size: 20rpx;
+  color: var(--green);
+  background: var(--green-light);
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.dyn-text {
+  font-size: 26rpx;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 8rpx;
+}
+
+.dyn-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dyn-date {
+  font-size: 22rpx;
+  color: var(--text-ph);
+}
+
+.dyn-like {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  background: #f4f7f5;
+}
+
+.dyn-like.liked {
+  background: #fde8ec;
+}
+
+.dyn-like-icon {
+  font-size: 24rpx;
+}
+
+.dyn-like-count {
+  font-size: 22rpx;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.dyn-toggle {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--green-2);
+  padding: 20rpx 0 8rpx;
+}
+
 .bottom-spacer {
   height: 40rpx;
 }

@@ -1,0 +1,158 @@
+/* pages/city-picker/index.wxss — 城市选择 */
+.page-city {
+  min-height: 100vh;
+  background: #f4f7f5;
+}
+
+.cp-bar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  background: #2d6a4f;
+  padding: 0 24rpx;
+  gap: 16rpx;
+}
+
+.cp-back {
+  font-size: 48rpx;
+  color: #fff;
+  line-height: 1;
+  width: 60rpx;
+}
+
+.cp-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cp-loc {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+}
+
+/* 搜索 */
+.cp-search {
+  padding: 20rpx 24rpx;
+  background: #fff;
+}
+
+.cp-search-box {
+  display: flex;
+  align-items: center;
+  background: #f0f4f1;
+  border-radius: 36rpx;
+  height: 72rpx;
+  padding: 0 24rpx;
+  gap: 12rpx;
+}
+
+.cp-search-icon {
+  font-size: 28rpx;
+  color: #6b7c70;
+}
+
+.cp-search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a2e1f;
+}
+
+.cp-search-clear {
+  font-size: 28rpx;
+  color: #9ca8a0;
+  padding: 8rpx;
+}
+
+/* 分组 */
+.cp-section {
+  margin-top: 20rpx;
+  background: #fff;
+  padding: 24rpx;
+}
+
+.cp-section-title {
+  font-size: 26rpx;
+  color: #6b7c70;
+  margin-bottom: 20rpx;
+  font-weight: 600;
+}
+
+/* 热门城市 */
+.cp-hot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.cp-hot-item {
+  padding: 16rpx 36rpx;
+  background: #e8f5e9;
+  color: #2d6a4f;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 网格列表 */
+.cp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.cp-grid-item {
+  width: calc((100% - 48rpx) / 4);
+  text-align: center;
+  padding: 20rpx 0;
+  background: #f4f7f5;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #1a2e1f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 搜索结果列表 */
+.cp-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 0;
+  border-bottom: 2rpx solid #eef0ee;
+}
+
+.cp-list-item:last-child {
+  border-bottom: none;
+}
+
+.cp-item-name {
+  font-size: 30rpx;
+  color: #1a2e1f;
+  font-weight: 500;
+}
+
+.cp-item-prov {
+  font-size: 24rpx;
+  color: #9ca8a0;
+}
+
+.cp-empty {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #9ca8a0;
+  font-size: 28rpx;
+}
+
+.bottom-spacer {
+  height: 120rpx;
+}

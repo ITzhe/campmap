@@ -73,12 +73,58 @@
 
     <!-- 最新动态 -->
     <view class="card">
-      <view class="card-h"><view class="dot"></view>最新动态</view>
+      <view class="card-h"><view class="dot"></view>营地动态</view>
       <view class="news-list">
         <view class="news-item" wx:for="{{newsList}}" wx:key="date">
           <view class="news-date">{{item.date}}</view>
           <view class="news-text">{{item.text}}</view>
         </view>
+      </view>
+    </view>
+
+    <!-- 用户动态 -->
+    <view class="card dynamics-card">
+      <view class="card-h">
+        <view class="dot"></view>用户动态
+        <text class="dyn-count">{{dynamicsCount}}条</text>
+      </view>
+
+      <!-- 发布动态 -->
+      <view class="dyn-publish">
+        <textarea class="dyn-textarea" value="{{dynamicsInput}}" bindinput="onDynamicsInput"
+          placeholder="分享你的露营体验..." maxlength="200" auto-height="true" />
+        <view class="dyn-publish-bar">
+          <text class="dyn-char-count">{{dynamicsInput.length}}/200</text>
+          <view class="dyn-publish-btn" bindtap="submitDynamics">发布</view>
+        </view>
+      </view>
+
+      <!-- 动态列表 -->
+      <view class="dyn-list">
+        <view class="dyn-item" wx:for="{{dynamicsList}}" wx:key="index"
+          wx:if="{{dynamicsExpanded || index < 3}}"
+          data-idx="{{index}}" bindtap="likeDynamics">
+          <view class="dyn-avatar">{{item.avatar}}</view>
+          <view class="dyn-content">
+            <view class="dyn-head">
+              <text class="dyn-nick">{{item.nick}}</text>
+              <text class="dyn-type-tag" wx:if="{{item.type === 'checkin'}}">打卡</text>
+            </view>
+            <view class="dyn-text">{{item.text}}</view>
+            <view class="dyn-foot">
+              <text class="dyn-date">{{item.date}}</text>
+              <view class="dyn-like {{item.liked ? 'liked' : ''}}">
+                <text class="dyn-like-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+                <text class="dyn-like-count">{{item.likes}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 展开更多 -->
+      <view class="dyn-toggle" wx:if="{{dynamicsCount > 3}}" bindtap="toggleDynamics">
+        {{dynamicsExpanded ? '收起 ▲' : '查看全部' + dynamicsCount + '条动态 ▼'}}
       </view>
     </view>
 

@@ -16,7 +16,12 @@ Page({
     introExpanded: false,
     newsList: [],
     hasMemo: false,
-    userPoints: 0
+    userPoints: 0,
+    // 用户动态
+    dynamicsList: [],
+    dynamicsCount: 0,
+    dynamicsInput: '',
+    dynamicsExpanded: false
   },
 
   onLoad(options) {
@@ -82,6 +87,9 @@ Page({
     // 最新动态
     const newsList = this.buildNews(camp);
 
+    // 用户动态
+    const dynamicsList = this.loadDynamics(camp.spot_code);
+
     this.setData({
       camp,
       facGroups,
@@ -89,7 +97,9 @@ Page({
       chargingText,
       chargingInfo,
       newsList,
-      hasMemo: !!camp.memo
+      hasMemo: !!camp.memo,
+      dynamicsList,
+      dynamicsCount: dynamicsList.length
     });
   },
 
@@ -155,6 +165,99 @@ Page({
     const app = getApp();
     app.globalData.points = points;
     this.setData({ userPoints: points });
+
+    // 自动生成一条打卡动态
+    this.addDynamics('📍 到此一游', 'checkin');
     util.showToast('打卡成功 +5 积分');
+  },
+
+  // ============ 用户动态：加载本地存储 ============
+  loadDynamics(spotCode) {
+    const key = `dynamics_${spotCode}`;
+    const list = wx.getStorageSync(key) || [];
+
+    // 合并一些示例动态
+    const samples = this.buildSampleDynamics();
+    const userDynamics = list.map(d => ({
+      ...d,
+      isUser: true
+    }));
+    return [...userDynamics, ...samples].slice(0, 20);
+  },
+
+  // ============ 生成示例动态 ============
+  buildSampleDynamics() {
+    const samples = [
+      { nick: '老张自驾游', avatar: '🧔', date: '2026-08-04', text: '营地环境不错，水电齐全，适合房车过夜', type: 'comment', likes: 12 },
+      { nick: '公路旅人', avatar: '👨', date: '2026-08-01', text: '周五晚上到的，位置好找，旁边有超市补给方便', type: 'comment', likes: 8 },
+      { nick: '露营小白', avatar: '👩', date: '2026-07-28', text: '第一次房车露营体验，营地很安静，推荐！', type: 'comment', likes: 5 },
+      { nick: '房车老司机', avatar: '👴', date: '2026-07-20', text: '已打卡，充电桩可用，厕所干净', type: 'checkin', likes: 3 }
+    ];
+    return samples;
+  },
+
+  // ============ 用户动态：发布 ============
+  onDynamicsInput(e) {
+    this.setData({ dynamicsInput: e.detail.value });
+  },
+
+  submitDynamics() {
+    const text = (this.data.dynamicsInput || '').trim();
+    if (!text) {
+      util.showToast('请输入内容');
+      return;
+    }
+    if (text.length > 200) {
+      util.showToast('内容不超过200字');
+      return;
+    }
+    this.addDynamics(text, 'comment');
+    this.setData({ dynamicsInput: '' });
+    util.showToast('发布成功');
+  },
+
+  addDynamics(text, type) {
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    const key = `dynamics_${camp.spot_code}`;
+    const list = wx.getStorageSync(key) || [];
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const newDyn = {
+      nick: '我',
+      avatar: '😎',
+      date: dateStr,
+      text: text,
+      type: type || 'comment',
+      likes: 0,
+      isUser: true
+    };
+
+    list.unshift(newDyn);
+    wx.setStorageSync(key, list.slice(0, 50));
+
+    const dynamicsList = this.loadDynamics(camp.spot_code);
+    this.setData({
+      dynamicsList,
+      dynamicsCount: dynamicsList.length
+    });
+  },
+
+  // ============ 点赞动态 ============
+  likeDynamics(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const list = this.data.dynamicsList;
+    if (!list[idx]) return;
+    list[idx].likes = (list[idx].likes || 0) + 1;
+    list[idx].liked = true;
+    this.setData({ dynamicsList: list });
+  },
+
+  // ============ 展开/收起动态列表 ============
+  toggleDynamics() {
+    this.setData({ dynamicsExpanded: !this.data.dynamicsExpanded });
   }
 });

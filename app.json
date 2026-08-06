@@ -6,7 +6,8 @@
     "pages/detail/index",
     "pages/submit/index",
     "pages/points/index",
-    "pages/about/index"
+    "pages/about/index",
+    "pages/city-picker/index"
   ],
   "window": {
     "navigationBarTitleText": "露营地图",
@@ -25,20 +26,20 @@
       {
         "pagePath": "pages/map/index",
         "text": "地图",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/map.png",
+        "selectedIconPath": "assets/tabbar/map_on.png"
       },
       {
         "pagePath": "pages/route/index",
         "text": "线路",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/route.png",
+        "selectedIconPath": "assets/tabbar/route_on.png"
       },
       {
         "pagePath": "pages/mine/index",
         "text": "我的",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/mine.png",
+        "selectedIconPath": "assets/tabbar/mine_on.png"
       }
     ]
   },

@@ -56,11 +56,22 @@ Page({
   },
 
   onShow() {
-    // 从其他页面返回时刷新积分
     const app = getApp();
     const userData = util.getUserState();
     app.globalData.points = userData.points;
     this.setData({ userPoints: userData.points });
+
+    // 从城市选择页返回时，更新地图中心和城市名
+    if (app.globalData.cityChanged) {
+      app.globalData.cityChanged = false;
+      this.setData({
+        latitude: app.globalData.cityCenter.latitude,
+        longitude: app.globalData.cityCenter.longitude,
+        cityName: app.globalData.cityName,
+        scale: 11
+      });
+      this.loadCamps();
+    }
 
     // 如果有筛选变化，重新加载
     if (JSON.stringify(app.globalData.filters) !== JSON.stringify(this.data.filters)) {
@@ -412,7 +423,7 @@ Page({
 
   // ============ 城市选择 ============
   onCityTap() {
-    util.showToast('城市切换功能开发中');
+    wx.navigateTo({ url: '/pages/city-picker/index' });
   },
 
   //Search tap

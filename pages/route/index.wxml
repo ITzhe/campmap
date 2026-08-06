@@ -7,16 +7,22 @@
 
   <!-- 路线输入 -->
   <view class="route-input">
-    <view class="ri-row">
+    <view class="ri-row" bindtap="chooseStart">
       <view class="ri-dot start"></view>
-      <input class="ri-input" value="{{routeStart}}" bindinput="onStartInput" placeholder="输入起点" />
+      <view class="ri-input {{routeStart ? '' : 'placeholder'}}">{{routeStart || '点击选择起点'}}</view>
+      <view class="ri-loc-icon">📍</view>
     </view>
-    <view class="ri-row">
+    <view class="ri-row" bindtap="chooseEnd">
       <view class="ri-dot end"></view>
-      <input class="ri-input" value="{{routeEnd}}" bindinput="onEndInput" placeholder="输入终点" />
+      <view class="ri-input {{routeEnd ? '' : 'placeholder'}}">{{routeEnd || '点击选择终点'}}</view>
+      <view class="ri-loc-icon">📍</view>
     </view>
-    <view class="ri-addway" bindtap="addWaypoint">＋ 添加途经点</view>
+    <view class="ri-actions">
+      <view class="ri-addway" bindtap="addWaypoint">＋ 添加途经点</view>
+      <view class="ri-swap" bindtap="swapRoute">⇅ 交换</view>
+    </view>
     <button class="ri-btn" bindtap="calcRoute">规划路线</button>
+    <view class="ri-hint">提示：点击输入框通过地图搜索选择准确位置</view>
   </view>
 
   <!-- 路线地图 -->
