@@ -226,6 +226,20 @@
   color: var(--green-2);
   font-weight: 600;
   flex-shrink: 0;
+  text-align: right;
+}
+
+.cli-dist-main {
+  font-size: 26rpx;
+  color: var(--green-2);
+  font-weight: 700;
+}
+
+.cli-dist-off {
+  font-size: 20rpx;
+  color: var(--text-ph);
+  margin-top: 4rpx;
+  font-weight: 400;
 }
 
 .camp-empty {

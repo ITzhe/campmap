@@ -1,0 +1,40 @@
+<!-- pages/tutorial/index.wxml — 使用教程页 -->
+<view class="page-tutorial">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">使用教程</view>
+  </view>
+
+  <!-- 顶部介绍 -->
+  <view class="tut-intro">
+    <view class="tut-intro-icon">📖</view>
+    <view class="tut-intro-title">快速上手指南</view>
+    <view class="tut-intro-desc">几个简单步骤，玩转露营地图</view>
+  </view>
+
+  <!-- 步骤卡片 -->
+  <view class="tut-list">
+    <view class="tut-card" wx:for="{{steps}}" wx:key="idx">
+      <view class="tut-num">{{index + 1}}</view>
+      <view class="tut-body">
+        <view class="tut-head">
+          <text class="tut-icon">{{item.icon}}</text>
+          <text class="tut-title">{{item.title}}</text>
+        </view>
+        <view class="tut-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="tut-tip">
+    <text class="tut-tip-icon">💡</text>
+    <text class="tut-tip-text">遇到问题？可在「我的 - 意见反馈」告诉我们</text>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

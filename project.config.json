@@ -48,5 +48,13 @@
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "requestDomains": [
+    "https://drktdyfwawpfughuzqvs.supabase.co",
+    "https://zhuche.anying.wang"
+  ],
+  "legalDomain": [
+    "https://drktdyfwawpfughuzqvs.supabase.co",
+    "https://zhuche.anying.wang"
+  ]
 }

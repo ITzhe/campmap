@@ -291,7 +291,8 @@ Page({
   findCampsAlong(lat1, lng1, lat2, lng2) {
     // 走廊宽度根据距离自适应：长途路线宽一点，短途窄一点
     const straight = util.distance(lat1, lng1, lat2, lng2);
-    const corridor = Math.max(8, Math.min(30, straight / 20));
+    // 增大走廊宽度: 短途15km, 中途40km, 长途60km
+    const corridor = Math.max(15, Math.min(60, straight / 10));
 
     const list = this.data.allCamps.map(c => {
       const offset = this.distToSegment(c.latitude, c.longitude, lat1, lng1, lat2, lng2);
@@ -306,6 +307,7 @@ Page({
       const result = {};
       for (const k in c) { result[k] = c[k]; }
       result.distance = Math.round(o.distFromStart * 10) / 10;
+      result.offset = Math.round(o.offset * 10) / 10;
       return result;
     });
   },

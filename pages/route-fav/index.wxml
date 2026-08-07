@@ -1,0 +1,46 @@
+<!-- pages/route-fav/index.wxml — 线路收藏页 -->
+<view class="page-routefav">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">线路收藏</view>
+  </view>
+
+  <!-- 收藏数量 -->
+  <view class="rf-summary" wx:if="{{list.length > 0}}">
+    共收藏 {{list.length}} 条线路
+  </view>
+
+  <!-- 收藏列表 -->
+  <view class="rf-list" wx:if="{{list.length > 0}}">
+    <view class="rf-item" wx:for="{{list}}" wx:key="id"
+      data-id="{{item.id}}" bindtap="onItemTap">
+      <view class="rf-main">
+        <view class="rf-route">
+          <text class="rf-endpoint">{{item.startName}}</text>
+          <text class="rf-arrow">→</text>
+          <text class="rf-endpoint">{{item.endName}}</text>
+        </view>
+        <view class="rf-meta">
+          <text class="rf-tag">📍 {{item.distance}} km</text>
+          <text class="rf-tag">🏕 {{item.campsCount}} 个营地</text>
+          <text class="rf-date">收藏于 {{item.savedDate}}</text>
+        </view>
+      </view>
+      <view class="rf-del" catchtap="onDel" data-id="{{item.id}}">删除</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="rf-empty" wx:else>
+    <view class="rf-empty-icon">🧭</view>
+    <view class="rf-empty-text">还没有收藏的线路</view>
+    <view class="rf-empty-desc">去线路规划页面收藏吧</view>
+    <view class="rf-empty-btn" bindtap="goRoute">去规划线路</view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

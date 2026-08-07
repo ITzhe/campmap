@@ -8,7 +8,6 @@
     longitude="{{longitude}}"
     scale="{{scale}}"
     markers="{{markers}}"
-    circles="{{circles}}"
     show-location="{{showLocation}}"
     enable-zoom="{{true}}"
     enable-scroll="{{true}}"
@@ -59,9 +58,8 @@
       <cover-view class="filter-summary-x">✕</cover-view>
     </cover-view>
 
-    <!-- 浮动按钮组 -->
+    <!-- 浮动按钮 -->
     <cover-view class="fab-group">
-      <cover-view class="fab fab-add" bindtap="goSubmit">+</cover-view>
       <cover-view class="fab fab-loc" bindtap="locateMe">⊕</cover-view>
     </cover-view>
 

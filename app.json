@@ -7,7 +7,10 @@
     "pages/submit/index",
     "pages/points/index",
     "pages/about/index",
-    "pages/city-picker/index"
+    "pages/city-picker/index",
+    "pages/feedback/index",
+    "pages/tutorial/index",
+    "pages/route-fav/index"
   ],
   "window": {
     "navigationBarTitleText": "露营地图",

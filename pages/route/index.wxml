@@ -61,9 +61,12 @@
         <view class="cli-icon">🏕</view>
         <view class="cli-info">
           <view class="cli-name">{{item.name}}</view>
-          <view class="cli-addr">{{item.address}}</view>
+          <view class="cli-addr">{{item.address || '暂无地址'}}</view>
         </view>
-        <view class="cli-dist">{{item.distance}} km</view>
+        <view class="cli-dist">
+          <view class="cli-dist-main">{{item.distance}} km</view>
+          <view class="cli-dist-off">偏路线 {{item.offset}}km</view>
+        </view>
       </view>
       <view class="camp-empty" wx:if="{{routeCampList.length === 0}}">沿途暂无营地</view>
     </view>

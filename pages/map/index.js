@@ -15,7 +15,6 @@ Page({
     // 营地数据
     camps: [],
     markers: [],
-    circles: [],
 
     // 底部卡片
     showBottomCard: false,
@@ -171,7 +170,6 @@ Page({
         campCount: camps.length
       });
       this.buildMarkers(camps);
-      this.buildCircle();
     } catch (e) {
       util.showToast('加载失败，请重试');
     }
@@ -209,20 +207,6 @@ Page({
       };
     });
     this.setData({ markers, filteredCount: camps.length });
-  },
-
-  // ============ 构建15km范围圆 ============
-  buildCircle() {
-    this.setData({
-      circles: [{
-        latitude: this.data.latitude,
-        longitude: this.data.longitude,
-        color: '#2d6a4fAA',
-        fillColor: '#2d6a4f10',
-        radius: 15000,
-        strokeWidth: 2
-      }]
-    });
   },
 
   // ============ 标记点击 ============
@@ -393,7 +377,6 @@ Page({
           longitude: res.longitude,
           scale: 13
         });
-        this.buildCircle();
         this.loadCamps();
         util.showToast('已定位到当前位置');
       },

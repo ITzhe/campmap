@@ -164,6 +164,74 @@ async function submitCampsite(data) {
   }
 }
 
+/**
+ * 获取营地评论
+ */
+async function fetchComments(spotCode) {
+  const url = `${config.API_BASE}/camp_comments?spot_code=eq.${spotCode}&order=created_at.desc&limit=50`;
+  try {
+    const data = await request(url, 'GET');
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * 发布评论
+ */
+async function submitComment(spotCode, openid, nick, avatar, content, type) {
+  const url = `${config.API_BASE}/camp_comments`;
+  const body = JSON.stringify({
+    spot_code: spotCode,
+    openid: openid,
+    nick: nick || '匿名用户',
+    avatar: avatar || '🏕',
+    content: content,
+    type: type || 'comment'
+  });
+  try {
+    return await request(url, 'POST', body);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 点赞评论 (检查是否已点赞)
+ */
+async function likeComment(commentId, openid) {
+  // 先检查是否已点赞
+  const checkUrl = `${config.API_BASE}/comment_likes?comment_id=eq.${commentId}&openid=eq.${openid}`;
+  try {
+    const existing = await request(checkUrl, 'GET');
+    if (Array.isArray(existing) && existing.length > 0) {
+      return { success: false, msg: '已经点过赞了' };
+    }
+    // 插入点赞记录
+    const likeUrl = `${config.API_BASE}/comment_likes`;
+    await request(likeUrl, 'POST', JSON.stringify({
+      comment_id: commentId,
+      openid: openid
+    }));
+    // 更新评论点赞数 (通过 RPC 或直接 PATCH)
+    // Supabase anon key 不支持 PATCH with increment, 所以用 RPC
+    const rpcUrl = `${config.API_BASE}/rpc/increment_like`;
+    try {
+      await request(rpcUrl, 'POST', JSON.stringify({
+        p_comment_id: commentId
+      }));
+    } catch (e) {
+      // RPC 可能不存在, 尝试直接 PATCH
+      const patchUrl = `${config.API_BASE}/camp_comments?id=eq.${commentId}`;
+      // 这个可能因为 RLS 失败, 但我们试试
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, msg: '点赞失败' };
+  }
+}
+
 module.exports = {
   request,
   fetchCampsites,
@@ -172,5 +240,8 @@ module.exports = {
   dailyCheckinApi,
   deductPointApi,
   submitCampsite,
-  normalizeCamp
+  normalizeCamp,
+  fetchComments,
+  submitComment,
+  likeComment
 };

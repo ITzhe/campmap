@@ -1,0 +1,82 @@
+<!-- pages/feedback/index.wxml — 意见反馈页 -->
+<view class="page-feedback">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">意见反馈</view>
+  </view>
+
+  <!-- 成功态 -->
+  <view class="fb-success" wx:if="{{submitted}}">
+    <view class="fb-success-icon">✓</view>
+    <view class="fb-success-title">提交成功</view>
+    <view class="fb-success-desc">感谢您的反馈，我们会认真处理每一条建议</view>
+    <view class="fb-success-meta">已累计提交 {{feedbackCount}} 条反馈</view>
+    <view class="fb-success-btn" bindtap="resetForm">继续反馈</view>
+  </view>
+
+  <!-- 表单 -->
+  <block wx:else>
+    <!-- 反馈类型 -->
+    <view class="fb-card">
+      <view class="fb-h">
+        <text class="fb-h-emoji">🏷</text>
+        <text>反馈类型</text>
+      </view>
+      <view class="fb-chips">
+        <view wx:for="{{typeList}}" wx:key="key"
+          class="fb-chip {{currentType === item.key ? 'on' : ''}}"
+          data-key="{{item.key}}" bindtap="selectType">
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 反馈内容 -->
+    <view class="fb-card">
+      <view class="fb-h">
+        <text class="fb-h-emoji">📝</text>
+        <text>详细描述</text>
+      </view>
+      <textarea class="fb-textarea"
+        placeholder="请描述您遇到的问题或建议（至少 10 个字）"
+        placeholder-class="fb-ph"
+        maxlength="500"
+        value="{{content}}"
+        bindinput="onContentInput"
+        auto-height
+      ></textarea>
+      <view class="fb-counter">{{content.length}}/500</view>
+    </view>
+
+    <!-- 联系方式 -->
+    <view class="fb-card">
+      <view class="fb-h">
+        <text class="fb-h-emoji">📞</text>
+        <text>联系方式</text>
+        <text class="fb-h-tip">（选填）</text>
+      </view>
+      <input class="fb-input"
+        type="text"
+        placeholder="微信号 / 手机号，方便我们与您联系"
+        placeholder-class="fb-ph"
+        maxlength="40"
+        value="{{contact}}"
+        bindinput="onContactInput"
+      />
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="fb-submit" bindtap="submit">提交反馈</view>
+
+    <!-- 历史反馈数量 -->
+    <view class="fb-history" wx:if="{{feedbackCount > 0}}">
+      您已累计提交 {{feedbackCount}} 条反馈
+    </view>
+  </block>
+
+  <view class="safe-bottom"></view>
+</view>

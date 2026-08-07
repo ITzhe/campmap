@@ -483,6 +483,14 @@
   padding: 20rpx 0 8rpx;
 }
 
+/* 加载中 / 空状态提示 */
+.dyn-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--text-ph);
+  padding: 28rpx 0;
+}
+
 .bottom-spacer {
   height: 40rpx;
 }

@@ -35,7 +35,6 @@ Page({
       { key: 'service', label: '联系客服' },
       { key: 'faq', label: '常见问题' },
       { key: 'privacy', label: '隐私协议' },
-      { key: 'source', label: '数据来源说明' },
       { key: 'logout', label: '退出登录', danger: true }
     ]
   },
@@ -132,9 +131,15 @@ Page({
       case 'about': this.goAbout(); break;
       case 'fav': util.showToast('我的收藏开发中'); break;
       case 'mysub': util.showToast('我的提交开发中'); break;
-      case 'routefav': util.showToast('线路收藏开发中'); break;
-      case 'feedback': util.showToast('意见反馈开发中'); break;
-      case 'tutorial': util.showToast('使用教程开发中'); break;
+      case 'routefav':
+        wx.navigateTo({ url: '/pages/route-fav/index' });
+        break;
+      case 'feedback':
+        wx.navigateTo({ url: '/pages/feedback/index' });
+        break;
+      case 'tutorial':
+        wx.navigateTo({ url: '/pages/tutorial/index' });
+        break;
       default: util.showToast('功能开发中'); break;
     }
   },
@@ -147,13 +152,10 @@ Page({
         util.showToast('客服微信：camp-map');
         break;
       case 'faq':
-        util.showToast('常见问题开发中');
+        wx.navigateTo({ url: '/pages/tutorial/index' });
         break;
       case 'privacy':
         util.showToast('隐私协议开发中');
-        break;
-      case 'source':
-        util.showToast('数据来源：公开数据整理');
         break;
       case 'logout':
         this.logout();
