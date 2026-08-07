@@ -170,7 +170,9 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
         d = data.get("data", {})
 
         # 解析 sheshi 设施代码 (JSON 字符串格式, 如 '["15","20"]')
-        # 代码映射: 15=房车, 20=拖挂, 25=帐篷, 40=钓鱼, 50=淋浴
+        # 完整代码映射:
+        #   15=房车可停, 20=拖挂可停, 25=帐篷可搭
+        #   30=餐饮, 35=买菜/超市, 40=钓鱼, 45=住宿, 50=淋浴
         sheshi_str = d.get("sheshi", "")
         sheshi_codes = []
         if sheshi_str:
@@ -182,8 +184,26 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
         rv_friendly = 1 if "15" in sheshi_codes else 0
         trailer_friendly = 1 if "20" in sheshi_codes else 0
         tent_friendly = 1 if "25" in sheshi_codes else 0
+        dining_status = 1 if "30" in sheshi_codes else 0
+        grocery_status = 1 if "35" in sheshi_codes else 0
         fishing_status = 1 if "40" in sheshi_codes else 0
+        accommodation_status = 1 if "45" in sheshi_codes else 0
         shower_status = 1 if "50" in sheshi_codes else 0
+
+        # 解析各类 info 字段中的备注 (JSON 字符串)
+        def parse_info_memo(info_str):
+            if not info_str:
+                return ""
+            try:
+                info = json.loads(info_str)
+                return info.get("memo", "")
+            except:
+                return ""
+
+        price_info = parse_info_memo(d.get("zhuche_info", ""))
+        toilet_info = parse_info_memo(d.get("cesuo_info", ""))
+        water_info = parse_info_memo(d.get("jiashui_info", ""))
+        power_info = parse_info_memo(d.get("jiedian_info", ""))
 
         return {
             "name": d.get("name", ""),
@@ -202,6 +222,13 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
             "tent_friendly": tent_friendly,
             "shower_status": shower_status,
             "fishing_status": fishing_status,
+            "dining_status": dining_status,
+            "grocery_status": grocery_status,
+            "accommodation_status": accommodation_status,
+            "price_info": price_info,
+            "toilet_info": toilet_info,
+            "water_info": water_info,
+            "power_info": power_info,
         }
     except:
         return None
@@ -303,6 +330,13 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "tent_friendly": detail["tent_friendly"],
                 "shower_status": detail["shower_status"],
                 "fishing_status": detail["fishing_status"],
+                "dining_status": detail["dining_status"],
+                "grocery_status": detail["grocery_status"],
+                "accommodation_status": detail["accommodation_status"],
+                "price_info": detail["price_info"],
+                "toilet_info": detail["toilet_info"],
+                "water_info": detail["water_info"],
+                "power_info": detail["power_info"],
                 "province": city["province"],
                 "city": city_label,
             })
@@ -325,6 +359,13 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "tent_friendly": 0,
                 "shower_status": 0,
                 "fishing_status": 0,
+                "dining_status": 0,
+                "grocery_status": 0,
+                "accommodation_status": 0,
+                "price_info": "",
+                "toilet_info": "",
+                "water_info": "",
+                "power_info": "",
                 "province": city["province"],
                 "city": city_label,
             })

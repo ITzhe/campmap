@@ -1,5 +1,5 @@
 // app.js — 露营地图小程序入口
-const { initUser, getUserState } = require('./utils/util');
+const { initUser, getUserState, getNearestCity } = require('./utils/util');
 
 App({
   globalData: {
@@ -12,7 +12,7 @@ App({
     selectedCamp: null,
     filters: { fee: 'all', park: [], fac: [] },
     cityCenter: { latitude: 36.0671, longitude: 120.3826 },
-    cityName: '当前位置',
+    cityName: '定位中...',
     cityChanged: false
   },
 
@@ -33,13 +33,17 @@ App({
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
+        const cityName = getNearestCity(res.latitude, res.longitude);
         this.globalData.cityCenter = {
           latitude: res.latitude,
           longitude: res.longitude
         };
+        this.globalData.cityName = cityName;
+        this.globalData.cityChanged = true;
       },
       fail: () => {
         console.log('定位失败，使用默认城市中心');
+        this.globalData.cityName = '青岛';
       }
     });
   }

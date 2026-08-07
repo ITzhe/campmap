@@ -21,6 +21,16 @@
       <text class="addr-text">{{camp.address || '暂无地址信息'}}</text>
     </view>
 
+    <!-- 停车收费信息 -->
+    <view class="card price-card">
+      <view class="card-h"><view class="dot"></view>停车信息</view>
+      <view class="price-row">
+        <view class="price-badge {{parkingText === '收费' ? 'paid' : 'free'}}">{{parkingText}}</view>
+        <text class="price-detail" wx:if="{{priceInfo}}">{{priceInfo}}</text>
+        <text class="price-detail" wx:else>{{parkingText === '收费' ? '收费停车场' : '免费停车'}}</text>
+      </view>
+    </view>
+
     <!-- 地理坐标 -->
     <view class="geo-line">
       <text class="geo-label">地理坐标</text>

@@ -111,6 +111,42 @@
   flex: 1;
 }
 
+/* ============ 停车信息卡片 ============ */
+.price-card {
+  padding: 24rpx 28rpx;
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.price-badge {
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  white-space: nowrap;
+}
+
+.price-badge.free {
+  background: #e8f5e9;
+  color: var(--green);
+}
+
+.price-badge.paid {
+  background: #fff3e0;
+  color: var(--orange);
+}
+
+.price-detail {
+  font-size: 26rpx;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.5;
+}
+
 .geo-line {
   display: flex;
   align-items: center;

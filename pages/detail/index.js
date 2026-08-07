@@ -13,6 +13,8 @@ Page({
     chargingOn: false,
     chargingText: '',
     chargingInfo: '',
+    priceInfo: '',
+    parkingText: '免费',
     introExpanded: false,
     newsList: [],
     hasMemo: false,
@@ -67,22 +69,28 @@ Page({
   // ============ 渲染营地数据 ============
   renderCamp(camp) {
     // 构建设施分组
+    // 注意: parking_status 是 0=免费/1=收费, 不是布尔值
+    // power_status (jiedian) 可能是 0/1/4/12/13 等, 非0即为可用
     const facGroups = config.FAC_GROUPS.map(g => ({
       title: g.title,
       items: g.keys.map(k => ({
         key: k,
         label: config.FAC_LABELS[k],
         emoji: config.FAC_EMOJI[k],
-        on: camp[k] == 1
+        on: Number(camp[k]) > 0
       }))
     }));
 
     // 充电桩状态
-    const chargingOn = camp.charging_status == 1;
+    const chargingOn = Number(camp.charging_status) > 0;
     const chargingText = chargingOn ? '可用' : '暂无';
     const chargingInfo = chargingOn
       ? '支持新能源车辆充电'
       : '附近充电桩较少，建议提前补电';
+
+    // 收费信息
+    const priceInfo = camp.price_info || '';
+    const parkingText = Number(camp.parking_status) === 1 ? '收费' : '免费';
 
     // 最新动态
     const newsList = this.buildNews(camp);
@@ -96,6 +104,8 @@ Page({
       chargingOn,
       chargingText,
       chargingInfo,
+      priceInfo,
+      parkingText,
       newsList,
       hasMemo: !!camp.memo,
       dynamicsList,

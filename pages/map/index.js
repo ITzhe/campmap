@@ -92,11 +92,12 @@ Page({
         { key: 'toilet_status', label: '厕所' },
         { key: 'water_status', label: '接水' },
         { key: 'power_status', label: '市电' },
+        { key: 'grocery_status', label: '买菜' },
         { key: 'rv_friendly', label: '房车' }
       ];
       const tags = tagConfigs.slice(0, 5).map(t => ({
         label: t.label,
-        on: t.always ? true : camp[t.key] == 1
+        on: t.always ? true : Number(camp[t.key]) > 0
       }));
       this.setData({
         showBottomCard: true,
@@ -113,21 +114,23 @@ Page({
       type: 'gcj02',
       success: (res) => {
         const app = getApp();
+        const cityName = util.getNearestCity(res.latitude, res.longitude);
         app.globalData.cityCenter = {
           latitude: res.latitude,
           longitude: res.longitude
         };
+        app.globalData.cityName = cityName;
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
           scale: 12,
-          cityName: '当前位置'
+          cityName: cityName
         });
         this.loadCamps();
       },
       fail: () => {
         // 定位失败，用默认中心
-        this.setData({ cityName: '青岛市' });
+        this.setData({ cityName: '青岛' });
         this.loadCamps();
       }
     });
@@ -241,12 +244,13 @@ Page({
       { key: 'power_status', label: '市电' },
       { key: 'charging_status', label: '充电' },
       { key: 'rv_friendly', label: '房车' },
+      { key: 'grocery_status', label: '买菜' },
       { key: 'tent_friendly', label: '帐篷' }
     ];
 
     const tags = tagConfigs.slice(0, 5).map(t => ({
       label: t.label,
-      on: t.always ? true : camp[t.key] == 1
+      on: t.always ? true : Number(camp[t.key]) > 0
     }));
 
     this.setData({
