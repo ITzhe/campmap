@@ -29,7 +29,7 @@ const config = {
   // 用于驾车路线规划 (线路规划页)
   // 请前往 https://lbs.qq.com/ 注册免费 Key 并替换下方占位
   // 注册后在「控制台 → 应用管理 → 创建应用」中获取 Key
-  MAP_KEY: 'I5ZBZ-VMH3P-C2LDM-VQ3QZ-7HX7F-VYFBJ',
+  MAP_KEY: '2OWBZ-O7FCA-JIFKZ-CJSTI-VLSHF-QLFRE',
 
   // 设施中文名映射
   FAC_LABELS: {
