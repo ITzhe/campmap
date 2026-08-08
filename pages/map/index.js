@@ -411,22 +411,44 @@ Page({
   onRegionChange(e) {
     if (e.type !== 'end') return;
 
-    // 更新中心坐标
-    if (e.detail && e.detail.latitude) {
+    // 兼容不同 SDK 版本: causedBy 可能在 e 或 e.detail 上
+    const causedBy = e.causedBy || (e.detail && e.detail.causedBy) || '';
+
+    // 尝试从事件中获取坐标 (部分 SDK 版本不提供)
+    const detail = e.detail || {};
+    if (detail.latitude !== undefined && detail.latitude !== null) {
       this.setData({
-        latitude: e.detail.latitude,
-        longitude: e.detail.longitude,
-        scale: e.detail.scale || this.data.scale
+        latitude: detail.latitude,
+        longitude: detail.longitude,
+        scale: detail.scale || this.data.scale
       });
     }
 
-    // 仅在拖动结束时重新加载（防抖 1.5 秒）
-    if (e.causedBy === 'drag' || e.causedBy === 'scale') {
+    // 拖动、缩放、手势结束后重新加载（防抖 1.5 秒）
+    if (causedBy === 'drag' || causedBy === 'scale' || causedBy === 'gesture') {
       if (this._reloadTimer) clearTimeout(this._reloadTimer);
       this._reloadTimer = setTimeout(() => {
-        this.loadCamps();
+        this.updateCenterAndLoad();
       }, 1500);
     }
+  },
+
+  // ============ 获取地图中心坐标并重新加载 ============
+  updateCenterAndLoad() {
+    const mapCtx = wx.createMapContext('campMap', this);
+    mapCtx.getCenterLocation({
+      success: (res) => {
+        this.setData({
+          latitude: res.latitude,
+          longitude: res.longitude
+        });
+        this.loadCamps();
+      },
+      fail: () => {
+        // 获取中心失败时直接用当前 data 中的坐标加载
+        this.loadCamps();
+      }
+    });
   },
 
   // ============ 城市选择 ============

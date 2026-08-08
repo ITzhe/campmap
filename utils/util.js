@@ -61,6 +61,7 @@ function initUser() {
   if (!data) {
     data = {
       openid: 'mock_' + Math.random().toString(36).slice(2, 10),
+      nick: '露营爱好者',
       points: config.POINTS_RULES.initial,
       streak: 0,
       lastCheckin: null,

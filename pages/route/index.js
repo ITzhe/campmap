@@ -118,9 +118,11 @@ Page({
     const key = config.MAP_KEY || '';
     return new Promise((resolve) => {
       if (!key) {
-        resolve(null);
+        console.error('[Route] MAP_KEY 未配置');
+        resolve({ success: false, error: '地图 Key 未配置' });
         return;
       }
+      console.log('[Route] 请求驾车路线 API, from:', fromLat + ',' + fromLng, 'to:', toLat + ',' + toLng);
       wx.request({
         url: 'https://apis.map.qq.com/ws/direction/v1/driving/',
         data: {
@@ -130,13 +132,34 @@ Page({
         },
         method: 'GET',
         success: (res) => {
-          if (res.data && res.data.status === 0 && res.data.result && res.data.result.routes && res.data.result.routes.length > 0) {
-            resolve(res.data.result.routes[0]);
+          console.log('[Route] API 响应状态码:', res.statusCode);
+          console.log('[Route] API 响应数据:', JSON.stringify(res.data).slice(0, 500));
+
+          if (!res.data) {
+            resolve({ success: false, error: 'API 返回空数据' });
+            return;
+          }
+
+          // 兼容 status 为数字 0 或字符串 "0"
+          const status = res.data.status;
+          if (status !== 0 && status !== '0') {
+            const msg = res.data.message || ('状态码: ' + status);
+            console.error('[Route] API 返回错误:', msg);
+            resolve({ success: false, error: msg });
+            return;
+          }
+
+          const routes = res.data.result && res.data.result.routes;
+          if (routes && routes.length > 0) {
+            resolve({ success: true, route: routes[0] });
           } else {
-            resolve(null);
+            resolve({ success: false, error: '未找到可用路线' });
           }
         },
-        fail: () => resolve(null)
+        fail: (err) => {
+          console.error('[Route] API 请求失败:', err);
+          resolve({ success: false, error: '网络请求失败: ' + (err.errMsg || '未知错误') });
+        }
       });
     });
   },
@@ -182,19 +205,24 @@ Page({
     util.showLoading('规划路线中...');
 
     // 尝试调用腾讯地图驾车路线 API
-    const route = await this.fetchDrivingRoute(s.lat, s.lng, e.lat, e.lng);
+    const routeResult = await this.fetchDrivingRoute(s.lat, s.lng, e.lat, e.lng);
 
     let routePoints = [];
     let dist = 0;
     let duration = 0;
+    let usedRealRoute = false;
+    let apiError = '';
 
-    if (route && route.polyline) {
+    if (routeResult && routeResult.success && routeResult.route && routeResult.route.polyline) {
       // API 成功: 使用真实驾车路线
-      routePoints = this.decodePolyline(route.polyline);
-      dist = Math.round((route.distance / 1000) * 10) / 10; // m -> km
-      duration = route.duration; // seconds
+      routePoints = this.decodePolyline(routeResult.route.polyline);
+      dist = Math.round((routeResult.route.distance / 1000) * 10) / 10; // m -> km
+      duration = routeResult.route.duration; // seconds
+      usedRealRoute = true;
     } else {
       // 降级: 使用直线 + 多采样点
+      apiError = (routeResult && routeResult.error) || '未知原因';
+      console.warn('[Route] 腾讯地图 API 不可用，降级为直线:', apiError);
       const straight = util.distance(s.lat, s.lng, e.lat, e.lng);
       dist = Math.round(straight * 1.3 * 10) / 10;
       duration = dist / 80 * 3600; // 80km/h
@@ -310,7 +338,11 @@ Page({
     });
 
     util.hideLoading();
-    util.showToast(`已规划路线，沿途${campList.length}个营地`);
+    if (usedRealRoute) {
+      util.showToast(`已规划驾车路线，沿途${campList.length}个营地`);
+    } else {
+      util.showToast(`路线API异常(${apiError})，显示直线`);
+    }
   },
 
   // ============ 生成直线采样点 (降级用) ============
