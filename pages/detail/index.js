@@ -24,7 +24,9 @@ Page({
     // 评论加载状态
     commentsLoading: false,
     // 本地记录已点赞的评论 id (防重复点赞)
-    likedCommentIds: []
+    likedCommentIds: [],
+    // 收藏状态
+    isFavorited: false
   },
 
   onLoad(options) {
@@ -102,8 +104,50 @@ Page({
       hasMemo: !!camp.memo
     });
 
+    // 检查收藏状态
+    this.checkFavorite(camp.spot_code);
+
     // 从 Supabase 加载用户评价
     this.loadComments(camp.spot_code);
+  },
+
+  // ============ 检查是否已收藏 ============
+  checkFavorite(spotCode) {
+    let favs = [];
+    try { favs = wx.getStorageSync('camp_favorites') || []; } catch (e) {}
+    const isFav = favs.some(f => f.spot_code === spotCode);
+    this.setData({ isFavorited: isFav });
+  },
+
+  // ============ 收藏 / 取消收藏 ============
+  toggleFavorite() {
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    let favs = [];
+    try { favs = wx.getStorageSync('camp_favorites') || []; } catch (e) {}
+
+    if (this.data.isFavorited) {
+      // 取消收藏
+      favs = favs.filter(f => f.spot_code !== camp.spot_code);
+      try { wx.setStorageSync('camp_favorites', favs); } catch (e) {}
+      this.setData({ isFavorited: false });
+      util.showToast('已取消收藏');
+    } else {
+      // 添加收藏
+      favs.unshift({
+        spot_code: camp.spot_code,
+        name: camp.name,
+        address: camp.address || '',
+        parking_status: camp.parking_status,
+        latitude: camp.latitude,
+        longitude: camp.longitude,
+        saved_at: Date.now()
+      });
+      try { wx.setStorageSync('camp_favorites', favs); } catch (e) {}
+      this.setData({ isFavorited: true });
+      util.showToast('已收藏');
+    }
   },
 
   // ============ 生成营地动态 (本地模拟) ============

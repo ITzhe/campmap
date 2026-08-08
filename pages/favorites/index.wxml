@@ -1,0 +1,49 @@
+<!-- pages/favorites/index.wxml — 我的收藏页 -->
+<view class="page-fav">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">我的收藏</view>
+  </view>
+
+  <!-- 收藏数量 -->
+  <view class="fav-summary" wx:if="{{list.length > 0}}">
+    共收藏 {{list.length}} 个营地
+  </view>
+
+  <!-- 收藏列表 -->
+  <view class="fav-list" wx:if="{{list.length > 0}}">
+    <view class="fav-item" wx:for="{{list}}" wx:key="spot_code"
+      data-code="{{item.spot_code}}" bindtap="onItemTap">
+      <view class="fav-main">
+        <view class="fav-name">{{item.name}}</view>
+        <view class="fav-addr">
+          <text class="fav-pin">📍</text>
+          <text class="fav-addr-text">{{item.address || '暂无地址'}}</text>
+        </view>
+        <view class="fav-meta">
+          <text class="fav-park {{item.parkingText === '收费' ? 'paid' : 'free'}}">{{item.parkingText}}</text>
+          <text class="fav-dist">🧭 {{item.distanceText}}</text>
+          <text class="fav-date">收藏于 {{item.savedDate}}</text>
+        </view>
+      </view>
+      <view class="fav-del" catchtap="onDel" data-code="{{item.spot_code}}">
+        <text class="fav-del-icon">🗑</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="fav-empty" wx:else>
+    <view class="fav-empty-icon">📭</view>
+    <view class="fav-empty-text">还没有收藏的营地</view>
+    <view class="fav-empty-hint">在营地详情页点击收藏即可添加</view>
+    <view class="fav-empty-btn" bindtap="goMap">去地图找营地</view>
+    <view class="fav-empty-dev" bindtap="addTestFavorite">+ 添加测试营地（开发用）</view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

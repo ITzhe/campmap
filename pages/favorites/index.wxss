@@ -1,0 +1,205 @@
+/* pages/favorites/index.wxss — 我的收藏页样式 */
+
+.page-fav {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 40rpx;
+}
+
+/* ============ 状态栏占位 ============ */
+.status-bar {
+  width: 100%;
+  background: var(--green);
+}
+
+/* ============ 摘要 ============ */
+.fav-summary {
+  padding: 20rpx 28rpx 0;
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+/* ============ 列表 ============ */
+.fav-list {
+  padding: 16rpx 24rpx;
+}
+
+.fav-item {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  transition: transform 0.12s;
+}
+
+.fav-item:active {
+  transform: scale(0.98);
+}
+
+.fav-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.fav-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fav-addr {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.fav-pin {
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.fav-addr-text {
+  font-size: 24rpx;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fav-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+/* 停车状态标签: 免费 / 收费 */
+.fav-park {
+  font-size: 22rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+  font-weight: 600;
+}
+
+.fav-park.free {
+  color: var(--green);
+  background: var(--green-light);
+}
+
+.fav-park.paid {
+  color: var(--orange);
+  background: var(--yellow-bg);
+}
+
+.fav-dist {
+  font-size: 22rpx;
+  color: var(--text-2);
+  background: var(--bg);
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+}
+
+.fav-date {
+  font-size: 22rpx;
+  color: var(--text-ph);
+}
+
+/* 删除按钮 (垃圾桶图标) */
+.fav-del {
+  flex-shrink: 0;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--line);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-del-icon {
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+.fav-del:active {
+  background: var(--red);
+  border-color: var(--red);
+  transform: scale(0.92);
+}
+
+.fav-del:active .fav-del-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* ============ 空状态 ============ */
+.fav-empty {
+  margin: 120rpx 48rpx;
+  text-align: center;
+}
+
+.fav-empty-icon {
+  font-size: 120rpx;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.fav-empty-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 28rpx;
+}
+
+.fav-empty-hint {
+  font-size: 26rpx;
+  color: var(--text-2);
+  margin-top: 12rpx;
+}
+
+.fav-empty-btn {
+  margin: 36rpx auto 0;
+  width: 280rpx;
+  height: 76rpx;
+  border-radius: 38rpx;
+  background: var(--green);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(45, 106, 79, 0.28);
+}
+
+.fav-empty-btn:active {
+  opacity: 0.88;
+}
+
+/* 开发测试按钮 (虚线弱化样式) */
+.fav-empty-dev {
+  margin: 24rpx auto 0;
+  width: 320rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  border: 2rpx dashed var(--line);
+  color: var(--text-ph);
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-empty-dev:active {
+  background: var(--bg);
+  color: var(--text-2);
+}

@@ -32,6 +32,7 @@ Page({
 
     // 设置列表
     settings: [
+      { key: 'settings', label: '应用设置' },
       { key: 'service', label: '联系客服' },
       { key: 'faq', label: '常见问题' },
       { key: 'privacy', label: '隐私协议' },
@@ -97,7 +98,12 @@ Page({
   },
 
   tapGear() {
-    util.showToast('设置功能开发中');
+    wx.navigateTo({ url: '/pages/settings/index' });
+  },
+
+  // ============ 点击头像 ============
+  tapAvatar() {
+    wx.navigateTo({ url: '/pages/settings/index' });
   },
 
   // ============ 跳转 ============
@@ -129,8 +135,12 @@ Page({
       case 'submit': this.goSubmit(); break;
       case 'points': this.goPoints(); break;
       case 'about': this.goAbout(); break;
-      case 'fav': util.showToast('我的收藏开发中'); break;
-      case 'mysub': util.showToast('我的提交开发中'); break;
+      case 'fav':
+        wx.navigateTo({ url: '/pages/favorites/index' });
+        break;
+      case 'mysub':
+        wx.navigateTo({ url: '/pages/submissions/index' });
+        break;
       case 'routefav':
         wx.navigateTo({ url: '/pages/route-fav/index' });
         break;
@@ -148,6 +158,9 @@ Page({
   onSettingTap(e) {
     const key = e.currentTarget.dataset.key;
     switch (key) {
+      case 'settings':
+        wx.navigateTo({ url: '/pages/settings/index' });
+        break;
       case 'service':
         util.showToast('客服微信：camp-map');
         break;
@@ -155,7 +168,7 @@ Page({
         wx.navigateTo({ url: '/pages/tutorial/index' });
         break;
       case 'privacy':
-        util.showToast('隐私协议开发中');
+        wx.navigateTo({ url: '/pages/settings/index' });
         break;
       case 'logout':
         this.logout();

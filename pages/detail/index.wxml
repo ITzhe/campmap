@@ -143,6 +143,10 @@
       <text class="ab-icon">📤</text>
       <text class="ab-label">分享</text>
     </view>
+    <view class="ab-btn" bindtap="toggleFavorite">
+      <text class="ab-icon">{{isFavorited ? '❤️' : '🤍'}}</text>
+      <text class="ab-label">{{isFavorited ? '已收藏' : '收藏'}}</text>
+    </view>
     <view class="ab-btn ab-primary" bindtap="checkinCamp">
       <text class="ab-icon">📍</text>
       <text class="ab-label">打卡</text>

@@ -5,6 +5,11 @@ const util = require('../../utils/util');
 
 Page({
   data: {
+    // 状态栏高度 (px)
+    statusBarHeight: 20,
+    // 顶部栏总高度 (statusBar + 导航栏)
+    topbarHeight: 64,
+
     // 地图状态
     latitude: 36.0671,
     longitude: 120.3826,
@@ -43,8 +48,20 @@ Page({
   _firstLoad: true,
 
   onLoad() {
+    // 获取状态栏高度
+    let sbh = 20;
+    try {
+      if (wx.getWindowInfo) {
+        sbh = wx.getWindowInfo().statusBarHeight;
+      } else {
+        sbh = wx.getSystemInfoSync().statusBarHeight;
+      }
+    } catch (e) {}
+
     const app = getApp();
     this.setData({
+      statusBarHeight: sbh,
+      topbarHeight: sbh + 44,
       latitude: app.globalData.cityCenter.latitude,
       longitude: app.globalData.cityCenter.longitude,
       cityName: app.globalData.cityName,
@@ -139,15 +156,19 @@ Page({
   getMapBounds() {
     const lat = this.data.latitude;
     const lng = this.data.longitude;
-    // 大约 1° lat ≈ 111km, 1° lng ≈ 111*cos(lat) km
-    // 根据缩放级别调整范围
+    // 根据缩放级别计算搜索半径 (度)
+    // 增大搜索范围: scale越小(视野越大)半径越大
     const scale = this.data.scale || 11;
-    const radiusDeg = Math.max(0.3, 5.0 / Math.pow(2, scale - 8));
+    // 每级缩放对应大约2倍的视野范围
+    // scale 11 -> ~1.5度 (~166km), scale 12 -> ~0.8度 (~88km)
+    // scale 13 -> ~0.4度 (~44km), scale 14 -> ~0.2度 (~22km)
+    const radiusDeg = Math.max(0.15, 3.0 / Math.pow(2, scale - 9));
+    const cosLat = Math.cos(lat * Math.PI / 180) || 0.01;
     return {
       minLat: lat - radiusDeg,
       maxLat: lat + radiusDeg,
-      minLng: lng - radiusDeg / Math.cos(lat * Math.PI / 180),
-      maxLng: lng + radiusDeg / Math.cos(lat * Math.PI / 180)
+      minLng: lng - radiusDeg / cosLat,
+      maxLng: lng + radiusDeg / cosLat
     };
   },
 
@@ -164,7 +185,7 @@ Page({
 
     util.showLoading('加载营地...');
     try {
-      const camps = await api.fetchCampsites(this.data.filters, fetchBounds);
+      const camps = await api.fetchCampsites(this.data.filters, fetchBounds, 5000);
       this.setData({
         camps,
         campCount: camps.length

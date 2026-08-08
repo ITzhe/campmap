@@ -1,0 +1,67 @@
+<!-- pages/submissions/index.wxml — 我的提交页 -->
+<view class="page-submissions">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">我的提交</view>
+  </view>
+
+  <!-- 统计栏 (有数据时显示) -->
+  <view class="stats-bar" wx:if="{{!isEmpty}}">
+    <view class="stat-item">
+      <view class="stat-num">{{stats.total}}</view>
+      <view class="stat-label">总提交</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num green">{{stats.approved}}</view>
+      <view class="stat-label">已通过</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num orange">{{stats.pending}}</view>
+      <view class="stat-label">审核中</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num coin">🪙{{stats.points}}</view>
+      <view class="stat-label">获得积分</view>
+    </view>
+  </view>
+
+  <!-- 提交列表 -->
+  <view class="sub-list" wx:if="{{!isEmpty}}">
+    <view class="sub-item {{item.statusCls}}" wx:for="{{list}}" wx:key="id"
+      data-id="{{item.id}}" bindtap="onItemTap">
+      <view class="sub-head">
+        <view class="sub-name">{{item.name}}</view>
+        <view class="sub-status status-{{item.statusCls}}">{{item.statusLabel}}</view>
+      </view>
+      <view class="sub-addr">📍 {{item.address}}</view>
+      <view class="sub-meta">
+        <text class="meta-tag">{{item.parkingText}}停车</text>
+        <text class="meta-date">提交于 {{item.submit_time}}</text>
+      </view>
+      <view class="sub-fac" wx:if="{{item.facilities.length > 0}}">
+        <view class="fac-tag" wx:for="{{item.facilities}}" wx:for-item="fac" wx:key="key">
+          <text class="fac-emoji">{{fac.emoji}}</text>
+          <text class="fac-label">{{fac.label}}</text>
+        </view>
+      </view>
+      <view class="sub-arrow" wx:if="{{item.statusCls === 'approved'}}">查看详情 ›</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-icon">📝</view>
+    <view class="empty-text">还没有提交过营地</view>
+    <view class="empty-desc">分享你发现的露营地，审核通过可获积分奖励</view>
+    <view class="empty-btn" bindtap="goSubmit">去提交营地</view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

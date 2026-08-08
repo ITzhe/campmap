@@ -51,10 +51,12 @@
   },
   "requestDomains": [
     "https://drktdyfwawpfughuzqvs.supabase.co",
-    "https://zhuche.anying.wang"
+    "https://zhuche.anying.wang",
+    "https://apis.map.qq.com"
   ],
   "legalDomain": [
     "https://drktdyfwawpfughuzqvs.supabase.co",
-    "https://zhuche.anying.wang"
+    "https://zhuche.anying.wang",
+    "https://apis.map.qq.com"
   ]
 }

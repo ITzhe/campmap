@@ -8,7 +8,7 @@
 
     <!-- 头部 -->
     <view class="mine-header">
-      <view class="mh-info">
+      <view class="mh-info" bindtap="tapAvatar">
         <view class="mh-avatar">{{avatar}}</view>
         <view class="mh-text">
           <view class="mh-name">{{userName}}</view>

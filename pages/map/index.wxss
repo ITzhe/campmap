@@ -22,7 +22,6 @@
   align-items: center;
   padding: 16rpx 24rpx 20rpx;
   background: var(--green);
-  padding-top: calc(16rpx + env(safe-area-inset-top));
 }
 
 .city-sel {
@@ -100,7 +99,6 @@
 /* ============ 营地数量提示 ============ */
 .camp-count-badge {
   position: absolute;
-  top: calc(140rpx + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 400;
@@ -119,7 +117,6 @@
 /* ============ 图例 ============ */
 .map-legend {
   position: absolute;
-  top: calc(192rpx + env(safe-area-inset-top));
   right: 24rpx;
   z-index: 400;
   background: rgba(255, 255, 255, 0.96);

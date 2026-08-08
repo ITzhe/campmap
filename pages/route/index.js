@@ -16,6 +16,7 @@ Page({
     routeCamps: 0,
     routeTime: '',
     routeCampList: [],
+    routePlanning: false,
 
     // 地图
     latitude: 36.0671,
@@ -45,12 +46,24 @@ Page({
       longitude: app.globalData.cityCenter.longitude
     });
     this.loadCamps();
+
+    // 恢复待定路线 (从收藏页跳来)
+    if (app.globalData.pendingRoute) {
+      const pr = app.globalData.pendingRoute;
+      app.globalData.pendingRoute = null;
+      this.setData({
+        routeStart: pr.startName,
+        routeEnd: pr.endName,
+        startCoord: pr.startCoord,
+        endCoord: pr.endCoord
+      });
+      setTimeout(() => this.calcRoute(), 500);
+    }
   },
 
   // ============ 加载营地数据 (全国范围,用于线路沿途搜索) ============
   async loadCamps() {
     try {
-      // 线路规划需要全国数据,不传 bounds, 拉取全部
       const camps = await api.fetchCampsites({ fee: 'all' }, null, 10000);
       this.setData({ allCamps: camps || [] });
     } catch (e) {
@@ -58,7 +71,7 @@ Page({
     }
   },
 
-  // ============ 选择起点 (使用地图选点) ============
+  // ============ 选择起点 ============
   chooseStart() {
     const cur = this.data.startCoord || {
       lat: this.data.latitude,
@@ -77,7 +90,7 @@ Page({
     });
   },
 
-  // ============ 选择终点 (使用地图选点) ============
+  // ============ 选择终点 ============
   chooseEnd() {
     const cur = this.data.endCoord || this.data.startCoord || {
       lat: this.data.latitude,
@@ -96,56 +109,107 @@ Page({
     });
   },
 
-  // ============ 手动输入回退 ============
-  onStartInput(e) {
-    this.setData({ routeStart: e.detail.value, startCoord: null });
-  },
-
-  onEndInput(e) {
-    this.setData({ routeEnd: e.detail.value, endCoord: null });
-  },
-
   addWaypoint() {
     util.showToast('途经点功能开发中');
   },
 
+  // ============ 调用腾讯地图驾车路线 API ============
+  fetchDrivingRoute(fromLat, fromLng, toLat, toLng) {
+    const key = config.MAP_KEY || '';
+    return new Promise((resolve) => {
+      if (!key) {
+        resolve(null);
+        return;
+      }
+      wx.request({
+        url: 'https://apis.map.qq.com/ws/direction/v1/driving/',
+        data: {
+          from: `${fromLat},${fromLng}`,
+          to: `${toLat},${toLng}`,
+          key: key
+        },
+        method: 'GET',
+        success: (res) => {
+          if (res.data && res.data.status === 0 && res.data.result && res.data.result.routes && res.data.result.routes.length > 0) {
+            resolve(res.data.result.routes[0]);
+          } else {
+            resolve(null);
+          }
+        },
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  // ============ 解码腾讯地图 polyline ============
+  // 腾讯地图 polyline 格式: [lat1, lng1, dlat2, dlng2, ...]
+  // 第一个点为绝对坐标, 后续为前一个点的偏移量
+  decodePolyline(polyline) {
+    if (!polyline || polyline.length < 2) return [];
+    const points = [];
+    let prevLat = 0;
+    let prevLng = 0;
+    for (let i = 0; i < polyline.length; i += 2) {
+      if (i === 0) {
+        prevLat = polyline[i];
+        prevLng = polyline[i + 1];
+      } else {
+        prevLat += polyline[i] / 1000000;
+        prevLng += polyline[i + 1] / 1000000;
+      }
+      points.push({
+        latitude: prevLat,
+        longitude: prevLng
+      });
+    }
+    return points;
+  },
+
   // ============ 规划路线 ============
-  calcRoute() {
+  async calcRoute() {
     const startName = (this.data.routeStart || '').trim();
     const endName = (this.data.routeEnd || '').trim();
     if (!startName) { util.showToast('请选择起点'); return; }
     if (!endName) { util.showToast('请选择终点'); return; }
 
-    // 必须有坐标（通过 chooseLocation 选择）
     let s = this.data.startCoord;
     let e = this.data.endCoord;
 
-    // 如果没有坐标，提示用户通过地图选点
-    if (!s) {
-      util.showToast('请点击起点输入框选择位置');
-      return;
-    }
-    if (!e) {
-      util.showToast('请点击终点输入框选择位置');
-      return;
+    if (!s) { util.showToast('请点击起点输入框选择位置'); return; }
+    if (!e) { util.showToast('请点击终点输入框选择位置'); return; }
+
+    this.setData({ routePlanning: true });
+    util.showLoading('规划路线中...');
+
+    // 尝试调用腾讯地图驾车路线 API
+    const route = await this.fetchDrivingRoute(s.lat, s.lng, e.lat, e.lng);
+
+    let routePoints = [];
+    let dist = 0;
+    let duration = 0;
+
+    if (route && route.polyline) {
+      // API 成功: 使用真实驾车路线
+      routePoints = this.decodePolyline(route.polyline);
+      dist = Math.round((route.distance / 1000) * 10) / 10; // m -> km
+      duration = route.duration; // seconds
+    } else {
+      // 降级: 使用直线 + 多采样点
+      const straight = util.distance(s.lat, s.lng, e.lat, e.lng);
+      dist = Math.round(straight * 1.3 * 10) / 10;
+      duration = dist / 80 * 3600; // 80km/h
+      const stepCount = Math.max(8, Math.min(50, Math.round(dist / 20)));
+      routePoints = this.genRoutePoints(s.lat, s.lng, e.lat, e.lng, stepCount);
     }
 
-    // 里程 (直线距离 × 1.3 道路系数)
-    const straight = util.distance(s.lat, s.lng, e.lat, e.lng);
-    const dist = Math.round(straight * 1.3 * 10) / 10;
-
-    // 预计时长 (按 80km/h 均速)
-    const minutes = Math.max(1, Math.round(dist / 80 * 60));
+    // 预计时长
+    const minutes = Math.max(1, Math.round(duration / 60));
     const hh = Math.floor(minutes / 60);
     const mm = minutes % 60;
     const timeStr = hh > 0 ? `${hh}小时${mm}分` : `${mm}分钟`;
 
-    // 沿途营地
-    const campList = this.findCampsAlong(s.lat, s.lng, e.lat, e.lng);
-
-    // 路径点（根据距离自动增加采样点）
-    const stepCount = Math.max(8, Math.min(50, Math.round(dist / 20)));
-    const points = this.genRoutePoints(s.lat, s.lng, e.lat, e.lng, stepCount);
+    // 沿途营地 (使用真实路线点搜索)
+    const campList = this.findCampsAlongRoute(routePoints);
 
     // 起点 / 终点标记
     const markers = [
@@ -212,7 +276,7 @@ Page({
     });
 
     const polyline = [{
-      points: points,
+      points: routePoints,
       color: '#2d6a4f',
       width: 6,
       arrowLine: true,
@@ -222,7 +286,6 @@ Page({
     // 地图中心 = 中点，缩放随距离调整
     const midLat = (s.lat + e.lat) / 2;
     const midLng = (s.lng + e.lng) / 2;
-    // 根据距离自适应缩放级别
     let scale;
     if (dist > 800) scale = 5;
     else if (dist > 400) scale = 6;
@@ -242,13 +305,15 @@ Page({
       polyline,
       latitude: midLat,
       longitude: midLng,
-      scale
+      scale,
+      routePlanning: false
     });
 
+    util.hideLoading();
     util.showToast(`已规划路线，沿途${campList.length}个营地`);
   },
 
-  // ============ 生成路径点 ============
+  // ============ 生成直线采样点 (降级用) ============
   genRoutePoints(lat1, lng1, lat2, lng2, steps) {
     steps = steps || 8;
     const pts = [];
@@ -287,17 +352,33 @@ Page({
     return Math.sqrt(ddx * ddx + ddy * ddy);
   },
 
-  // ============ 查找沿途营地 ============
-  findCampsAlong(lat1, lng1, lat2, lng2) {
-    // 走廊宽度根据距离自适应：长途路线宽一点，短途窄一点
-    const straight = util.distance(lat1, lng1, lat2, lng2);
-    // 增大走廊宽度: 短途15km, 中途40km, 长途60km
+  // ============ 查找沿途营地 (基于真实路线折线) ============
+  findCampsAlongRoute(routePoints) {
+    if (!routePoints || routePoints.length < 2) return [];
+
+    // 走廊宽度根据路线总长度自适应
+    const startPt = routePoints[0];
+    const endPt = routePoints[routePoints.length - 1];
+    const straight = util.distance(startPt.latitude, startPt.longitude, endPt.latitude, endPt.longitude);
     const corridor = Math.max(15, Math.min(60, straight / 10));
 
     const list = this.data.allCamps.map(c => {
-      const offset = this.distToSegment(c.latitude, c.longitude, lat1, lng1, lat2, lng2);
-      const distFromStart = util.distance(c.latitude, c.longitude, lat1, lng1);
-      return { camp: c, offset, distFromStart };
+      // 计算到路线每一段的最小距离
+      let minOffset = Infinity;
+
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        const offset = this.distToSegment(
+          c.latitude, c.longitude,
+          routePoints[i].latitude, routePoints[i].longitude,
+          routePoints[i + 1].latitude, routePoints[i + 1].longitude
+        );
+        if (offset < minOffset) {
+          minOffset = offset;
+        }
+      }
+
+      const distFromStart = util.distance(c.latitude, c.longitude, startPt.latitude, startPt.longitude);
+      return { camp: c, offset: minOffset, distFromStart };
     }).filter(o => o.offset <= corridor);
 
     list.sort((a, b) => a.distFromStart - b.distFromStart);
@@ -312,7 +393,7 @@ Page({
     });
   },
 
-  // ============ 营地点击：切换到地图页并展示底部卡片 ============
+  // ============ 营地点击 ============
   onCampTap(e) {
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];

@@ -15,8 +15,8 @@
     bindmarkertap="onMarkerTap"
     bindregionchange="onRegionChange"
   >
-    <!-- 顶部搜索栏 -->
-    <cover-view class="map-topbar">
+    <!-- 顶部搜索栏 (使用动态状态栏高度避免重叠) -->
+    <cover-view class="map-topbar" style="padding-top: {{statusBarHeight}}px;">
       <cover-view class="city-sel" bindtap="onCityTap">
         <cover-view class="city-name">{{cityName}}</cover-view>
         <cover-view class="city-arrow">▼</cover-view>
@@ -32,12 +32,12 @@
     </cover-view>
 
     <!-- 营地数量提示 -->
-    <cover-view wx:if="{{campCount > 0}}" class="camp-count-badge">
+    <cover-view wx:if="{{campCount > 0}}" class="camp-count-badge" style="top: {{topbarHeight + 8}}px;">
       <cover-view class="cc-text">附近 {{campCount}} 个营地</cover-view>
     </cover-view>
 
     <!-- 地图图例 -->
-    <cover-view class="map-legend">
+    <cover-view class="map-legend" style="top: {{topbarHeight + 52}}px;">
       <cover-view class="lg">
         <cover-view class="lg-dot free"></cover-view>
         <cover-view class="lg-text">免费</cover-view>

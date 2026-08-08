@@ -1,0 +1,84 @@
+<!-- pages/settings/index.wxml — 设置页面 -->
+<view class="page-settings">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height:{{statusBarHeight}}px"></view>
+
+  <!-- 自定义导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="goBack">‹</view>
+    <view class="nav-title">设置</view>
+  </view>
+
+  <!-- 通知设置 -->
+  <view class="sec">
+    <view class="sec-title">通知设置</view>
+    <view class="sec-card">
+      <view class="set-item">
+        <view class="set-label">营地推荐通知</view>
+        <switch checked="{{notifyCamp}}" color="#2d6a4f" bindchange="onNotifyCampChange" />
+      </view>
+      <view class="set-item">
+        <view class="set-label">活动通知</view>
+        <switch checked="{{notifyEvent}}" color="#2d6a4f" bindchange="onNotifyEventChange" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 地图设置 -->
+  <view class="sec">
+    <view class="sec-title">地图设置</view>
+    <view class="sec-card">
+      <picker mode="selector" range="{{zoomLevels}}" value="{{zoomIndex}}" bindchange="onZoomChange">
+        <view class="set-item">
+          <view class="set-label">默认缩放级别</view>
+          <view class="set-value">{{zoomLevels[zoomIndex]}}<text class="set-arrow">›</text></view>
+        </view>
+      </picker>
+      <view class="set-item">
+        <view class="set-label">显示房车营地</view>
+        <switch checked="{{showRvCamp}}" color="#2d6a4f" bindchange="onShowRvChange" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 缓存管理 -->
+  <view class="sec">
+    <view class="sec-title">缓存管理</view>
+    <view class="sec-card">
+      <view class="set-item" bindtap="clearCache">
+        <view class="set-label">清除缓存</view>
+        <view class="set-value">{{cacheSize}}<text class="set-arrow">›</text></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 关于 -->
+  <view class="sec">
+    <view class="sec-title">关于</view>
+    <view class="sec-card">
+      <view class="set-item">
+        <view class="set-label">版本号</view>
+        <view class="set-value">{{version}}</view>
+      </view>
+      <view class="set-item" bindtap="checkUpdate">
+        <view class="set-label">检查更新</view>
+        <view class="set-arrow">›</view>
+      </view>
+      <view class="set-item" bindtap="openAgreement">
+        <view class="set-label">用户协议</view>
+        <view class="set-arrow">›</view>
+      </view>
+      <view class="set-item" bindtap="openPrivacy">
+        <view class="set-label">隐私政策</view>
+        <view class="set-arrow">›</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-wrap">
+    <view class="logout-btn" bindtap="logout">退出登录</view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>
