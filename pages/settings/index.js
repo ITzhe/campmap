@@ -8,6 +8,7 @@ Page({
   data: {
     statusBarHeight: 20,
     version: APP_VERSION,
+    nickName: '',
     // 默认缩放级别选项
     zoomLevels: ['低 (3-8)', '中 (9-12)', '高 (13-16)', '超高 (17-20)'],
     zoomIndex: 1,
@@ -32,11 +33,34 @@ Page({
     this.setData({ statusBarHeight: sbh });
     this.loadSettings();
     this.loadCacheSize();
+    this.loadNickName();
   },
 
   // 返回上一页
   goBack() {
     wx.navigateBack({ delta: 1 });
+  },
+
+  // ============ 昵称管理 ============
+  loadNickName() {
+    const u = util.getUserState();
+    this.setData({ nickName: u.nick || '露营爱好者' });
+  },
+
+  onNickInput(e) {
+    this.setData({ nickName: e.detail.value });
+  },
+
+  onNickBlur(e) {
+    let nick = (e.detail.value || '').trim();
+    if (!nick) {
+      nick = '露营爱好者';
+    }
+    const u = util.getUserState();
+    u.nick = nick;
+    util.saveUser(u);
+    this.setData({ nickName: nick });
+    util.showToast('昵称已保存');
   },
 
   // ============ 读取 / 保存设置 ============

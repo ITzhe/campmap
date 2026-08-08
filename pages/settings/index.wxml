@@ -9,6 +9,18 @@
     <view class="nav-title">设置</view>
   </view>
 
+  <!-- 个人昵称 -->
+  <view class="sec">
+    <view class="sec-title">个人信息</view>
+    <view class="sec-card">
+      <view class="set-item set-item-nick">
+        <view class="set-label">昵称</view>
+        <input class="nick-input" type="text" value="{{nickName}}" placeholder="输入昵称"
+          maxlength="12" confirm-type="done" bindinput="onNickInput" bindblur="onNickBlur" />
+      </view>
+    </view>
+  </view>
+
   <!-- 通知设置 -->
   <view class="sec">
     <view class="sec-title">通知设置</view>

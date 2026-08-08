@@ -74,6 +74,20 @@
   margin-left: 4rpx;
 }
 
+/* ============ 昵称输入 ============ */
+.set-item-nick {
+  padding: 20rpx 28rpx;
+}
+
+.nick-input {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: var(--text);
+  margin-left: 24rpx;
+  min-height: 48rpx;
+}
+
 /* ============ 退出登录 ============ */
 .logout-wrap {
   padding: 48rpx 24rpx 24rpx;

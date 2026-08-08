@@ -80,6 +80,10 @@ async function fetchCampsites(filters, bounds, limit) {
   try {
     const data = await request(url, 'GET');
     if (!Array.isArray(data) || data.length === 0) {
+      // 有地理范围时，说明用户在看特定区域（如拖到北京），该区域确实没有营地
+      if (bounds) {
+        return [];
+      }
       console.warn('[Supabase] 营地数据为空，降级到 Mock 数据');
       return JSON.parse(JSON.stringify(MOCK_CAMPS));
     }

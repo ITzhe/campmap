@@ -62,6 +62,7 @@ Page({
     const today = util.todayStr();
     const checkedToday = u.lastCheckin === today;
     this.setData({
+      userName: u.nick || '露营爱好者',
       points: u.points || 0,
       streak: u.streak || 0,
       joinDays: util.calcJoinDays(u.joinDate),
