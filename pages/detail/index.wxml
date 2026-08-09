@@ -46,6 +46,35 @@
       </view>
     </view>
 
+    <!-- 营地相册 -->
+    <view class="card photo-card">
+      <view class="card-h">
+        <view class="dot"></view>营地相册
+        <text class="photo-count">{{campPhotos.length}}张</text>
+      </view>
+
+      <!-- 照片网格 -->
+      <view class="photo-grid" wx:if="{{campPhotos.length > 0}}">
+        <view class="photo-item" wx:for="{{campPhotos}}" wx:key="id">
+          <image src="{{item.url}}" mode="aspectFill" class="photo-img"
+            bindtap="previewCampPhoto" data-idx="{{index}}" />
+          <view wx:if="{{item.isMine}}" class="photo-del"
+            catchtap="deleteCampPhoto" data-idx="{{index}}">✕</view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="photo-empty" wx:if="{{campPhotos.length === 0}}">
+        <text class="photo-empty-text">暂无照片，快来上传第一张营地照片吧～</text>
+      </view>
+
+      <!-- 上传按钮 -->
+      <view class="photo-upload-btn {{uploadingPhoto ? 'disabled' : ''}}" bindtap="uploadCampPhoto">
+        <text class="photo-upload-icon">📷</text>
+        <text class="photo-upload-text">{{uploadingPhoto ? '上传中...' : '上传营地照片'}}</text>
+      </view>
+    </view>
+
     <!-- 配套设施 -->
     <view class="card">
       <view class="card-h"><view class="dot"></view>配套设施</view>
@@ -163,35 +192,6 @@
       <!-- 展开更多 -->
       <view class="dyn-toggle" wx:if="{{dynamicsCount > 3}}" bindtap="toggleDynamics">
         {{dynamicsExpanded ? '收起 ▲' : '查看全部' + dynamicsCount + '条评价 ▼'}}
-      </view>
-    </view>
-
-    <!-- 营地相册 -->
-    <view class="card photo-card">
-      <view class="card-h">
-        <view class="dot"></view>营地相册
-        <text class="photo-count">{{campPhotos.length}}张</text>
-      </view>
-
-      <!-- 照片网格 -->
-      <view class="photo-grid" wx:if="{{campPhotos.length > 0}}">
-        <view class="photo-item" wx:for="{{campPhotos}}" wx:key="id">
-          <image src="{{item.url}}" mode="aspectFill" class="photo-img"
-            bindtap="previewCampPhoto" data-idx="{{index}}" />
-          <view wx:if="{{item.isMine}}" class="photo-del"
-            catchtap="deleteCampPhoto" data-idx="{{index}}">✕</view>
-        </view>
-      </view>
-
-      <!-- 空状态 -->
-      <view class="photo-empty" wx:if="{{campPhotos.length === 0}}">
-        <text class="photo-empty-text">暂无照片，快来上传第一张营地照片吧～</text>
-      </view>
-
-      <!-- 上传按钮 -->
-      <view class="photo-upload-btn {{uploadingPhoto ? 'disabled' : ''}}" bindtap="uploadCampPhoto">
-        <text class="photo-upload-icon">📷</text>
-        <text class="photo-upload-text">{{uploadingPhoto ? '上传中...' : '上传营地照片'}}</text>
       </view>
     </view>
 
