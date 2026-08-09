@@ -96,59 +96,44 @@ function isLoggedIn() {
 }
 
 /**
- * 微信登录 — 获取用户昵称和头像
- * 优先使用 wx.getUserProfile, 降级到手动输入
+ * 微信登录 — 直接获取微信昵称和头像
+ * 优先使用 wx.getUserProfile, 降级使用默认昵称
+ * 不再弹出手动输入框
  */
 function wxLogin() {
   return new Promise((resolve, reject) => {
-    // 尝试 wx.getUserProfile (部分基础库仍支持)
+    // 尝试 wx.getUserProfile (部分基础库仍支持, 可获取真实昵称)
     if (wx.getUserProfile) {
       wx.getUserProfile({
         desc: '用于评论和互动',
         success: (res) => {
           const userInfo = res.userInfo || {};
           const u = getUserState();
+          // 直接使用微信昵称, 如"张三"
           u.nick = userInfo.nickName || '微信用户';
           u.avatarUrl = userInfo.avatarUrl || '';
           saveUser(u);
           resolve(u);
         },
         fail: () => {
-          // 用户拒绝授权, 降级到手动输入
-          _manualLogin().then(resolve).catch(reject);
+          // 用户拒绝授权或 API 不可用, 直接使用默认昵称, 不再弹框
+          const u = getUserState();
+          if (!u.nick || !u.nick.trim()) {
+            u.nick = '微信用户';
+            saveUser(u);
+          }
+          resolve(u);
         }
       });
     } else {
-      // getUserProfile 不可用, 使用手动输入
-      _manualLogin().then(resolve).catch(reject);
+      // getUserProfile 不可用, 直接使用默认昵称
+      const u = getUserState();
+      if (!u.nick || !u.nick.trim()) {
+        u.nick = '微信用户';
+        saveUser(u);
+      }
+      resolve(u);
     }
-  });
-}
-
-/**
- * 手动输入昵称登录 (降级方案)
- */
-function _manualLogin() {
-  return new Promise((resolve, reject) => {
-    wx.showModal({
-      title: '设置昵称',
-      content: '请输入您的昵称，用于评论展示',
-      editable: true,
-      placeholderText: '如：露营达人',
-      confirmText: '确定',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm && res.content && res.content.trim()) {
-          const u = getUserState();
-          u.nick = res.content.trim().slice(0, 20);
-          saveUser(u);
-          resolve(u);
-        } else {
-          reject(new Error('用户取消'));
-        }
-      },
-      fail: () => reject(new Error('登录失败'))
-    });
   });
 }
 

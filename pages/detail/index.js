@@ -324,20 +324,21 @@ Page({
     const res = await this.addDynamics(text, 'comment', photoUrls);
     util.hideLoading();
     this.setData({ submittingDynamics: false });
-    if (res) {
+    if (res && res.success) {
       // 清空内容并收起评论框
       this.setData({ dynamicsInput: '', dynamicsPhotos: [], showPublishBox: false });
       util.showToast('发布成功');
     } else {
-      util.showToast('发布失败');
+      util.showToast((res && res.msg) || '发布失败，请稍后重试');
     }
   },
 
   // ============ 提交评价到 Supabase 并刷新列表 ============
   // 供发布评价 / 营地打卡复用
+  // 返回 { success: boolean, msg?: string }
   async addDynamics(text, type, photoUrls) {
     const camp = this.data.camp;
-    if (!camp) return null;
+    if (!camp) return { success: false, msg: '营地信息缺失' };
     const userData = util.getUserState();
     const res = await api.submitComment(
       camp.spot_code,
@@ -348,7 +349,7 @@ Page({
       type || 'comment',
       (photoUrls || []).join(',')
     );
-    // 重新加载评论列表
+    // 重新加载评论列表 (无论成功失败都刷新, 确保数据同步)
     await this.loadComments(camp.spot_code);
     return res;
   },

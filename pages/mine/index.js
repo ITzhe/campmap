@@ -64,7 +64,7 @@ Page({
     const today = util.todayStr();
     const checkedToday = u.lastCheckin === today;
     this.setData({
-      userName: u.nick || '',
+      userName: u.nick || '微信用户',
       avatarUrl: u.avatarUrl || '',
       points: u.points || 0,
       streak: u.streak || 0,
@@ -105,8 +105,20 @@ Page({
     wx.navigateTo({ url: '/pages/settings/index' });
   },
 
-  // ============ 点击头像 (上传头像) ============
-  tapAvatar() {
+  // ============ 点击头像 (登录 + 上传头像) ============
+  async tapAvatar() {
+    // 未登录时先触发微信登录, 获取昵称
+    if (!util.isLoggedIn()) {
+      try {
+        await util.wxLogin();
+        const u = util.getUserState();
+        this.setData({ userName: u.nick || '微信用户' });
+      } catch (e) {
+        // wxLogin 不会 reject, 但安全起见
+        return;
+      }
+    }
+
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],

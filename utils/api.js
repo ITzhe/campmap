@@ -183,43 +183,53 @@ async function fetchComments(spotCode) {
 
 /**
  * 发布评论
+ * 返回 { success: boolean, msg?: string }
  */
 async function submitComment(spotCode, openid, nick, avatar, content, type, photoUrls) {
   const url = `${config.API_BASE}/camp_comments`;
   const payload = {
     spot_code: spotCode,
     openid: openid,
-    nick: nick || '匿名用户',
+    nick: nick || '微信用户',
     avatar: avatar || '🏕',
     content: content,
     type: type || 'comment'
   };
-  // 仅在有图片时添加 photo_urls 字段 (数据库可能尚未添加该列)
+  // 仅在有图片时添加 photo_urls 字段
   if (photoUrls) {
     payload.photo_urls = photoUrls;
   }
-  const body = JSON.stringify(payload);
+
+  // 添加 Prefer 头, 让 Supabase 返回插入的数据
+  const headers = Object.assign({}, config.getHeaders(), {
+    'Prefer': 'return=representation'
+  });
+
   try {
-    return await request(url, 'POST', body);
+    await request(url, 'POST', JSON.stringify(payload), headers);
+    return { success: true };
   } catch (e) {
+    console.warn('[api] 评论提交失败:', e.message);
     // 如果带图片失败, 尝试不带图片重发
     if (photoUrls) {
-      console.warn('[api] 带图片评论提交失败, 尝试不带图片重发:', e.message);
-      const body2 = JSON.stringify({
+      console.warn('[api] 尝试不带图片重发...');
+      const payload2 = {
         spot_code: spotCode,
         openid: openid,
-        nick: nick || '匿名用户',
+        nick: nick || '微信用户',
         avatar: avatar || '🏕',
         content: content,
         type: type || 'comment'
-      });
+      };
       try {
-        return await request(url, 'POST', body2);
+        await request(url, 'POST', JSON.stringify(payload2), headers);
+        return { success: true };
       } catch (e2) {
-        return null;
+        console.warn('[api] 不带图片重发也失败:', e2.message);
+        return { success: false, msg: '网络错误: ' + e2.message };
       }
     }
-    return null;
+    return { success: false, msg: '网络错误: ' + e.message };
   }
 }
 
