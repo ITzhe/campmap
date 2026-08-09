@@ -126,7 +126,10 @@
         <view class="dyn-tip" wx:if="{{!commentsLoading && dynamicsCount === 0}}">还没有评价，快来分享第一条吧～</view>
         <view class="dyn-item" wx:for="{{dynamicsList}}" wx:key="id"
           wx:if="{{dynamicsExpanded || index < 3}}">
-          <view class="dyn-avatar">{{item.avatar}}</view>
+          <view class="dyn-avatar">
+            <image wx:if="{{item.avatarIsUrl}}" class="dyn-avatar-img" src="{{item.avatar}}" mode="aspectFill" />
+            <text wx:else>{{item.avatar}}</text>
+          </view>
           <view class="dyn-content">
             <view class="dyn-head">
               <text class="dyn-nick">{{item.nick}}</text>

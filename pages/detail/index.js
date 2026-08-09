@@ -188,18 +188,23 @@ Page({
     const likedIds = this.data.likedCommentIds || [];
     const currentOpenid = this.data.currentUserOpenid;
     // 映射为前端展示结构 (保留 dynamicsList 字段名以兼容 WXML)
-    const dynamicsList = (comments || []).map(c => ({
-      id: c.id,
-      nick: c.nick || '匿名用户',
-      avatar: c.avatar || '🏕',
-      date: this.fmtDate(c.created_at),
-      text: c.content,
-      type: c.type || 'comment',
-      likes: c.likes || 0,
-      liked: likedIds.indexOf(c.id) > -1,
-      photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
-      isMine: c.openid === currentOpenid
-    }));
+    const dynamicsList = (comments || []).map(c => {
+      const avatar = c.avatar || '🏕';
+      const avatarIsUrl = avatar.startsWith('http');
+      return {
+        id: c.id,
+        nick: c.nick || '微信用户',
+        avatar: avatar,
+        avatarIsUrl: avatarIsUrl,
+        date: this.fmtDate(c.created_at),
+        text: c.content,
+        type: c.type || 'comment',
+        likes: c.likes || 0,
+        liked: likedIds.indexOf(c.id) > -1,
+        photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
+        isMine: c.openid === currentOpenid
+      };
+    });
     this.setData({
       dynamicsList,
       dynamicsCount: dynamicsList.length,

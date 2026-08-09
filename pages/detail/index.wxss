@@ -524,6 +524,13 @@
   justify-content: center;
   font-size: 36rpx;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.dyn-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
 .dyn-content {
