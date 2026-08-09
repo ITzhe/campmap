@@ -9,7 +9,10 @@
     <!-- 头部 -->
     <view class="mine-header">
       <view class="mh-info" bindtap="tapAvatar">
-        <view class="mh-avatar">{{avatar}}</view>
+        <view class="mh-avatar">
+          <image wx:if="{{avatarUrl}}" class="mh-avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+          <text wx:else>{{avatar}}</text>
+        </view>
         <view class="mh-text">
           <view class="mh-name">{{userName}}</view>
           <view class="mh-days">已加入 {{joinDays}} 天</view>

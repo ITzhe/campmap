@@ -146,11 +146,9 @@
   background: var(--orange);
 }
 
-.lg-sq {
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 4rpx;
-  background: var(--purple);
+.lg-emoji {
+  font-size: 24rpx;
+  line-height: 22rpx;
 }
 
 .lg-text {

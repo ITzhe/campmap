@@ -147,9 +147,75 @@
       <text class="ab-icon">{{isFavorited ? '❤️' : '🤍'}}</text>
       <text class="ab-label">{{isFavorited ? '已收藏' : '收藏'}}</text>
     </view>
+    <view class="ab-btn" bindtap="openCorrection">
+      <text class="ab-icon">✏️</text>
+      <text class="ab-label">纠错</text>
+    </view>
     <view class="ab-btn ab-primary" bindtap="checkinCamp">
       <text class="ab-icon">📍</text>
       <text class="ab-label">打卡</text>
+    </view>
+  </view>
+
+  <!-- 纠错弹窗 -->
+  <view wx:if="{{showCorrection}}" class="correction-mask" bindtap="closeCorrection">
+    <view class="correction-sheet" catchtap="">
+      <view class="cs-header">
+        <text class="cs-title">营地纠错</text>
+        <text class="cs-close" bindtap="closeCorrection">✕</text>
+      </view>
+
+      <scroll-view scroll-y class="cs-body">
+        <!-- 基本信息 -->
+        <view class="cs-section">
+          <view class="cs-label">营地名称</view>
+          <input class="cs-input" placeholder="请输入营地名称"
+            data-key="name" value="{{correctionData.name}}" bindinput="onCorrectionInput" />
+        </view>
+        <view class="cs-section">
+          <view class="cs-label">详细地址</view>
+          <input class="cs-input" placeholder="请输入详细地址"
+            data-key="address" value="{{correctionData.address}}" bindinput="onCorrectionInput" />
+        </view>
+        <view class="cs-section">
+          <view class="cs-label">营地简介</view>
+          <textarea class="cs-textarea" placeholder="补充营地介绍"
+            data-key="intro" value="{{correctionData.intro}}" bindinput="onCorrectionInput" maxlength="200" />
+        </view>
+
+        <!-- 设施状态 -->
+        <view class="cs-section">
+          <view class="cs-label">设施状态（点击修改）</view>
+          <view class="cs-fac-grid">
+            <view wx:for="{{correctionFacItems}}" wx:key="key"
+              class="cs-fac-item {{item.on ? 'on' : 'off'}}"
+              data-idx="{{index}}" bindtap="toggleCorrectionFac">
+              <text class="cs-fac-emoji">{{item.emoji}}</text>
+              <text class="cs-fac-label">{{item.label}}</text>
+              <text class="cs-fac-status">{{item.on ? '✓' : '✕'}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 纠错照片 -->
+        <view class="cs-section">
+          <view class="cs-label">补充照片（选填）</view>
+          <view class="cs-photo-grid">
+            <view wx:for="{{correctionPhotos}}" wx:key="id" class="cs-photo-thumb">
+              <image src="{{item.path}}" mode="aspectFill" class="cs-photo-img" />
+              <view class="cs-photo-del" catchtap="delCorrectionPhoto" data-idx="{{index}}">✕</view>
+            </view>
+            <view wx:if="{{correctionPhotos.length < 6}}" class="cs-photo-add" bindtap="addCorrectionPhoto">
+              <text class="cs-add-icon">+</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="cs-footer">
+        <view class="cs-btn-cancel" bindtap="closeCorrection">取消</view>
+        <view class="cs-btn-submit {{submittingCorrection ? 'disabled' : ''}}" bindtap="submitCorrection">提交纠错</view>
+      </view>
     </view>
   </view>
 </view>

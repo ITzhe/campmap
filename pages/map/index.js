@@ -204,7 +204,8 @@ Page({
       const isFree = c.parking_status == 0;
       let iconPath = '/assets/markers/free.png';
       if (!isFree) iconPath = '/assets/markers/paid.png';
-      if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
+
+      const calloutContent = c.rv_friendly == 1 ? '🚐 ' + c.name : c.name;
 
       return {
         id: idx,
@@ -214,7 +215,7 @@ Page({
         width: 28,
         height: 32,
         callout: {
-          content: c.name,
+          content: calloutContent,
           color: '#1a2e1f',
           fontSize: 11,
           borderRadius: 8,

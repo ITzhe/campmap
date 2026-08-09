@@ -43,15 +43,9 @@
         <cover-view class="lg-text">收费</cover-view>
       </cover-view>
       <cover-view class="lg">
-        <cover-view class="lg-sq"></cover-view>
+        <cover-view class="lg-emoji">🚐</cover-view>
         <cover-view class="lg-text">房车</cover-view>
       </cover-view>
-    </cover-view>
-
-    <!-- 筛选摘要条 -->
-    <cover-view wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearFilters">
-      <cover-view class="filter-summary-text">{{filterSummaryText}}</cover-view>
-      <cover-view class="filter-summary-x">✕</cover-view>
     </cover-view>
 
     <!-- 浮动按钮 -->
@@ -60,7 +54,6 @@
         <cover-view class="fab-filter-icon">⚙</cover-view>
         <cover-view wx:if="{{filterCount > 0}}" class="fab-filter-badge">{{filterCount}}</cover-view>
       </cover-view>
-      <cover-view class="fab fab-loc" bindtap="locateMe">⊕</cover-view>
     </cover-view>
 
     <!-- 营地底部卡片 -->

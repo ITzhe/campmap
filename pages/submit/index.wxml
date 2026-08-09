@@ -17,7 +17,7 @@
       <view class="fs-sub">添加营地实景照片，最多 9 张</view>
       <view class="photo-grid">
         <view wx:for="{{photos}}" wx:key="id" class="photo-thumb">
-          <text class="ph-emoji">{{item.emoji}}</text>
+          <image src="{{item.path}}" mode="aspectFill" class="ph-img" />
           <view class="del" catchtap="delPhoto" data-idx="{{index}}">✕</view>
         </view>
         <view wx:if="{{photos.length < 9}}" class="photo-add" bindtap="addPhoto">
@@ -74,26 +74,16 @@
       </view>
     </view>
 
-    <!-- 5. 更多选项 -->
+    <!-- 5. 联系人信息 -->
     <view class="form-section">
-      <view class="fs-title">✨ 更多选项</view>
-      <view class="chip-row">
-        <view wx:for="{{moreOptions}}" wx:key="v"
-          class="chip {{moreSelected.indexOf(item.v) > -1 ? 'on' : ''}}"
-          data-v="{{item.v}}" bindtap="toggleMore">{{item.l}}</view>
-      </view>
-    </view>
-
-    <!-- 6. 联系人信息 -->
-    <view class="form-section">
-      <view class="fs-title">👤 联系人信息</view>
+      <view class="fs-title">👤 联系人信息<text class="fs-optional">（选填）</text></view>
       <view class="field">
-        <view class="field-label">姓名<text class="req">*</text></view>
+        <view class="field-label">姓名</view>
         <input class="form-input" placeholder="请输入联系人姓名" placeholder-class="ph"
           data-key="subContact" value="{{subContact}}" bindinput="onInput" />
       </view>
       <view class="field">
-        <view class="field-label">电话<text class="req">*</text></view>
+        <view class="field-label">电话</view>
         <input class="form-input" type="tel" maxlength="11" placeholder="请输入手机号码" placeholder-class="ph"
           data-key="subPhone" value="{{subPhone}}" bindinput="onInput" />
       </view>

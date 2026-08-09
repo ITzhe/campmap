@@ -68,6 +68,13 @@
   margin-top: 8rpx;
 }
 
+.fs-optional {
+  font-size: 22rpx;
+  color: var(--text-ph);
+  font-weight: 400;
+  margin-left: 8rpx;
+}
+
 .sub-label {
   font-size: 24rpx;
   color: var(--text-2);
@@ -88,14 +95,12 @@
   height: 128rpx;
   border-radius: var(--radius-sm);
   background: var(--green-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
 }
 
-.ph-emoji {
-  font-size: 52rpx;
-  line-height: 1;
+.ph-img {
+  width: 100%;
+  height: 100%;
 }
 
 .photo-thumb .del {
@@ -210,7 +215,7 @@
 /* ============ 配套设施网格 ============ */
 .facility-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14rpx;
   margin-top: 20rpx;
 }

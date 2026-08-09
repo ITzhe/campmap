@@ -31,6 +31,17 @@ const config = {
   // 注册后在「控制台 → 应用管理 → 创建应用」中获取 Key
   MAP_KEY: '2OWBZ-O7FCA-JIFKZ-CJSTI-VLSHF-QLFRE',
 
+  // 阿里云 OSS 配置 (测试阶段: 公共读写)
+  // 需要在小程序后台 → 开发管理 → 服务器域名 中添加:
+  // uploadFile: https://camp-map.oss-cn-beijing.aliyuncs.com
+  // request: https://camp-map.oss-cn-beijing.aliyuncs.com
+  OSS: {
+    BUCKET: 'camp-map',
+    ENDPOINT: 'oss-cn-beijing.aliyuncs.com',
+    REGION: 'oss-cn-beijing',
+    get BASE_URL() { return 'https://' + this.BUCKET + '.' + this.ENDPOINT; }
+  },
+
   // 设施中文名映射
   FAC_LABELS: {
     toilet_status: '厕所',
@@ -104,20 +115,24 @@ const config = {
     ]
   },
 
-  // 营地录入页设施选项
+  // 营地录入页设施选项 (包含所有设施, 合并了原"更多选项")
   SUBMIT_FAC_ITEMS: [
     { v: 'parking_status', l: '免费', e: '🆓' },
-    { v: 'power_status', l: '接电', e: '🔌' },
-    { v: 'water_status', l: '接水', e: '💧' },
-    { v: 'toilet_status', l: '卫生间', e: '🚻' },
+    { v: 'rv_friendly', l: '停房车', e: '🚐' },
     { v: 'trailer_friendly', l: '停拖挂', e: '🚛' },
     { v: 'tent_friendly', l: '搭帐篷', e: '⛺' },
-    { v: 'repair_status', l: '修车', e: '🔧' },
-    { v: 'cooking_status', l: '做饭', e: '🍳' },
+    { v: 'power_status', l: '接电', e: '🔌' },
+    { v: 'charging_status', l: '充电桩', e: '🔋' },
+    { v: 'water_status', l: '接水', e: '💧' },
+    { v: 'toilet_status', l: '卫生间', e: '🚻' },
     { v: 'shower_status', l: '淋浴', e: '🚿' },
+    { v: 'cooking_status', l: '做饭', e: '🍳' },
+    { v: 'fire_status', l: '可明火', e: '🔥' },
     { v: 'fishing_status', l: '钓鱼', e: '🎣' },
-    { v: 'accommodation_status', l: '住宿', e: '🏠' },
-    { v: 'dining_status', l: '餐饮', e: '🍽' }
+    { v: 'grocery_status', l: '买菜', e: '🛒' },
+    { v: 'repair_status', l: '修车', e: '🔧' },
+    { v: 'dining_status', l: '餐饮', e: '🍽' },
+    { v: 'accommodation_status', l: '住宿', e: '🏠' }
   ],
 
   // 积分规则

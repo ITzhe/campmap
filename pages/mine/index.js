@@ -1,12 +1,14 @@
 // pages/mine/index.js — 我的页面逻辑
 const util = require('../../utils/util');
 const config = require('../../utils/config');
+const oss = require('../../utils/oss');
 
 Page({
   data: {
     statusBarHeight: 20,
     userName: '露营爱好者',
     avatar: '🏕',
+    avatarUrl: '',
     points: 0,
     streak: 0,
     joinDays: 1,
@@ -63,6 +65,7 @@ Page({
     const checkedToday = u.lastCheckin === today;
     this.setData({
       userName: u.nick || '露营爱好者',
+      avatarUrl: u.avatarUrl || '',
       points: u.points || 0,
       streak: u.streak || 0,
       joinDays: util.calcJoinDays(u.joinDate),
@@ -102,9 +105,37 @@ Page({
     wx.navigateTo({ url: '/pages/settings/index' });
   },
 
-  // ============ 点击头像 ============
+  // ============ 点击头像 (上传头像) ============
   tapAvatar() {
-    wx.navigateTo({ url: '/pages/settings/index' });
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        util.showLoading('上传中...');
+
+        // 上传到 OSS
+        oss.uploadToOSS(tempFilePath, 'avatars', 'jpg')
+          .then((url) => {
+            // 保存到用户数据
+            const u = util.getUserState();
+            u.avatarUrl = url;
+            util.saveUser(u);
+
+            this.setData({ avatarUrl: url });
+            util.hideLoading();
+            util.showToast('头像更新成功');
+          })
+          .catch((err) => {
+            util.hideLoading();
+            console.error('[avatar] 上传失败:', err);
+            util.showToast('头像上传失败');
+          });
+      },
+      fail: () => {}
+    });
   },
 
   // ============ 跳转 ============

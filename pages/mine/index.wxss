@@ -50,6 +50,13 @@
   justify-content: center;
   font-size: 56rpx;
   line-height: 1;
+  overflow: hidden;
+}
+
+.mh-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
 .mh-text {

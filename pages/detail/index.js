@@ -2,6 +2,7 @@
 const config = require('../../utils/config');
 const api = require('../../utils/api');
 const util = require('../../utils/util');
+const oss = require('../../utils/oss');
 
 Page({
   data: {
@@ -26,7 +27,13 @@ Page({
     // 本地记录已点赞的评论 id (防重复点赞)
     likedCommentIds: [],
     // 收藏状态
-    isFavorited: false
+    isFavorited: false,
+    // 纠错弹窗
+    showCorrection: false,
+    correctionData: null,
+    correctionFacItems: [],
+    correctionPhotos: [],
+    submittingCorrection: false
   },
 
   onLoad(options) {
@@ -343,5 +350,142 @@ Page({
   // ============ 展开/收起评价列表 ============
   toggleDynamics() {
     this.setData({ dynamicsExpanded: !this.data.dynamicsExpanded });
+  },
+
+  // ============ 纠错功能 ============
+
+  // 打开纠错弹窗
+  openCorrection() {
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    // 构建设施列表 (所有设施, 带当前状态)
+    const facKeys = Object.keys(config.FAC_LABELS);
+    const correctionFacItems = facKeys.map(k => ({
+      key: k,
+      label: config.FAC_LABELS[k],
+      emoji: config.FAC_EMOJI[k],
+      on: Number(camp[k]) > 0
+    }));
+
+    // 拷贝营地数据用于编辑
+    const correctionData = {
+      name: camp.name || '',
+      address: camp.address || '',
+      intro: camp.intro || ''
+    };
+
+    this.setData({
+      showCorrection: true,
+      correctionData,
+      correctionFacItems,
+      correctionPhotos: []
+    });
+  },
+
+  // 关闭纠错弹窗
+  closeCorrection() {
+    this.setData({ showCorrection: false });
+  },
+
+  // 纠错输入
+  onCorrectionInput(e) {
+    const key = e.currentTarget.dataset.key;
+    const data = this.data.correctionData;
+    data[key] = e.detail.value;
+    this.setData({ correctionData: data });
+  },
+
+  // 纠错设施切换
+  toggleCorrectionFac(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const items = this.data.correctionFacItems.slice();
+    items[idx].on = !items[idx].on;
+    this.setData({ correctionFacItems: items });
+  },
+
+  // 纠错照片
+  addCorrectionPhoto() {
+    if (this.data.correctionPhotos.length >= 6) {
+      util.showToast('最多上传 6 张照片');
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        const photos = this.data.correctionPhotos.concat([{
+          path: tempFilePath,
+          id: 'cp_' + Date.now()
+        }]);
+        this.setData({ correctionPhotos: photos });
+      },
+      fail: () => {}
+    });
+  },
+
+  delCorrectionPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const photos = this.data.correctionPhotos.slice();
+    photos.splice(idx, 1);
+    this.setData({ correctionPhotos: photos });
+  },
+
+  // 提交纠错
+  async submitCorrection() {
+    if (this.data.submittingCorrection) return;
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    const data = this.data.correctionData;
+    if (!data.name || !data.name.trim()) {
+      util.showToast('请填写营地名称');
+      return;
+    }
+
+    this.setData({ submittingCorrection: true });
+    util.showLoading('提交纠错...');
+
+    // 上传照片到 OSS
+    let photoUrls = [];
+    if (this.data.correctionPhotos.length > 0) {
+      const paths = this.data.correctionPhotos.map(p => p.path);
+      try {
+        photoUrls = await oss.uploadBatchToOSS(paths, 'corrections');
+      } catch (e) {
+        console.warn('[correction] 照片上传失败:', e.message);
+      }
+    }
+
+    // 构建纠错数据
+    const facFlags = {};
+    this.data.correctionFacItems.forEach(item => {
+      facFlags[item.key] = item.on ? 1 : 0;
+    });
+
+    const payload = {
+      spot_code: camp.spot_code,
+      openid: util.getUserState().openid,
+      name: data.name.trim(),
+      address: (data.address || '').trim(),
+      intro: (data.intro || '').trim(),
+      photo_urls: photoUrls.filter(u => u).join(','),
+      status: 'pending',
+      ...facFlags
+    };
+
+    try {
+      await api.submitCampCorrection(payload);
+      util.hideLoading();
+      util.showToast('纠错已提交，感谢您的贡献');
+      this.setData({ showCorrection: false, submittingCorrection: false });
+    } catch (e) {
+      util.hideLoading();
+      util.showToast('提交失败，请稍后重试');
+      this.setData({ submittingCorrection: false });
+    }
   }
 });

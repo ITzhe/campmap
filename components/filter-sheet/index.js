@@ -36,24 +36,25 @@ Component({
     // 单选 (费用)
     pickSingle(e) {
       const { key, value } = e.currentTarget.dataset;
-      const filters = this.data.innerFilters;
-      filters[key] = value;
-      this.setData({ innerFilters: filters });
+      this.setData({
+        [`innerFilters.${key}`]: value
+      });
       this.updateMatchCount();
     },
 
     // 多选切换
     toggleMulti(e) {
       const { key, value } = e.currentTarget.dataset;
-      const filters = this.data.innerFilters;
-      const arr = filters[key];
+      const arr = (this.data.innerFilters[key] || []).slice();
       const idx = arr.indexOf(value);
       if (idx > -1) {
         arr.splice(idx, 1);
       } else {
         arr.push(value);
       }
-      this.setData({ innerFilters: filters });
+      this.setData({
+        [`innerFilters.${key}`]: arr
+      });
       this.updateMatchCount();
     },
 

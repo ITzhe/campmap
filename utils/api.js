@@ -236,6 +236,19 @@ async function likeComment(commentId, openid) {
   }
 }
 
+/**
+ * 提交营地纠错
+ */
+async function submitCampCorrection(data) {
+  const url = `${config.API_BASE}/camp_corrections`;
+  try {
+    return await request(url, 'POST', JSON.stringify(data));
+  } catch (e) {
+    console.warn('[Supabase] 纠错提交失败:', e.message);
+    return null;
+  }
+}
+
 module.exports = {
   request,
   fetchCampsites,
@@ -247,5 +260,6 @@ module.exports = {
   normalizeCamp,
   fetchComments,
   submitComment,
-  likeComment
+  likeComment,
+  submitCampCorrection
 };
