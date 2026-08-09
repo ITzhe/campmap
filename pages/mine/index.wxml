@@ -71,3 +71,33 @@
 
   <view class="safe-bottom"></view>
 </view>
+
+<!-- 昵称编辑弹窗 -->
+<view wx:if="{{showNickPopup}}" class="nick-popup">
+  <view class="np-mask" bindtap="closeNickPopup"></view>
+  <view class="np-box" catchtap="noop">
+    <view class="np-title">编辑个人信息</view>
+
+    <!-- 头像 -->
+    <view class="np-avatar-row">
+      <view class="np-avatar-wrap" bindtap="chooseAvatarFromAlbum">
+        <image wx:if="{{tempAvatarUrl}}" class="np-avatar-img" src="{{tempAvatarUrl}}" mode="aspectFill" />
+        <view wx:else class="np-avatar-placeholder">🏕</view>
+      </view>
+      <view class="np-avatar-hint">点击更换头像</view>
+    </view>
+
+    <!-- 昵称 (type="nickname" 触发微信原生昵称选择) -->
+    <view class="np-nick-row">
+      <text class="np-label">昵称</text>
+      <input class="np-input" type="nickname" placeholder="点击获取微信昵称"
+        value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur" />
+    </view>
+
+    <!-- 按钮 -->
+    <view class="np-actions">
+      <view class="np-cancel" bindtap="closeNickPopup">取消</view>
+      <view class="np-save" bindtap="saveNick">保存</view>
+    </view>
+  </view>
+</view>

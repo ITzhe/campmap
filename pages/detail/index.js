@@ -44,7 +44,10 @@ Page({
     currentUserOpenid: '',
     // 营地相册
     campPhotos: [],
-    uploadingPhoto: false
+    uploadingPhoto: false,
+    // 昵称设置弹窗 (评论前需设置昵称)
+    showNickPopup: false,
+    tempNick: ''
   },
 
   onLoad(options) {
@@ -273,6 +276,11 @@ Page({
   async checkinCamp() {
     const camp = this.data.camp;
     if (!camp) return;
+    // 检查登录
+    if (!util.isLoggedIn()) {
+      this.setData({ showNickPopup: true, tempNick: '' });
+      return;
+    }
     const points = util.updatePoints(config.POINTS_RULES.camp_checkin);
     const app = getApp();
     app.globalData.points = points;
@@ -294,14 +302,8 @@ Page({
 
     // 检查登录状态
     if (!util.isLoggedIn()) {
-      try {
-        await util.wxLogin();
-        const u = util.getUserState();
-        this.setData({ currentUserNick: u.nick, currentUserOpenid: u.openid });
-      } catch (e) {
-        util.showToast('请先登录再评论');
-        return;
-      }
+      this.setData({ showNickPopup: true, tempNick: '' });
+      return;
     }
 
     const text = (this.data.dynamicsInput || '').trim();
@@ -415,21 +417,46 @@ Page({
       this.setData({ showPublishBox: false });
       return;
     }
-    // 展开前检查登录
+    // 展开前检查登录 — 未设置昵称则弹出昵称输入
     if (!util.isLoggedIn()) {
-      util.wxLogin().then(() => {
-        const u = util.getUserState();
-        this.setData({
-          currentUserNick: u.nick,
-          currentUserOpenid: u.openid,
-          showPublishBox: true
-        });
-      }).catch(() => {
-        util.showToast('请先登录再评论');
-      });
+      this.setData({ showNickPopup: true, tempNick: '' });
     } else {
       this.setData({ showPublishBox: true });
     }
+  },
+
+  // ============ 昵称弹窗 ============
+  onNickInput(e) {
+    this.setData({ tempNick: e.detail.value });
+  },
+
+  onNickBlur(e) {
+    if (e.detail.value) {
+      this.setData({ tempNick: e.detail.value });
+    }
+  },
+
+  closeNickPopup() {
+    this.setData({ showNickPopup: false });
+  },
+
+  confirmNick() {
+    const nick = (this.data.tempNick || '').trim();
+    if (!nick) {
+      util.showToast('请输入昵称');
+      return;
+    }
+    // 确保 openid 存在
+    util.wxLogin();
+    // 保存昵称
+    util.setUserNick(nick);
+    const u = util.getUserState();
+    this.setData({
+      showNickPopup: false,
+      currentUserNick: u.nick,
+      currentUserOpenid: u.openid,
+      showPublishBox: true
+    });
   },
 
   // ============ 删除评论 (仅删除自己的) ============

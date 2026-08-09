@@ -283,4 +283,21 @@
       </view>
     </view>
   </view>
+
+  <!-- 昵称设置弹窗 (评论前需设置昵称) -->
+  <view wx:if="{{showNickPopup}}" class="nick-popup">
+    <view class="np-mask" bindtap="closeNickPopup"></view>
+    <view class="np-box" catchtap="noop">
+      <view class="np-title">设置昵称</view>
+      <view class="np-desc">请输入您的昵称，用于评论展示</view>
+      <view class="np-nick-row">
+        <input class="np-input" type="nickname" placeholder="点击获取微信昵称"
+          value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur" />
+      </view>
+      <view class="np-actions">
+        <view class="np-cancel" bindtap="closeNickPopup">取消</view>
+        <view class="np-save" bindtap="confirmNick">确定</view>
+      </view>
+    </view>
+  </view>
 </view>

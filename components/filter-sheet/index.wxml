@@ -32,7 +32,7 @@
       <view
         wx:for="{{parkOptions}}"
         wx:key="value"
-        class="chip {{innerFilters.park.indexOf(item.value) > -1 ? 'on' : ''}}"
+        class="chip {{parkSelected[item.value] ? 'on' : ''}}"
         data-key="park"
         data-value="{{item.value}}"
         bindtap="toggleMulti"
@@ -50,7 +50,7 @@
       <view
         wx:for="{{facOptions}}"
         wx:key="value"
-        class="chip {{innerFilters.fac.indexOf(item.value) > -1 ? 'on' : ''}}"
+        class="chip {{facSelected[item.value] ? 'on' : ''}}"
         data-key="fac"
         data-value="{{item.value}}"
         bindtap="toggleMulti"

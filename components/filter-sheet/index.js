@@ -17,22 +17,34 @@ Component({
     facOptions: config.FILTER_OPTIONS.fac,
     matchCount: 0,
     // 内部筛选状态 (避免直接修改 properties)
-    innerFilters: { fee: 'all', park: [], fac: [] }
+    innerFilters: { fee: 'all', park: [], fac: [] },
+    // 预计算的选中状态 map (WXML 不支持 indexOf)
+    parkSelected: {},
+    facSelected: {}
   },
 
   observers: {
     'visible': function(val) {
       if (val) {
         // 打开时同步外部 filters 到内部
-        this.setData({
-          innerFilters: JSON.parse(JSON.stringify(this.data.filters))
-        });
+        const innerFilters = JSON.parse(JSON.stringify(this.data.filters));
+        this.setData({ innerFilters });
+        this.updateSelectedMaps(innerFilters);
         this.updateMatchCount();
       }
     }
   },
 
   methods: {
+    // 更新选中状态 map
+    updateSelectedMaps(filters) {
+      const parkSelected = {};
+      const facSelected = {};
+      (filters.park || []).forEach(v => { parkSelected[v] = true; });
+      (filters.fac || []).forEach(v => { facSelected[v] = true; });
+      this.setData({ parkSelected, facSelected });
+    },
+
     // 单选 (费用)
     pickSingle(e) {
       const { key, value } = e.currentTarget.dataset;
@@ -55,15 +67,13 @@ Component({
       const innerFilters = Object.assign({}, this.data.innerFilters);
       innerFilters[key] = arr;
       this.setData({ innerFilters });
+      this.updateSelectedMaps(innerFilters);
       this.updateMatchCount();
     },
 
     // 计算匹配数量
     updateMatchCount() {
       const f = this.data.innerFilters;
-      const app = getApp();
-      const camps = app.globalData.selectedCamp ? [] : [];
-      // 从页面获取营地数据
       const pages = getCurrentPages();
       const mapPage = pages.find(p => p.route === 'pages/map/index');
       const allCamps = mapPage ? mapPage.data.camps : [];
@@ -90,9 +100,9 @@ Component({
 
     // 重置
     onReset() {
-      this.setData({
-        innerFilters: { fee: 'all', park: [], fac: [] }
-      });
+      const innerFilters = { fee: 'all', park: [], fac: [] };
+      this.setData({ innerFilters });
+      this.updateSelectedMaps(innerFilters);
       this.updateMatchCount();
       this.triggerEvent('reset');
     },

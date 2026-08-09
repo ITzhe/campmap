@@ -88,53 +88,39 @@ function getUserState() {
 }
 
 /**
- * 检查用户是否已登录 (有真实昵称)
+ * 检查用户是否已登录 (有真实昵称, 非默认"微信用户")
  */
 function isLoggedIn() {
   const u = getUserState();
-  return !!(u.nick && u.nick.trim());
+  return !!(u.nick && u.nick.trim() && u.nick !== '微信用户');
 }
 
 /**
- * 微信登录 — 直接获取微信昵称和头像
- * 优先使用 wx.getUserProfile, 降级使用默认昵称
- * 不再弹出手动输入框
+ * 微信登录 — 初始化用户 (生成 openid)
+ * 注意: wx.getUserProfile 已废弃, 新版微信返回"微信用户"
+ * 昵称需通过 <input type="nickname"> 组件获取
+ * 此函数仅确保用户有 openid, 不再尝试获取昵称
  */
 function wxLogin() {
-  return new Promise((resolve, reject) => {
-    // 尝试 wx.getUserProfile (部分基础库仍支持, 可获取真实昵称)
-    if (wx.getUserProfile) {
-      wx.getUserProfile({
-        desc: '用于评论和互动',
-        success: (res) => {
-          const userInfo = res.userInfo || {};
-          const u = getUserState();
-          // 直接使用微信昵称, 如"张三"
-          u.nick = userInfo.nickName || '微信用户';
-          u.avatarUrl = userInfo.avatarUrl || '';
-          saveUser(u);
-          resolve(u);
-        },
-        fail: () => {
-          // 用户拒绝授权或 API 不可用, 直接使用默认昵称, 不再弹框
-          const u = getUserState();
-          if (!u.nick || !u.nick.trim()) {
-            u.nick = '微信用户';
-            saveUser(u);
-          }
-          resolve(u);
-        }
-      });
-    } else {
-      // getUserProfile 不可用, 直接使用默认昵称
-      const u = getUserState();
-      if (!u.nick || !u.nick.trim()) {
-        u.nick = '微信用户';
-        saveUser(u);
-      }
-      resolve(u);
+  return new Promise((resolve) => {
+    const u = getUserState();
+    // 确保 openid 存在
+    if (!u.openid) {
+      u.openid = 'mock_' + Math.random().toString(36).slice(2, 10);
+      saveUser(u);
     }
+    resolve(u);
   });
+}
+
+/**
+ * 保存用户昵称 (通过 nickname 输入组件获取)
+ */
+function setUserNick(nick) {
+  const u = getUserState();
+  u.nick = nick;
+  saveUser(u);
+  return u;
 }
 
 /**
@@ -434,6 +420,7 @@ module.exports = {
   getUserState,
   isLoggedIn,
   wxLogin,
+  setUserNick,
   updatePoints,
   doCheckin,
   calcJoinDays,

@@ -38,7 +38,13 @@ Page({
       { key: 'faq', label: '常见问题' },
       { key: 'privacy', label: '隐私协议' },
       { key: 'logout', label: '退出登录', danger: true }
-    ]
+    ],
+
+    // 昵称编辑弹窗
+    showNickPopup: false,
+    tempNick: '',
+    tempAvatarUrl: '',
+    avatarChanged: false
   },
 
   onLoad() {
@@ -104,49 +110,97 @@ Page({
     wx.navigateTo({ url: '/pages/settings/index' });
   },
 
-  // ============ 点击头像 (登录 + 上传头像) ============
-  async tapAvatar() {
-    // 未登录时先触发微信登录, 获取昵称
-    if (!util.isLoggedIn()) {
-      try {
-        await util.wxLogin();
-        const u = util.getUserState();
-        this.setData({ userName: u.nick || '微信用户' });
-      } catch (e) {
-        // wxLogin 不会 reject, 但安全起见
-        return;
-      }
-    }
+  // ============ 点击头像 — 打开编辑弹窗 ============
+  tapAvatar() {
+    const u = util.getUserState();
+    this.setData({
+      showNickPopup: true,
+      tempNick: (u.nick && u.nick !== '微信用户') ? u.nick : '',
+      tempAvatarUrl: u.avatarUrl || '',
+      avatarChanged: false
+    });
+  },
 
+  // 昵称输入 (type="nickname" 会触发微信原生选择)
+  onNickInput(e) {
+    this.setData({ tempNick: e.detail.value });
+  },
+
+  // 昵称失焦
+  onNickBlur(e) {
+    if (e.detail.value) {
+      this.setData({ tempNick: e.detail.value });
+    }
+  },
+
+  // 选择微信头像 (button open-type="chooseAvatar")
+  onChooseAvatar(e) {
+    if (e.detail.avatarUrl) {
+      this.setData({
+        tempAvatarUrl: e.detail.avatarUrl,
+        avatarChanged: true
+      });
+    }
+  },
+
+  // 从相册选择头像
+  chooseAvatarFromAlbum() {
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
       success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        util.showLoading('上传中...');
-
-        // 上传到 OSS
-        oss.uploadToOSS(tempFilePath, 'avatars', 'jpg')
-          .then((url) => {
-            // 保存到用户数据
-            const u = util.getUserState();
-            u.avatarUrl = url;
-            util.saveUser(u);
-
-            this.setData({ avatarUrl: url });
-            util.hideLoading();
-            util.showToast('头像更新成功');
-          })
-          .catch((err) => {
-            util.hideLoading();
-            console.error('[avatar] 上传失败:', err);
-            util.showToast('头像上传失败');
-          });
+        this.setData({
+          tempAvatarUrl: res.tempFiles[0].tempFilePath,
+          avatarChanged: true
+        });
       },
       fail: () => {}
     });
+  },
+
+  // 关闭弹窗
+  closeNickPopup() {
+    this.setData({ showNickPopup: false });
+  },
+
+  // 阻止冒泡
+  noop() {},
+
+  // 保存昵称和头像
+  async saveNick() {
+    const nick = (this.data.tempNick || '').trim();
+    if (!nick) {
+      util.showToast('请输入昵称');
+      return;
+    }
+
+    // 保存昵称
+    util.setUserNick(nick);
+
+    // 如果头像有变化, 上传到 OSS
+    if (this.data.avatarChanged && this.data.tempAvatarUrl) {
+      util.showLoading('保存中...');
+      try {
+        const url = await oss.uploadToOSS(this.data.tempAvatarUrl, 'avatars', 'jpg');
+        const u = util.getUserState();
+        u.avatarUrl = url;
+        util.saveUser(u);
+      } catch (e) {
+        console.error('[avatar] upload failed:', e);
+        util.hideLoading();
+        util.showToast('头像上传失败，昵称已保存');
+        this.setData({ showNickPopup: false });
+        this.loadUser();
+        return;
+      }
+      util.hideLoading();
+    }
+
+    this.setData({ showNickPopup: false });
+    this.loadUser();
+    util.showToast('保存成功');
   },
 
   // ============ 跳转 ============
