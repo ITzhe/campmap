@@ -13,7 +13,8 @@
     "pages/route-fav/index",
     "pages/settings/index",
     "pages/favorites/index",
-    "pages/submissions/index"
+    "pages/submissions/index",
+    "pages/privacy/index"
   ],
   "window": {
     "navigationBarTitleText": "露营地图",

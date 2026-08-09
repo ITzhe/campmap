@@ -34,7 +34,6 @@ Page({
 
     // 设置列表
     settings: [
-      { key: 'settings', label: '应用设置' },
       { key: 'service', label: '联系客服' },
       { key: 'faq', label: '常见问题' },
       { key: 'privacy', label: '隐私协议' },
@@ -202,9 +201,6 @@ Page({
   onSettingTap(e) {
     const key = e.currentTarget.dataset.key;
     switch (key) {
-      case 'settings':
-        wx.navigateTo({ url: '/pages/settings/index' });
-        break;
       case 'service':
         util.showToast('客服微信：camp-map');
         break;
@@ -212,7 +208,7 @@ Page({
         wx.navigateTo({ url: '/pages/tutorial/index' });
         break;
       case 'privacy':
-        wx.navigateTo({ url: '/pages/settings/index' });
+        wx.navigateTo({ url: '/pages/privacy/index' });
         break;
       case 'logout':
         this.logout();

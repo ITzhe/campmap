@@ -1,6 +1,6 @@
 # 露营地图小程序 - 设计文档
 
-> 最后更新: 2026-08-08
+> 最后更新: 2026-08-09
 
 ## 一、项目概述
 
@@ -23,9 +23,12 @@
   - Schema: `map`
   - 主表: `camping_spots`（营地数据）
   - 评论表: `camp_comments` + `comment_likes`
+  - 营地纠错表: `camp_corrections`
+  - 营地相册表: `camp_photos`
   - 用户积分: `user_points`
   - RPC: `daily_checkin`, `deduct_point`, `increment_like`
 - **API**：Supabase REST API (PostgREST)
+- **对象存储**：阿里云 OSS (`camp-map.oss-cn-beijing.aliyuncs.com`)，用于用户头像、营地纠错照片、评论图片等图片上传
 - **数据采集**：Python 脚本 `collect_national.py` 采集安营 API 数据
 - **数据迁移**：`migrate_facilities.py` 补充设施/价格字段
 
@@ -83,14 +86,14 @@
 
 ## 四、页面结构
 
-### 4.1 页面清单 (14 个页面)
+### 4.1 页面清单 (15 个页面)
 
 | 页面 | 路径 | 类型 | 功能 |
 |------|------|------|------|
 | 地图首页 | `pages/map/` | TabBar | 全屏地图、营地标记、筛选、底部卡片 |
 | 线路规划 | `pages/route/` | TabBar | 起终点选择、驾车路线、沿途营地 |
 | 我的 | `pages/mine/` | TabBar | 用户信息、签到、功能入口 |
-| 营地详情 | `pages/detail/` | Navigate | 设施、价格、评价、收藏、打卡 |
+| 营地详情 | `pages/detail/` | Navigate | 设施、价格、评价、收藏、打卡、营地相册 |
 | 营地录入 | `pages/submit/` | Navigate | 用户提交新营地 |
 | 积分明细 | `pages/points/` | Navigate | 积分历史、签到周历 |
 | 城市选择 | `pages/city-picker/` | Navigate | 按省份选择城市 |
@@ -101,6 +104,7 @@
 | **应用设置** | `pages/settings/` | Navigate | 通知、地图、缓存、退出 |
 | **我的收藏** | `pages/favorites/` | Navigate | 收藏的营地列表 |
 | **我的提交** | `pages/submissions/` | Navigate | 提交的营地及审核状态 |
+| **隐私协议** | `pages/privacy/` | Navigate | 隐私政策全文展示 |
 
 ### 4.2 导航流程
 
@@ -180,15 +184,16 @@
 | spot_code | text | 营地编码 |
 | openid | text | 用户 openid |
 | nick | text | 昵称 |
-| avatar | text | 头像 (emoji) |
+| avatar | text | 头像 (emoji 或 OSS URL) |
 | content | text | 评论内容 |
+| photo_urls | text | 评论图片 URL (OSS，最多 6 张) |
 | type | text | 类型 (comment/checkin) |
 | likes | int | 点赞数 |
 | created_at | timestamptz | 创建时间 |
 
 ---
 
-## 六、最近修改记录 (2026-08-07 ~ 08-08)
+## 六、最近修改记录 (2026-08-07 ~ 08-09)
 
 ### 6.1 Bug 修复
 
@@ -262,6 +267,40 @@
 | 价格信息 | 6,030 | 有收费备注的营地 |
 | 房车友好 | 18,777 | 可停房车的营地 |
 
+### 6.4 Bug 修复 (08-08 ~ 08-09)
+
+1. **筛选弹窗样式丢失**：组件 `styleIsolation` 阻止全局样式渗透，改为 `apply-shared` 并在组件内补充备用样式
+2. **筛选按钮与微信关闭按钮冲突**：将筛选按钮从顶部栏移至右下角浮动按钮组
+3. **线路规划营地数量过少**：集成腾讯地图 POI 搜索，沿途补充更多营地，并与数据库结果合并去重
+4. **路线返回后消失**：在 `onShow` 生命周期中刷新标记和折线，保持路线状态
+5. **筛选按钮选中状态不显示**：修复 `innerFilters` 状态绑定，使用 path-based `setData` 确保双向同步
+6. **评论发布失败 (HTTP 400)**：根因是 `camp_comments.avatar` 列为 VARCHAR(10)，用户头像 URL 超长导致 PostgreSQL 报错。修复：将 avatar 列改为 TEXT；同时改进 `request()` 函数，错误时输出 Supabase 具体错误信息
+7. **评论列表头像 URL 显示为文字**：avatar 为 OSS 链接时用 `<image>` 渲染，为 emoji 时用 `<text>` 渲染，新增 `avatarIsUrl` 标识
+8. **评论显示"匿名用户"**：集成微信登录获取昵称，直接使用微信昵称不再弹出手动输入框
+
+### 6.5 新增功能 (08-08 ~ 08-09)
+
+| 功能 | 说明 | 日期 |
+|------|------|------|
+| 用户头像上传 | 点击头像上传至阿里云 OSS | 08-08 |
+| 营地纠错功能 | 详情页纠错弹窗，支持修改设施/地址/照片 | 08-08 |
+| 阿里云 OSS 存储 | 所有图片上传迁移至 OSS (camp-map.oss-cn-beijing.aliyuncs.com) | 08-08 |
+| 评论图片上传 | 评论支持上传 6 张图片，存储至 OSS | 08-09 |
+| 微信登录集成 | wxLogin 获取微信昵称和头像 | 08-09 |
+| 评论删除 | 用户可删除自己的评论，RLS 策略 + openid 校验 | 08-09 |
+| 房车蓝色标记 | RV 营地改用蓝色标记图标 | 08-08 |
+| 漏斗筛选图标 | 筛选按钮改用漏斗形状图标 | 08-08 |
+
+### 6.6 数据库变更 (08-08 ~ 08-09)
+
+| 变更 | 说明 |
+|------|------|
+| camp_comments.avatar 列 | VARCHAR(10) → TEXT |
+| camp_comments.photo_urls 列 | 新增 TEXT 列，存储评论图片 URL |
+| camp_corrections 表 | 新增营地纠错表 |
+| comment_likes 删除策略 | RLS DELETE 策略 + GRANT DELETE |
+| 序列权限 | camp_comments_id_seq GRANT USAGE |
+
 ---
 
 ## 七、积分系统
@@ -280,8 +319,8 @@
 
 - [ ] 营地搜索功能（按名称/地址搜索）
 - [ ] 途经点支持（线路规划添加多个中间点）
-- [ ] 营地图片上传
-- [ ] 用户昵称/头像自定义
+- [x] ~~营地图片上传~~
+- [x] ~~用户昵称/头像自定义~~
 - [ ] 积分排行榜
 - [ ] 营地评分系统
 - [ ] 离线地图缓存

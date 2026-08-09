@@ -308,6 +308,55 @@ async function deleteComment(commentId, openid) {
   }
 }
 
+/**
+ * 获取营地照片
+ */
+async function fetchCampPhotos(spotCode) {
+  const url = `${config.API_BASE}/camp_photos?spot_code=eq.${spotCode}&order=created_at.desc&limit=30`;
+  try {
+    const data = await request(url, 'GET');
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * 上传营地照片记录
+ */
+async function submitCampPhoto(spotCode, openid, photoUrl) {
+  const url = `${config.API_BASE}/camp_photos`;
+  const headers = Object.assign({}, config.getHeaders(), {
+    'Prefer': 'return=representation'
+  });
+  const payload = {
+    spot_code: spotCode,
+    openid: openid || '',
+    photo_url: photoUrl
+  };
+  try {
+    await request(url, 'POST', JSON.stringify(payload), headers);
+    return { success: true };
+  } catch (e) {
+    console.warn('[api] 营地照片上传失败:', e.message);
+    return { success: false, msg: e.message };
+  }
+}
+
+/**
+ * 删除营地照片 (仅删除自己的)
+ */
+async function deleteCampPhoto(photoId, openid) {
+  const url = `${config.API_BASE}/camp_photos?id=eq.${photoId}&openid=eq.${openid}`;
+  try {
+    await request(url, 'DELETE');
+    return { success: true };
+  } catch (e) {
+    console.warn('[api] 删除营地照片失败:', e.message);
+    return { success: false, msg: '删除失败' };
+  }
+}
+
 module.exports = {
   request,
   fetchCampsites,
@@ -321,5 +370,8 @@ module.exports = {
   submitComment,
   likeComment,
   deleteComment,
-  submitCampCorrection
+  submitCampCorrection,
+  fetchCampPhotos,
+  submitCampPhoto,
+  deleteCampPhoto
 };

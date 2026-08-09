@@ -41,7 +41,10 @@ Page({
     showPublishBox: false,
     // 当前用户信息
     currentUserNick: '',
-    currentUserOpenid: ''
+    currentUserOpenid: '',
+    // 营地相册
+    campPhotos: [],
+    uploadingPhoto: false
   },
 
   onLoad(options) {
@@ -126,6 +129,9 @@ Page({
 
     // 从 Supabase 加载用户评价
     this.loadComments(camp.spot_code);
+
+    // 从 Supabase 加载营地照片
+    this.loadCampPhotos(camp.spot_code);
   },
 
   // ============ 检查是否已收藏 ============
@@ -492,6 +498,103 @@ Page({
     const current = e.currentTarget.dataset.current;
     if (urls.length === 0) return;
     wx.previewImage({ current, urls });
+  },
+
+  // ============ 营地相册 ============
+
+  // 加载营地照片
+  async loadCampPhotos(spotCode) {
+    if (!spotCode) return;
+    const photos = await api.fetchCampPhotos(spotCode);
+    const currentOpenid = this.data.currentUserOpenid;
+    const campPhotos = (photos || []).map(p => ({
+      id: p.id,
+      url: p.photo_url,
+      isMine: p.openid === currentOpenid && !!p.openid
+    }));
+    this.setData({ campPhotos });
+  },
+
+  // 上传营地照片
+  async uploadCampPhoto() {
+    if (this.data.uploadingPhoto) return;
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        this.setData({ uploadingPhoto: true });
+        util.showLoading('上传中...');
+
+        try {
+          // 上传到 OSS
+          const url = await oss.uploadToOSS(tempFilePath, 'camps', 'jpg');
+          // 保存记录到数据库
+          const userData = util.getUserState();
+          const result = await api.submitCampPhoto(camp.spot_code, userData.openid, url);
+          util.hideLoading();
+          this.setData({ uploadingPhoto: false });
+
+          if (result.success) {
+            util.showToast('上传成功');
+            this.loadCampPhotos(camp.spot_code);
+          } else {
+            util.showToast('上传失败: ' + (result.msg || ''));
+          }
+        } catch (e) {
+          util.hideLoading();
+          this.setData({ uploadingPhoto: false });
+          console.warn('[camp-photo] 上传失败:', e.message);
+          util.showToast('上传失败');
+        }
+      },
+      fail: () => {}
+    });
+  },
+
+  // 预览营地照片
+  previewCampPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const photos = this.data.campPhotos;
+    if (!photos[idx]) return;
+    const urls = photos.map(p => p.url);
+    wx.previewImage({ current: urls[idx], urls });
+  },
+
+  // 删除营地照片 (仅删除自己的)
+  deleteCampPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const photos = this.data.campPhotos;
+    if (!photos[idx]) return;
+
+    const photo = photos[idx];
+    if (!photo.isMine) {
+      util.showToast('只能删除自己上传的照片');
+      return;
+    }
+
+    wx.showModal({
+      title: '提示',
+      content: '确定删除这张照片吗？',
+      confirmColor: '#e63946',
+      success: async (res) => {
+        if (!res.confirm) return;
+        util.showLoading('删除中...');
+        const result = await api.deleteCampPhoto(photo.id, this.data.currentUserOpenid);
+        util.hideLoading();
+        if (result.success) {
+          util.showToast('已删除');
+          this.loadCampPhotos(this.data.camp.spot_code);
+        } else {
+          util.showToast(result.msg || '删除失败');
+        }
+      }
+    });
   },
 
   // ============ 纠错功能 ============
