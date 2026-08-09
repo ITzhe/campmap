@@ -6,7 +6,7 @@ const oss = require('../../utils/oss');
 Page({
   data: {
     statusBarHeight: 20,
-    userName: '露营爱好者',
+    userName: '',
     avatar: '🏕',
     avatarUrl: '',
     points: 0,
@@ -64,7 +64,7 @@ Page({
     const today = util.todayStr();
     const checkedToday = u.lastCheckin === today;
     this.setData({
-      userName: u.nick || '露营爱好者',
+      userName: u.nick || '',
       avatarUrl: u.avatarUrl || '',
       points: u.points || 0,
       streak: u.streak || 0,

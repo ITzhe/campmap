@@ -271,6 +271,20 @@ async function submitCampCorrection(data) {
   }
 }
 
+/**
+ * 删除评论 (仅删除自己的)
+ */
+async function deleteComment(commentId, openid) {
+  const url = `${config.API_BASE}/camp_comments?id=eq.${commentId}&openid=eq.${openid}`;
+  try {
+    const res = await request(url, 'DELETE');
+    return { success: true };
+  } catch (e) {
+    console.warn('[api] 删除评论失败:', e.message);
+    return { success: false, msg: '删除失败' };
+  }
+}
+
 module.exports = {
   request,
   fetchCampsites,
@@ -283,5 +297,6 @@ module.exports = {
   fetchComments,
   submitComment,
   likeComment,
+  deleteComment,
   submitCampCorrection
 };

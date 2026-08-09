@@ -36,7 +36,12 @@ Page({
     submittingCorrection: false,
     // 评论图片
     dynamicsPhotos: [],
-    submittingDynamics: false
+    submittingDynamics: false,
+    // 评论框展开/收起
+    showPublishBox: false,
+    // 当前用户信息
+    currentUserNick: '',
+    currentUserOpenid: ''
   },
 
   onLoad(options) {
@@ -53,7 +58,9 @@ Page({
     this.setData({
       userPoints: userData.points,
       // 读取本地已点赞列表
-      likedCommentIds: wx.getStorageSync('liked_comment_ids') || []
+      likedCommentIds: wx.getStorageSync('liked_comment_ids') || [],
+      currentUserNick: userData.nick || '',
+      currentUserOpenid: userData.openid || ''
     });
 
     let camp = app.globalData.selectedCamp;
@@ -179,6 +186,7 @@ Page({
     this.setData({ commentsLoading: true });
     const comments = await api.fetchComments(spotCode);
     const likedIds = this.data.likedCommentIds || [];
+    const currentOpenid = this.data.currentUserOpenid;
     // 映射为前端展示结构 (保留 dynamicsList 字段名以兼容 WXML)
     const dynamicsList = (comments || []).map(c => ({
       id: c.id,
@@ -189,7 +197,8 @@ Page({
       type: c.type || 'comment',
       likes: c.likes || 0,
       liked: likedIds.indexOf(c.id) > -1,
-      photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : []
+      photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
+      isMine: c.openid === currentOpenid
     }));
     this.setData({
       dynamicsList,
@@ -271,6 +280,19 @@ Page({
   // ============ 用户评价：发布 ============
   async submitDynamics() {
     if (this.data.submittingDynamics) return;
+
+    // 检查登录状态
+    if (!util.isLoggedIn()) {
+      try {
+        await util.wxLogin();
+        const u = util.getUserState();
+        this.setData({ currentUserNick: u.nick, currentUserOpenid: u.openid });
+      } catch (e) {
+        util.showToast('请先登录再评论');
+        return;
+      }
+    }
+
     const text = (this.data.dynamicsInput || '').trim();
     const photos = this.data.dynamicsPhotos;
     if (!text && photos.length === 0) {
@@ -303,7 +325,8 @@ Page({
     util.hideLoading();
     this.setData({ submittingDynamics: false });
     if (res) {
-      this.setData({ dynamicsInput: '', dynamicsPhotos: [] });
+      // 清空内容并收起评论框
+      this.setData({ dynamicsInput: '', dynamicsPhotos: [], showPublishBox: false });
       util.showToast('发布成功');
     } else {
       util.showToast('发布失败');
@@ -319,8 +342,8 @@ Page({
     const res = await api.submitComment(
       camp.spot_code,
       userData.openid,
-      '匿名用户',
-      '🏕',
+      userData.nick || '微信用户',
+      userData.avatarUrl || '🏕',
       text,
       type || 'comment',
       (photoUrls || []).join(',')
@@ -372,6 +395,60 @@ Page({
   // ============ 展开/收起评价列表 ============
   toggleDynamics() {
     this.setData({ dynamicsExpanded: !this.data.dynamicsExpanded });
+  },
+
+  // ============ 展开/收起评论框 ============
+  togglePublishBox() {
+    if (this.data.showPublishBox) {
+      this.setData({ showPublishBox: false });
+      return;
+    }
+    // 展开前检查登录
+    if (!util.isLoggedIn()) {
+      util.wxLogin().then(() => {
+        const u = util.getUserState();
+        this.setData({
+          currentUserNick: u.nick,
+          currentUserOpenid: u.openid,
+          showPublishBox: true
+        });
+      }).catch(() => {
+        util.showToast('请先登录再评论');
+      });
+    } else {
+      this.setData({ showPublishBox: true });
+    }
+  },
+
+  // ============ 删除评论 (仅删除自己的) ============
+  async deleteComment(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const list = this.data.dynamicsList;
+    if (!list[idx]) return;
+
+    const comment = list[idx];
+    if (!comment.isMine) {
+      util.showToast('只能删除自己的评论');
+      return;
+    }
+
+    wx.showModal({
+      title: '提示',
+      content: '确定删除这条评论吗？',
+      confirmColor: '#e63946',
+      success: async (res) => {
+        if (!res.confirm) return;
+        util.showLoading('删除中...');
+        const result = await api.deleteComment(comment.id, this.data.currentUserOpenid);
+        util.hideLoading();
+        if (result.success) {
+          util.showToast('已删除');
+          this.loadComments(this.data.camp.spot_code);
+        } else {
+          util.showToast(result.msg || '删除失败');
+        }
+      }
+    });
   },
 
   // ============ 评价图片 ============

@@ -61,7 +61,8 @@ function initUser() {
   if (!data) {
     data = {
       openid: 'mock_' + Math.random().toString(36).slice(2, 10),
-      nick: '露营爱好者',
+      nick: '',
+      avatarUrl: '',
       points: config.POINTS_RULES.initial,
       streak: 0,
       lastCheckin: null,
@@ -84,6 +85,71 @@ function saveUser(data) {
  */
 function getUserState() {
   return wx.getStorageSync('camp_user') || initUser();
+}
+
+/**
+ * 检查用户是否已登录 (有真实昵称)
+ */
+function isLoggedIn() {
+  const u = getUserState();
+  return !!(u.nick && u.nick.trim());
+}
+
+/**
+ * 微信登录 — 获取用户昵称和头像
+ * 优先使用 wx.getUserProfile, 降级到手动输入
+ */
+function wxLogin() {
+  return new Promise((resolve, reject) => {
+    // 尝试 wx.getUserProfile (部分基础库仍支持)
+    if (wx.getUserProfile) {
+      wx.getUserProfile({
+        desc: '用于评论和互动',
+        success: (res) => {
+          const userInfo = res.userInfo || {};
+          const u = getUserState();
+          u.nick = userInfo.nickName || '微信用户';
+          u.avatarUrl = userInfo.avatarUrl || '';
+          saveUser(u);
+          resolve(u);
+        },
+        fail: () => {
+          // 用户拒绝授权, 降级到手动输入
+          _manualLogin().then(resolve).catch(reject);
+        }
+      });
+    } else {
+      // getUserProfile 不可用, 使用手动输入
+      _manualLogin().then(resolve).catch(reject);
+    }
+  });
+}
+
+/**
+ * 手动输入昵称登录 (降级方案)
+ */
+function _manualLogin() {
+  return new Promise((resolve, reject) => {
+    wx.showModal({
+      title: '设置昵称',
+      content: '请输入您的昵称，用于评论展示',
+      editable: true,
+      placeholderText: '如：露营达人',
+      confirmText: '确定',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm && res.content && res.content.trim()) {
+          const u = getUserState();
+          u.nick = res.content.trim().slice(0, 20);
+          saveUser(u);
+          resolve(u);
+        } else {
+          reject(new Error('用户取消'));
+        }
+      },
+      fail: () => reject(new Error('登录失败'))
+    });
+  });
 }
 
 /**
@@ -381,6 +447,8 @@ module.exports = {
   initUser,
   saveUser,
   getUserState,
+  isLoggedIn,
+  wxLogin,
   updatePoints,
   doCheckin,
   calcJoinDays,
