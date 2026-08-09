@@ -5,6 +5,7 @@ const { MOCK_CAMPS } = require('./mock');
 
 /**
  * 通用 wx.request Promise 封装
+ * 错误时包含 Supabase 返回的具体错误信息
  */
 function request(url, method, data, headers) {
   return new Promise((resolve, reject) => {
@@ -18,7 +19,19 @@ function request(url, method, data, headers) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data);
         } else {
-          reject(new Error('HTTP ' + res.statusCode));
+          // 提取 Supabase 错误详情
+          let errMsg = 'HTTP ' + res.statusCode;
+          if (res.data) {
+            if (typeof res.data === 'string') {
+              errMsg += ': ' + res.data.slice(0, 200);
+            } else if (res.data.message) {
+              errMsg += ': ' + res.data.message;
+            } else {
+              errMsg += ': ' + JSON.stringify(res.data).slice(0, 200);
+            }
+          }
+          console.error('[api] 请求失败:', url, errMsg, res.data);
+          reject(new Error(errMsg));
         }
       },
       fail: (err) => {
