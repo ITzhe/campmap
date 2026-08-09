@@ -146,9 +146,8 @@
   background: var(--orange);
 }
 
-.lg-emoji {
-  font-size: 24rpx;
-  line-height: 22rpx;
+.lg-dot.rv {
+  background: #277da1;
 }
 
 .lg-text {
@@ -224,7 +223,8 @@
 }
 
 .fab-filter-icon {
-  font-size: 40rpx;
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .fab-filter-badge {

@@ -36,9 +36,9 @@ Component({
     // 单选 (费用)
     pickSingle(e) {
       const { key, value } = e.currentTarget.dataset;
-      this.setData({
-        [`innerFilters.${key}`]: value
-      });
+      const innerFilters = Object.assign({}, this.data.innerFilters);
+      innerFilters[key] = value;
+      this.setData({ innerFilters });
       this.updateMatchCount();
     },
 
@@ -52,9 +52,9 @@ Component({
       } else {
         arr.push(value);
       }
-      this.setData({
-        [`innerFilters.${key}`]: arr
-      });
+      const innerFilters = Object.assign({}, this.data.innerFilters);
+      innerFilters[key] = arr;
+      this.setData({ innerFilters });
       this.updateMatchCount();
     },
 

@@ -43,7 +43,7 @@
         <cover-view class="lg-text">收费</cover-view>
       </cover-view>
       <cover-view class="lg">
-        <cover-view class="lg-emoji">🚐</cover-view>
+        <cover-view class="lg-dot rv"></cover-view>
         <cover-view class="lg-text">房车</cover-view>
       </cover-view>
     </cover-view>
@@ -51,7 +51,7 @@
     <!-- 浮动按钮 -->
     <cover-view class="fab-group">
       <cover-view class="fab fab-filter" bindtap="openFilter">
-        <cover-view class="fab-filter-icon">⚙</cover-view>
+        <cover-image class="fab-filter-icon" src="/assets/icons/filter-funnel.png" mode="aspectFit"></cover-image>
         <cover-view wx:if="{{filterCount > 0}}" class="fab-filter-badge">{{filterCount}}</cover-view>
       </cover-view>
     </cover-view>
