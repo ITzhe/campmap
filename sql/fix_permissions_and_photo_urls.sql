@@ -142,8 +142,8 @@ WHERE table_schema = 'map' AND table_name = 'camp_comments'
 ORDER BY ordinal_position;
 
 -- 列出 map schema 下所有表及其 GRANT 权限
-SELECT tablename, grantee, privilege_type
+SELECT table_name, grantee, privilege_type
 FROM information_schema.role_table_grants
 WHERE table_schema = 'map'
   AND grantee IN ('anon', 'authenticated')
-ORDER BY tablename, grantee, privilege_type;
+ORDER BY table_name, grantee, privilege_type;
