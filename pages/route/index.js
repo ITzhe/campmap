@@ -11,6 +11,7 @@ Page({
     routeEnd: '',
     startCoord: null,   // {lat, lng, name}
     endCoord: null,     // {lat, lng, name}
+    waypoints: [],      // [{id, name, lat, lng}]
     showResult: false,
     routeDist: 0,
     routeCamps: 0,
@@ -130,8 +131,64 @@ Page({
     });
   },
 
+  // ============ 添加途经点 ============
   addWaypoint() {
-    util.showToast('途经点功能开发中');
+    if (this.data.waypoints.length >= 5) {
+      util.showToast('最多添加5个途经点');
+      return;
+    }
+    // 弹出位置选择
+    const cur = this.data.startCoord || this.data.endCoord || {
+      lat: this.data.latitude,
+      lng: this.data.longitude
+    };
+    wx.chooseLocation({
+      latitude: cur.lat,
+      longitude: cur.lng,
+      success: (res) => {
+        const wp = {
+          id: 'wp_' + Date.now(),
+          name: res.name || res.address,
+          lat: res.latitude,
+          lng: res.longitude
+        };
+        const waypoints = this.data.waypoints.concat([wp]);
+        this.setData({ waypoints });
+      },
+      fail: () => {}
+    });
+  },
+
+  // ============ 重新选择途经点 ============
+  chooseWaypoint(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const cur = this.data.waypoints[idx] || this.data.startCoord || {
+      lat: this.data.latitude,
+      lng: this.data.longitude
+    };
+    wx.chooseLocation({
+      latitude: cur.lat,
+      longitude: cur.lng,
+      success: (res) => {
+        const waypoints = this.data.waypoints.slice();
+        waypoints[idx] = {
+          id: waypoints[idx].id,
+          name: res.name || res.address,
+          lat: res.latitude,
+          lng: res.longitude
+        };
+        this.setData({ waypoints });
+      },
+      fail: () => {}
+    });
+  },
+
+  // ============ 删除途经点 ============
+  removeWaypoint(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const waypoints = this.data.waypoints.slice();
+    waypoints.splice(idx, 1);
+    this.setData({ waypoints });
   },
 
   // ============ 调用腾讯地图驾车路线 API ============
@@ -209,7 +266,7 @@ Page({
     return points;
   },
 
-  // ============ 规划路线 ============
+  // ============ 规划路线 (支持途经点) ============
   async calcRoute() {
     const startName = (this.data.routeStart || '').trim();
     const endName = (this.data.routeEnd || '').trim();
@@ -222,34 +279,63 @@ Page({
     if (!s) { util.showToast('请点击起点输入框选择位置'); return; }
     if (!e) { util.showToast('请点击终点输入框选择位置'); return; }
 
+    const waypoints = this.data.waypoints || [];
+
     this.setData({ routePlanning: true });
     util.showLoading('规划路线中...');
 
-    // 尝试调用腾讯地图驾车路线 API
-    const routeResult = await this.fetchDrivingRoute(s.lat, s.lng, e.lat, e.lng);
-
-    let routePoints = [];
-    let dist = 0;
-    let duration = 0;
-    let usedRealRoute = false;
-    let apiError = '';
-
-    if (routeResult && routeResult.success && routeResult.route && routeResult.route.polyline) {
-      // API 成功: 使用真实驾车路线
-      routePoints = this.decodePolyline(routeResult.route.polyline);
-      dist = Math.round((routeResult.route.distance / 1000) * 10) / 10; // m -> km
-      duration = routeResult.route.duration; // seconds
-      usedRealRoute = true;
-    } else {
-      // 降级: 使用直线 + 多采样点
-      apiError = (routeResult && routeResult.error) || '未知原因';
-      console.warn('[Route] 腾讯地图 API 不可用，降级为直线:', apiError);
-      const straight = util.distance(s.lat, s.lng, e.lat, e.lng);
-      dist = Math.round(straight * 1.3 * 10) / 10;
-      duration = dist / 80 * 3600; // 80km/h
-      const stepCount = Math.max(8, Math.min(50, Math.round(dist / 20)));
-      routePoints = this.genRoutePoints(s.lat, s.lng, e.lat, e.lng, stepCount);
+    // 构建路径点序列: 起点 → 途经点1 → ... → 途经点N → 终点
+    const allPoints = [s];
+    for (const wp of waypoints) {
+      if (wp.lat && wp.lng) {
+        allPoints.push({ lat: wp.lat, lng: wp.lng, name: wp.name });
+      }
     }
+    allPoints.push(e);
+
+    // 分段请求路线 (每两相邻点之间请求一次)
+    let allRoutePoints = [];
+    let totalDist = 0;
+    let totalDuration = 0;
+    let allUsedReal = true;
+    let apiErrors = [];
+
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const from = allPoints[i];
+      const to = allPoints[i + 1];
+      const segResult = await this.fetchDrivingRoute(from.lat, from.lng, to.lat, to.lng);
+
+      if (segResult && segResult.success && segResult.route && segResult.route.polyline) {
+        const segPoints = this.decodePolyline(segResult.route.polyline);
+        // 避免重复点: 第一段加入所有点, 后续段跳过第一个点(与上段终点重合)
+        if (i === 0) {
+          allRoutePoints = allRoutePoints.concat(segPoints);
+        } else {
+          allRoutePoints = allRoutePoints.concat(segPoints.slice(1));
+        }
+        totalDist += segResult.route.distance;
+        totalDuration += segResult.route.duration;
+      } else {
+        // 降级: 直线
+        allUsedReal = false;
+        const err = (segResult && segResult.error) || '未知';
+        apiErrors.push(err);
+        console.warn('[Route] 分段' + (i + 1) + '降级为直线:', err);
+        const straight = util.distance(from.lat, from.lng, to.lat, to.lng);
+        totalDist += straight * 1.3 * 1000; // m
+        totalDuration += straight * 1.3 / 80 * 3600; // s
+        const stepCount = Math.max(8, Math.min(30, Math.round(straight / 20)));
+        const segPoints = this.genRoutePoints(from.lat, from.lng, to.lat, to.lng, stepCount);
+        if (i === 0) {
+          allRoutePoints = allRoutePoints.concat(segPoints);
+        } else {
+          allRoutePoints = allRoutePoints.concat(segPoints.slice(1));
+        }
+      }
+    }
+
+    const dist = Math.round((totalDist / 1000) * 10) / 10; // m -> km
+    const duration = totalDuration;
 
     // 预计时长
     const minutes = Math.max(1, Math.round(duration / 60));
@@ -258,13 +344,13 @@ Page({
     const timeStr = hh > 0 ? `${hh}小时${mm}分` : `${mm}分钟`;
 
     // 沿途营地: 数据库营地 + POI搜索
-    const dbCamps = this.findCampsAlongRoute(routePoints);
-    const poiCamps = await this.searchPOIAlongRoute(routePoints);
-    // 合并去重 (POI结果中与数据库营地距离<1km的视为重复)
-    const mergedCamps = this.mergeCamps(dbCamps, poiCamps, routePoints);
+    const dbCamps = this.findCampsAlongRoute(allRoutePoints);
+    const poiCamps = await this.searchPOIAlongRoute(allRoutePoints);
+    // 合并去重
+    const mergedCamps = this.mergeCamps(dbCamps, poiCamps, allRoutePoints);
     const campList = mergedCamps;
 
-    // 起点 / 终点标记
+    // 构建标记: 起点 + 途经点 + 终点 + 营地
     const markers = [
       {
         id: 0,
@@ -304,32 +390,42 @@ Page({
       }
     ];
 
-    // 沿途营地标记
-    campList.forEach((c, i) => {
+    // 途经点标记
+    waypoints.forEach((wp, i) => {
       markers.push({
-        id: i + 2,
-        latitude: c.latitude,
-        longitude: c.longitude,
-        iconPath: '/assets/markers/free.png',
-        width: 24,
-        height: 28,
+        id: i + 100,
+        latitude: wp.lat,
+        longitude: wp.lng,
+        width: 26,
+        height: 26,
         callout: {
-          content: c.name,
-          color: '#1a2e1f',
+          content: '途经' + (i + 1),
+          color: '#ffffff',
           fontSize: 11,
-          bgColor: '#ffffff',
+          bgColor: '#f4a261',
           borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#dde6e0',
+          borderWidth: 0,
           padding: 5,
-          display: 'BYCLICK',
+          display: 'ALWAYS',
           textAlign: 'center'
         }
       });
     });
 
+    // 沿途营地标记
+    campList.forEach((c, i) => {
+      markers.push({
+        id: i + 200,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        iconPath: '/assets/markers/free.png',
+        width: 24,
+        height: 28
+      });
+    });
+
     const polyline = [{
-      points: routePoints,
+      points: allRoutePoints,
       color: '#2d6a4f',
       width: 6,
       arrowLine: true,
@@ -363,10 +459,10 @@ Page({
     });
 
     util.hideLoading();
-    if (usedRealRoute) {
+    if (allUsedReal) {
       util.showToast(`已规划驾车路线，沿途${campList.length}个营地`);
     } else {
-      util.showToast(`路线API异常(${apiError})，显示直线`);
+      util.showToast(`部分路段使用直线，沿途${campList.length}个营地`);
     }
   },
 

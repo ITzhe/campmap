@@ -46,6 +46,23 @@
       </view>
     </view>
 
+    <!-- 配套设施 -->
+    <view class="card">
+      <view class="card-h"><view class="dot"></view>配套设施</view>
+      <view class="fac-groups">
+        <view class="fac-group" wx:for="{{facGroups}}" wx:for-item="group" wx:key="title">
+          <view class="fac-group-title">{{group.title}}</view>
+          <view class="fac-tags">
+            <view class="fac-tag {{item.on ? 'on' : 'off'}}"
+              wx:for="{{group.items}}" wx:for-item="item" wx:key="key">
+              <text class="fac-emoji">{{item.emoji}}</text>
+              <text class="fac-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 营地相册 -->
     <view class="card photo-card">
       <view class="card-h">
@@ -64,30 +81,27 @@
       </view>
 
       <!-- 空状态 -->
-      <view class="photo-empty" wx:if="{{campPhotos.length === 0}}">
+      <view class="photo-empty" wx:if="{{campPhotos.length === 0 && pendingPhotos.length === 0}}">
         <text class="photo-empty-text">暂无照片，快来上传第一张营地照片吧～</text>
       </view>
 
-      <!-- 上传按钮 -->
-      <view class="photo-upload-btn {{uploadingPhoto ? 'disabled' : ''}}" bindtap="uploadCampPhoto">
-        <text class="photo-upload-icon">📷</text>
-        <text class="photo-upload-text">{{uploadingPhoto ? '上传中...' : '上传营地照片'}}</text>
+      <!-- 待上传照片预览 -->
+      <view class="photo-grid" wx:if="{{pendingPhotos.length > 0}}">
+        <view class="photo-item" wx:for="{{pendingPhotos}}" wx:key="id">
+          <image src="{{item.path}}" mode="aspectFill" class="photo-img" />
+          <view class="photo-del"
+            catchtap="removePendingPhoto" data-idx="{{index}}">✕</view>
+        </view>
       </view>
-    </view>
 
-    <!-- 配套设施 -->
-    <view class="card">
-      <view class="card-h"><view class="dot"></view>配套设施</view>
-      <view class="fac-groups">
-        <view class="fac-group" wx:for="{{facGroups}}" wx:for-item="group" wx:key="title">
-          <view class="fac-group-title">{{group.title}}</view>
-          <view class="fac-tags">
-            <view class="fac-tag {{item.on ? 'on' : 'off'}}"
-              wx:for="{{group.items}}" wx:for-item="item" wx:key="key">
-              <text class="fac-emoji">{{item.emoji}}</text>
-              <text class="fac-label">{{item.label}}</text>
-            </view>
-          </view>
+      <!-- 上传/提交按钮 -->
+      <view class="photo-upload-row">
+        <view class="photo-upload-btn {{uploadingPhoto ? 'disabled' : ''}}" bindtap="selectCampPhoto">
+          <text class="photo-upload-icon">📷</text>
+          <text class="photo-upload-text">{{uploadingPhoto ? '上传中...' : '选择照片'}}</text>
+        </view>
+        <view wx:if="{{pendingPhotos.length > 0}}" class="photo-submit-btn {{uploadingPhoto ? 'disabled' : ''}}" bindtap="submitCampPhotos">
+          <text class="photo-submit-text">{{uploadingPhoto ? '提交中...' : '提交(' + pendingPhotos.length + ')'}}</text>
         </view>
       </view>
     </view>

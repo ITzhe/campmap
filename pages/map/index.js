@@ -220,11 +220,11 @@ Page({
           color: '#1a2e1f',
           fontSize: 11,
           borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#dde6e0',
-          bgColor: '#ffffff',
+          borderWidth: 0,
+          borderColor: 'transparent',
+          bgColor: 'transparent',
           padding: 6,
-          display: 'BYCLICK',
+          display: 'NONE',
           textAlign: 'center'
         }
       };

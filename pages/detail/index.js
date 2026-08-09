@@ -45,6 +45,8 @@ Page({
     // 营地相册
     campPhotos: [],
     uploadingPhoto: false,
+    // 待上传照片 (选择后未提交)
+    pendingPhotos: [],
     // 昵称设置弹窗 (评论前需设置昵称)
     showNickPopup: false,
     tempNick: ''
@@ -542,46 +544,83 @@ Page({
     this.setData({ campPhotos });
   },
 
-  // 上传营地照片
-  async uploadCampPhoto() {
+  // 选择营地照片 (第一步: 选择, 不立即上传)
+  selectCampPhoto() {
     if (this.data.uploadingPhoto) return;
-    const camp = this.data.camp;
-    if (!camp) return;
-
+    const maxAdd = 9 - this.data.pendingPhotos.length;
+    if (maxAdd <= 0) {
+      util.showToast('最多选择9张照片');
+      return;
+    }
     wx.chooseMedia({
-      count: 1,
+      count: maxAdd,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
-      success: async (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        this.setData({ uploadingPhoto: true });
-        util.showLoading('上传中...');
-
-        try {
-          // 上传到 OSS
-          const url = await oss.uploadToOSS(tempFilePath, 'camps', 'jpg');
-          // 保存记录到数据库
-          const userData = util.getUserState();
-          const result = await api.submitCampPhoto(camp.spot_code, userData.openid, url);
-          util.hideLoading();
-          this.setData({ uploadingPhoto: false });
-
-          if (result.success) {
-            util.showToast('上传成功');
-            this.loadCampPhotos(camp.spot_code);
-          } else {
-            util.showToast('上传失败: ' + (result.msg || ''));
-          }
-        } catch (e) {
-          util.hideLoading();
-          this.setData({ uploadingPhoto: false });
-          console.warn('[camp-photo] 上传失败:', e.message);
-          util.showToast('上传失败');
-        }
+      success: (res) => {
+        const newPhotos = res.tempFiles.map(f => ({
+          path: f.tempFilePath,
+          id: 'cp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
+        }));
+        const pendingPhotos = this.data.pendingPhotos.concat(newPhotos);
+        this.setData({ pendingPhotos });
       },
       fail: () => {}
     });
+  },
+
+  // 移除待上传照片
+  removePendingPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const pendingPhotos = this.data.pendingPhotos.slice();
+    pendingPhotos.splice(idx, 1);
+    this.setData({ pendingPhotos });
+  },
+
+  // 提交营地照片 (第二步: 上传到 OSS + 保存到数据库)
+  async submitCampPhotos() {
+    if (this.data.uploadingPhoto) return;
+    const camp = this.data.camp;
+    if (!camp) return;
+    const pendingPhotos = this.data.pendingPhotos;
+    if (pendingPhotos.length === 0) {
+      util.showToast('请先选择照片');
+      return;
+    }
+
+    this.setData({ uploadingPhoto: true });
+    util.showLoading('提交中...');
+
+    let successCount = 0;
+    let failCount = 0;
+    const userData = util.getUserState();
+
+    for (const photo of pendingPhotos) {
+      try {
+        // 上传到 OSS
+        const url = await oss.uploadToOSS(photo.path, 'camps', 'jpg');
+        // 保存到数据库
+        const result = await api.submitCampPhoto(camp.spot_code, userData.openid, url);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        console.warn('[camp-photo] upload failed:', e.message);
+        failCount++;
+      }
+    }
+
+    util.hideLoading();
+    this.setData({ uploadingPhoto: false, pendingPhotos: [] });
+
+    if (successCount > 0) {
+      util.showToast('成功上传' + successCount + '张照片');
+      this.loadCampPhotos(camp.spot_code);
+    } else {
+      util.showToast('上传失败，请重试');
+    }
   },
 
   // 预览营地照片

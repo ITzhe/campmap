@@ -50,6 +50,25 @@
   background: var(--red);
 }
 
+.ri-dot.way {
+  background: var(--orange);
+}
+
+/* 途经点行 */
+.ri-waypoint {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 14rpx 0;
+}
+
+.ri-way-del {
+  font-size: 28rpx;
+  color: var(--red);
+  padding: 0 8rpx;
+  flex-shrink: 0;
+}
+
 .ri-input {
   flex: 1;
   height: 68rpx;
@@ -87,6 +106,10 @@
   font-size: 24rpx;
   color: var(--green-2);
   padding: 10rpx 0;
+}
+
+.ri-addway.disabled {
+  color: var(--text-ph);
 }
 
 .ri-swap {
