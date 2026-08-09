@@ -206,27 +206,14 @@ Page({
       if (!isFree) iconPath = '/assets/markers/paid.png';
       if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
 
-      const calloutContent = c.name;
-
       return {
         id: idx,
         latitude: c.latitude,
         longitude: c.longitude,
         iconPath: iconPath,
-        width: 28,
-        height: 32,
-        callout: {
-          content: calloutContent,
-          color: '#1a2e1f',
-          fontSize: 11,
-          borderRadius: 8,
-          borderWidth: 0,
-          borderColor: 'transparent',
-          bgColor: 'transparent',
-          padding: 6,
-          display: 'NONE',
-          textAlign: 'center'
-        }
+        width: 32,
+        height: 36,
+        anchor: { x: 0.5, y: 1 }
       };
     });
     this.setData({ markers, filteredCount: camps.length });

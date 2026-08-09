@@ -414,13 +414,18 @@ Page({
 
     // 沿途营地标记
     campList.forEach((c, i) => {
+      const isFree = c.parking_status == 0;
+      let iconPath = '/assets/markers/free.png';
+      if (!isFree) iconPath = '/assets/markers/paid.png';
+      if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
       markers.push({
         id: i + 200,
         latitude: c.latitude,
         longitude: c.longitude,
-        iconPath: '/assets/markers/free.png',
-        width: 24,
-        height: 28
+        iconPath: iconPath,
+        width: 28,
+        height: 32,
+        anchor: { x: 0.5, y: 1 }
       });
     });
 
