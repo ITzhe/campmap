@@ -25,10 +25,6 @@
         <cover-view class="search-icon">🔍</cover-view>
         <cover-view class="search-ph">搜索营地名称或地址</cover-view>
       </cover-view>
-      <cover-view class="filter-btn" bindtap="openFilter">
-        <cover-view class="filter-icon">⚙</cover-view>
-        <cover-view wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</cover-view>
-      </cover-view>
     </cover-view>
 
     <!-- 营地数量提示 -->
@@ -60,6 +56,10 @@
 
     <!-- 浮动按钮 -->
     <cover-view class="fab-group">
+      <cover-view class="fab fab-filter" bindtap="openFilter">
+        <cover-view class="fab-filter-icon">⚙</cover-view>
+        <cover-view wx:if="{{filterCount > 0}}" class="fab-filter-badge">{{filterCount}}</cover-view>
+      </cover-view>
       <cover-view class="fab fab-loc" bindtap="locateMe">⊕</cover-view>
     </cover-view>
 

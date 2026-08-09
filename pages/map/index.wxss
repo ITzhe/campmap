@@ -219,6 +219,34 @@
   color: #fff;
 }
 
+.fab-filter {
+  background: var(--green);
+  color: #fff;
+  position: relative;
+}
+
+.fab-filter-icon {
+  font-size: 40rpx;
+}
+
+.fab-filter-badge {
+  position: absolute;
+  top: -6rpx;
+  right: -6rpx;
+  background: var(--red);
+  color: #fff;
+  font-size: 20rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+  font-weight: 700;
+  border: 3rpx solid #fff;
+}
+
 .fab-loc {
   background: #fff;
   color: var(--green);

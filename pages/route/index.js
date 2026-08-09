@@ -61,6 +61,27 @@ Page({
     }
   },
 
+  onShow() {
+    // 切页返回后恢复地图标记和路线 (先清空再恢复, 强制地图组件重新渲染)
+    if (this.data.showResult && this.data.polyline.length > 0) {
+      const savedMarkers = this.data.markers;
+      const savedPolyline = this.data.polyline;
+      const savedLat = this.data.latitude;
+      const savedLng = this.data.longitude;
+      const savedScale = this.data.scale;
+      this.setData({ markers: [], polyline: [] });
+      setTimeout(() => {
+        this.setData({
+          markers: savedMarkers,
+          polyline: savedPolyline,
+          latitude: savedLat,
+          longitude: savedLng,
+          scale: savedScale
+        });
+      }, 150);
+    }
+  },
+
   // ============ 加载营地数据 (全国范围,用于线路沿途搜索) ============
   async loadCamps() {
     try {
@@ -236,8 +257,12 @@ Page({
     const mm = minutes % 60;
     const timeStr = hh > 0 ? `${hh}小时${mm}分` : `${mm}分钟`;
 
-    // 沿途营地 (使用真实路线点搜索)
-    const campList = this.findCampsAlongRoute(routePoints);
+    // 沿途营地: 数据库营地 + POI搜索
+    const dbCamps = this.findCampsAlongRoute(routePoints);
+    const poiCamps = await this.searchPOIAlongRoute(routePoints);
+    // 合并去重 (POI结果中与数据库营地距离<1km的视为重复)
+    const mergedCamps = this.mergeCamps(dbCamps, poiCamps, routePoints);
+    const campList = mergedCamps;
 
     // 起点 / 终点标记
     const markers = [
@@ -423,6 +448,169 @@ Page({
       result.offset = Math.round(o.offset * 10) / 10;
       return result;
     });
+  },
+
+  // ============ 沿途POI搜索 (腾讯地图地点搜索) ============
+  async searchPOIAlongRoute(routePoints) {
+    if (!routePoints || routePoints.length < 2) return [];
+    const key = config.MAP_KEY || '';
+    if (!key) return [];
+
+    // 沿路线每约50km采样一个搜索点 (更密集, 覆盖更多沿途营地)
+    let accumulated = 0;
+    const samplePoints = [routePoints[0]];
+    for (let i = 1; i < routePoints.length; i++) {
+      const d = util.distance(
+        routePoints[i - 1].latitude, routePoints[i - 1].longitude,
+        routePoints[i].latitude, routePoints[i].longitude
+      );
+      accumulated += d;
+      if (accumulated >= 50) {
+        samplePoints.push(routePoints[i]);
+        accumulated = 0;
+      }
+    }
+    // 确保终点也搜索
+    const lastPt = routePoints[routePoints.length - 1];
+    if (samplePoints[samplePoints.length - 1].latitude !== lastPt.latitude) {
+      samplePoints.push(lastPt);
+    }
+
+    console.log('[Route] POI搜索采样点数:', samplePoints.length);
+    const keywords = ['露营', '营地', '房车营地', '露营地'];
+    const allPOIs = [];
+    const seen = new Set();
+
+    // 并行发送请求 (每个采样点+关键词组合一个请求)
+    const tasks = [];
+    for (const pt of samplePoints) {
+      for (const kw of keywords) {
+        // 每个关键词搜索2页, 获取更多结果
+        for (let page = 1; page <= 2; page++) {
+          tasks.push(this._fetchPOI(pt, kw, page, key));
+        }
+      }
+    }
+
+    console.log('[Route] POI搜索总请求数:', tasks.length);
+    const results = await Promise.all(tasks);
+
+    for (const res of results) {
+      if (res && res.data && res.data.status === 0 && res.data.data) {
+        for (const poi of res.data.data) {
+          const lat = poi.location ? poi.location.lat : 0;
+          const lng = poi.location ? poi.location.lng : 0;
+          if (!lat || !lng) continue;
+          // 去重: 用坐标前4位作为key
+          const dedupKey = lat.toFixed(4) + ',' + lng.toFixed(4);
+          if (seen.has(dedupKey)) continue;
+          seen.add(dedupKey);
+          allPOIs.push({
+            spot_code: 'POI_' + poi.id,
+            name: poi.title,
+            latitude: lat,
+            longitude: lng,
+            address: poi.address || '',
+            parking_status: 0,
+            toilet_status: 0,
+            water_status: 0,
+            power_status: 0,
+            charging_status: 0,
+            rv_friendly: 0,
+            trailer_friendly: 0,
+            tent_friendly: 1,
+            shower_status: 0,
+            fishing_status: 0,
+            cooking_status: 0,
+            fire_status: 0,
+            repair_status: 0,
+            grocery_status: 0,
+            dining_status: 0,
+            accommodation_status: 0,
+            intro: '地图搜索结果',
+            memo: '',
+            _source: 'poi'
+          });
+        }
+      }
+    }
+
+    console.log('[Route] POI搜索到露营点:', allPOIs.length);
+    return allPOIs;
+  },
+
+  // POI搜索单个请求
+  _fetchPOI(pt, keyword, pageIndex, key) {
+    return new Promise((resolve) => {
+      wx.request({
+        url: 'https://apis.map.qq.com/ws/place/v1/search',
+        data: {
+          keyword: keyword,
+          boundary: 'nearby(' + pt.latitude + ',' + pt.longitude + ',50000)',
+          key: key,
+          page_size: 20,
+          page_index: pageIndex
+        },
+        method: 'GET',
+        success: (r) => resolve(r),
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  // ============ 合并数据库营地和POI搜索结果 ============
+  mergeCamps(dbCamps, poiCamps, routePoints) {
+    const startPt = routePoints && routePoints.length > 0 ? routePoints[0] : null;
+
+    // 走廊宽度 (与 findCampsAlongRoute 一致)
+    const endPt = routePoints && routePoints.length > 1 ? routePoints[routePoints.length - 1] : startPt;
+    const straight = startPt && endPt ? util.distance(startPt.latitude, startPt.longitude, endPt.latitude, endPt.longitude) : 0;
+    const corridor = Math.max(15, Math.min(60, straight / 10));
+
+    const result = [].concat(dbCamps);
+    for (const poi of poiCamps) {
+      let isDup = false;
+      for (const db of dbCamps) {
+        const d = util.distance(poi.latitude, poi.longitude, db.latitude, db.longitude);
+        if (d < 1) {
+          isDup = true;
+          break;
+        }
+      }
+      if (!isDup) {
+        // 计算POI点到路线的偏移距离
+        let minOffset = Infinity;
+        if (routePoints && routePoints.length >= 2) {
+          for (let i = 0; i < routePoints.length - 1; i++) {
+            const offset = this.distToSegment(
+              poi.latitude, poi.longitude,
+              routePoints[i].latitude, routePoints[i].longitude,
+              routePoints[i + 1].latitude, routePoints[i + 1].longitude
+            );
+            if (offset < minOffset) minOffset = offset;
+          }
+        }
+        // 过滤掉偏离路线太远的POI
+        if (minOffset <= corridor) {
+          poi.distance = startPt ? Math.round(util.distance(poi.latitude, poi.longitude, startPt.latitude, startPt.longitude) * 10) / 10 : 0;
+          poi.offset = Math.round(minOffset * 10) / 10;
+          result.push(poi);
+        }
+      }
+    }
+    // 按名称排序去重 (相同名称只保留一个)
+    const nameSet = new Set();
+    const uniqueResult = [];
+    for (const c of result) {
+      const nameKey = c.name.replace(/\s/g, '').substring(0, 8);
+      if (!nameSet.has(nameKey)) {
+        nameSet.add(nameKey);
+        uniqueResult.push(c);
+      }
+    }
+    // 按距起点距离排序
+    uniqueResult.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    return uniqueResult;
   },
 
   // ============ 营地点击 ============

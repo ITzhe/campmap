@@ -36,6 +36,29 @@
   margin-bottom: 12rpx;
 }
 
+/* chip 样式 (组件内备份, 防止全局样式未加载) */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.chip {
+  padding: 12rpx 28rpx;
+  border-radius: 32rpx;
+  border: 2rpx solid #dde6e0;
+  font-size: 24rpx;
+  color: #6b7c70;
+  background: #fff;
+  transition: all 0.15s;
+}
+
+.chip.on {
+  background: #2d6a4f;
+  color: #fff;
+  border-color: #2d6a4f;
+}
+
 .fs-grp {
   padding: 24rpx 0;
   border-bottom: 2rpx solid var(--line);
