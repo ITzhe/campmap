@@ -91,9 +91,22 @@
       <view class="dyn-publish">
         <textarea class="dyn-textarea" value="{{dynamicsInput}}" bindinput="onDynamicsInput"
           placeholder="分享你的露营体验..." maxlength="200" auto-height="true" />
+        <!-- 评价图片 -->
+        <view class="dyn-photos" wx:if="{{dynamicsPhotos.length > 0}}">
+          <view class="dyn-photo-thumb" wx:for="{{dynamicsPhotos}}" wx:key="id">
+            <image src="{{item.path}}" mode="aspectFill" class="dyn-photo-img" />
+            <view class="dyn-photo-del" catchtap="delDynamicsPhoto" data-idx="{{index}}">✕</view>
+          </view>
+        </view>
         <view class="dyn-publish-bar">
-          <text class="dyn-char-count">{{dynamicsInput.length}}/200</text>
-          <view class="dyn-publish-btn" bindtap="submitDynamics">发布</view>
+          <view class="dyn-photo-btn" bindtap="addDynamicsPhoto">
+            <text class="dyn-photo-btn-icon">📷</text>
+            <text class="dyn-photo-btn-text">{{dynamicsPhotos.length > 0 ? dynamicsPhotos.length + '/6' : '添加图片'}}</text>
+          </view>
+          <view class="dyn-publish-right">
+            <text class="dyn-char-count">{{dynamicsInput.length}}/200</text>
+            <view class="dyn-publish-btn {{submittingDynamics ? 'disabled' : ''}}" bindtap="submitDynamics">发布</view>
+          </view>
         </view>
       </view>
 
@@ -112,6 +125,12 @@
               <text class="dyn-type-tag" wx:if="{{item.type === 'checkin'}}">打卡</text>
             </view>
             <view class="dyn-text">{{item.text}}</view>
+            <!-- 评论图片 -->
+            <view class="dyn-imgs" wx:if="{{item.photo_urls}}">
+              <image wx:for="{{item.photo_urls}}" wx:for-item="img" wx:key="*this"
+                src="{{img}}" mode="aspectFill" class="dyn-img"
+                bindtap="previewCommentImg" data-urls="{{item.photo_urls}}" data-current="{{img}}" />
+            </view>
             <view class="dyn-foot">
               <text class="dyn-date">{{item.date}}</text>
               <view class="dyn-like {{item.liked ? 'liked' : ''}}"
@@ -158,11 +177,11 @@
   </view>
 
   <!-- 纠错弹窗 -->
-  <view wx:if="{{showCorrection}}" class="correction-mask" bindtap="closeCorrection">
-    <view class="correction-sheet" catchtap="">
+  <view wx:if="{{showCorrection}}" class="correction-mask" bindtap="tryCloseCorrection">
+    <view class="correction-sheet" catchtap="noop">
       <view class="cs-header">
         <text class="cs-title">营地纠错</text>
-        <text class="cs-close" bindtap="closeCorrection">✕</text>
+        <text class="cs-close" bindtap="tryCloseCorrection">✕</text>
       </view>
 
       <scroll-view scroll-y class="cs-body">
@@ -213,7 +232,7 @@
       </scroll-view>
 
       <view class="cs-footer">
-        <view class="cs-btn-cancel" bindtap="closeCorrection">取消</view>
+        <view class="cs-btn-cancel" bindtap="tryCloseCorrection">取消</view>
         <view class="cs-btn-submit {{submittingCorrection ? 'disabled' : ''}}" bindtap="submitCorrection">提交纠错</view>
       </view>
     </view>

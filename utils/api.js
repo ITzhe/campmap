@@ -184,19 +184,41 @@ async function fetchComments(spotCode) {
 /**
  * 发布评论
  */
-async function submitComment(spotCode, openid, nick, avatar, content, type) {
+async function submitComment(spotCode, openid, nick, avatar, content, type, photoUrls) {
   const url = `${config.API_BASE}/camp_comments`;
-  const body = JSON.stringify({
+  const payload = {
     spot_code: spotCode,
     openid: openid,
     nick: nick || '匿名用户',
     avatar: avatar || '🏕',
     content: content,
     type: type || 'comment'
-  });
+  };
+  // 仅在有图片时添加 photo_urls 字段 (数据库可能尚未添加该列)
+  if (photoUrls) {
+    payload.photo_urls = photoUrls;
+  }
+  const body = JSON.stringify(payload);
   try {
     return await request(url, 'POST', body);
   } catch (e) {
+    // 如果带图片失败, 尝试不带图片重发
+    if (photoUrls) {
+      console.warn('[api] 带图片评论提交失败, 尝试不带图片重发:', e.message);
+      const body2 = JSON.stringify({
+        spot_code: spotCode,
+        openid: openid,
+        nick: nick || '匿名用户',
+        avatar: avatar || '🏕',
+        content: content,
+        type: type || 'comment'
+      });
+      try {
+        return await request(url, 'POST', body2);
+      } catch (e2) {
+        return null;
+      }
+    }
     return null;
   }
 }

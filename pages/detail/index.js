@@ -33,7 +33,10 @@ Page({
     correctionData: null,
     correctionFacItems: [],
     correctionPhotos: [],
-    submittingCorrection: false
+    submittingCorrection: false,
+    // 评论图片
+    dynamicsPhotos: [],
+    submittingDynamics: false
   },
 
   onLoad(options) {
@@ -185,7 +188,8 @@ Page({
       text: c.content,
       type: c.type || 'comment',
       likes: c.likes || 0,
-      liked: likedIds.indexOf(c.id) > -1
+      liked: likedIds.indexOf(c.id) > -1,
+      photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : []
     }));
     this.setData({
       dynamicsList,
@@ -266,9 +270,11 @@ Page({
 
   // ============ 用户评价：发布 ============
   async submitDynamics() {
+    if (this.data.submittingDynamics) return;
     const text = (this.data.dynamicsInput || '').trim();
-    if (!text) {
-      util.showToast('请输入内容');
+    const photos = this.data.dynamicsPhotos;
+    if (!text && photos.length === 0) {
+      util.showToast('请输入内容或添加图片');
       return;
     }
     if (text.length > 200) {
@@ -278,11 +284,26 @@ Page({
     const camp = this.data.camp;
     if (!camp) return;
 
+    this.setData({ submittingDynamics: true });
     util.showLoading('发布中...');
-    const res = await this.addDynamics(text, 'comment');
+
+    // 上传图片到 OSS
+    let photoUrls = [];
+    if (photos.length > 0) {
+      const paths = photos.map(p => p.path);
+      try {
+        photoUrls = await oss.uploadBatchToOSS(paths, 'comments');
+        photoUrls = photoUrls.filter(u => u);
+      } catch (e) {
+        console.warn('[comment] 图片上传失败:', e.message);
+      }
+    }
+
+    const res = await this.addDynamics(text, 'comment', photoUrls);
     util.hideLoading();
+    this.setData({ submittingDynamics: false });
     if (res) {
-      this.setData({ dynamicsInput: '' });
+      this.setData({ dynamicsInput: '', dynamicsPhotos: [] });
       util.showToast('发布成功');
     } else {
       util.showToast('发布失败');
@@ -291,7 +312,7 @@ Page({
 
   // ============ 提交评价到 Supabase 并刷新列表 ============
   // 供发布评价 / 营地打卡复用
-  async addDynamics(text, type) {
+  async addDynamics(text, type, photoUrls) {
     const camp = this.data.camp;
     if (!camp) return null;
     const userData = util.getUserState();
@@ -301,7 +322,8 @@ Page({
       '匿名用户',
       '🏕',
       text,
-      type || 'comment'
+      type || 'comment',
+      (photoUrls || []).join(',')
     );
     // 重新加载评论列表
     await this.loadComments(camp.spot_code);
@@ -352,7 +374,89 @@ Page({
     this.setData({ dynamicsExpanded: !this.data.dynamicsExpanded });
   },
 
+  // ============ 评价图片 ============
+  addDynamicsPhoto() {
+    if (this.data.dynamicsPhotos.length >= 6) {
+      util.showToast('最多上传 6 张图片');
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        const photos = this.data.dynamicsPhotos.concat([{
+          path: tempFilePath,
+          id: 'dp_' + Date.now()
+        }]);
+        this.setData({ dynamicsPhotos: photos });
+      },
+      fail: () => {}
+    });
+  },
+
+  delDynamicsPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const photos = this.data.dynamicsPhotos.slice();
+    photos.splice(idx, 1);
+    this.setData({ dynamicsPhotos: photos });
+  },
+
+  previewCommentImg(e) {
+    const urls = e.currentTarget.dataset.urls || [];
+    const current = e.currentTarget.dataset.current;
+    if (urls.length === 0) return;
+    wx.previewImage({ current, urls });
+  },
+
   // ============ 纠错功能 ============
+
+  // 阻止事件冒泡
+  noop() {},
+
+  // 检测纠错内容是否有修改
+  hasCorrectionChanges() {
+    const camp = this.data.camp;
+    if (!camp) return false;
+    const data = this.data.correctionData || {};
+    if ((data.name || '') !== (camp.name || '')) return true;
+    if ((data.address || '') !== (camp.address || '')) return true;
+    if ((data.intro || '') !== (camp.intro || '')) return true;
+    // 检查设施变化
+    for (const item of this.data.correctionFacItems) {
+      const original = Number(camp[item.key]) > 0;
+      if (item.on !== original) return true;
+    }
+    // 检查照片
+    if (this.data.correctionPhotos.length > 0) return true;
+    return false;
+  },
+
+  // 尝试关闭纠错弹窗（有修改时提示保存）
+  tryCloseCorrection() {
+    if (this.hasCorrectionChanges()) {
+      wx.showModal({
+        title: '提示',
+        content: '您的修改尚未提交，是否保存？',
+        confirmText: '保存',
+        cancelText: '不保存',
+        confirmColor: '#2d6a4f',
+        success: (res) => {
+          if (res.confirm) {
+            // 用户选择保存，提交纠错
+            this.submitCorrection();
+          } else {
+            // 不保存，直接关闭
+            this.setData({ showCorrection: false });
+          }
+        }
+      });
+    } else {
+      this.setData({ showCorrection: false });
+    }
+  },
 
   // 打开纠错弹窗
   openCorrection() {
