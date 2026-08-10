@@ -74,7 +74,22 @@
       </view>
     </view>
 
-    <!-- 5. 营地简介 -->
+    <!-- 5. 联系人信息 -->
+    <view class="form-section">
+      <view class="fs-title">👤 联系人信息<text class="fs-optional">（选填）</text></view>
+      <view class="field">
+        <view class="field-label">姓名</view>
+        <input class="form-input" placeholder="请输入联系人姓名" placeholder-class="ph"
+          data-key="subContact" value="{{subContact}}" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="field-label">电话</view>
+        <input class="form-input" type="tel" maxlength="11" placeholder="请输入手机号码" placeholder-class="ph"
+          data-key="subPhone" value="{{subPhone}}" bindinput="onInput" />
+      </view>
+    </view>
+
+    <!-- 7. 营地简介 -->
     <view class="form-section">
       <view class="fs-title">📝 营地简介</view>
       <textarea class="form-textarea" placeholder="介绍一下这个营地，比如环境、特色、注意事项等" placeholder-class="ph"
