@@ -37,8 +37,6 @@ Page({
     // 表单字段
     subName: '',
     subAddr: '',
-    subContact: '',
-    subPhone: '',
     subIntro: '',
 
     // 地图选点
@@ -199,13 +197,9 @@ Page({
 
     const name = this.data.subName.trim();
     const addr = this.data.subAddr.trim();
-    const contact = this.data.subContact.trim();
-    const phone = this.data.subPhone.trim();
 
     if (!name) { util.showToast('请填写营地名称'); return; }
     if (!addr) { util.showToast('请填写详细地址'); return; }
-    // 联系人信息非必填, 但如果填了电话则校验格式
-    if (phone && !/^1\d{10}$/.test(phone)) { util.showToast('请输入正确的手机号'); return; }
 
     this.setData({ submitting: true });
     util.showLoading('提交中...');
@@ -232,8 +226,6 @@ Page({
     const payload = Object.assign({
       name: name,
       address: addr,
-      contact_name: contact || '',
-      contact_phone: phone || '',
       intro: this.data.subIntro.trim(),
       photo_urls: photoUrls.filter(u => u).join(','),
       photo_count: photoUrls.filter(u => u).length,

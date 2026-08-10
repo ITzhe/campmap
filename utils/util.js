@@ -54,7 +54,7 @@ function radiusBBox(lat, lng, radiusKm) {
 }
 
 /**
- * 初始化用户 (LocalStorage 模拟)
+ * 初始化用户 (生成本地标识, 不涉及微信身份信息)
  */
 function initUser() {
   let data = wx.getStorageSync('camp_user');
@@ -96,10 +96,8 @@ function isLoggedIn() {
 }
 
 /**
- * 微信登录 — 初始化用户 (生成 openid)
- * 注意: wx.getUserProfile 已废弃, 新版微信返回"微信用户"
- * 昵称需通过 <input type="nickname"> 组件获取
- * 此函数仅确保用户有 openid, 不再尝试获取昵称
+ * 确保用户有本地标识 (不调用 wx.login, 不获取微信身份)
+ * 昵称通过 <input type="nickname"> 组件获取, 头像通过 chooseAvatar 获取
  */
 function wxLogin() {
   return new Promise((resolve) => {

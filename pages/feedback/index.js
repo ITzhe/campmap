@@ -14,7 +14,6 @@ Page({
     ],
     currentType: 'suggest',
     content: '',
-    contact: '',
     submitted: false,
     feedbackCount: 0
   },
@@ -60,11 +59,6 @@ Page({
     this.setData({ content: e.detail.value });
   },
 
-  // 输入联系方式
-  onContactInput(e) {
-    this.setData({ contact: e.detail.value });
-  },
-
   // 提交反馈
   submit() {
     const content = (this.data.content || '').trim();
@@ -91,7 +85,6 @@ Page({
       type: this.data.currentType,
       typeLabel: typeLabel,
       content: content,
-      contact: (this.data.contact || '').trim(),
       status: 'pending',
       createTime: this.formatTime(new Date())
     };
@@ -113,8 +106,7 @@ Page({
     this.setData({
       submitted: false,
       currentType: 'suggest',
-      content: '',
-      contact: ''
+      content: ''
     });
   },
 

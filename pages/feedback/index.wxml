@@ -52,23 +52,6 @@
       <view class="fb-counter">{{content.length}}/500</view>
     </view>
 
-    <!-- 联系方式 -->
-    <view class="fb-card">
-      <view class="fb-h">
-        <text class="fb-h-emoji">📞</text>
-        <text>联系方式</text>
-        <text class="fb-h-tip">（选填）</text>
-      </view>
-      <input class="fb-input"
-        type="text"
-        placeholder="微信号 / 手机号，方便我们与您联系"
-        placeholder-class="fb-ph"
-        maxlength="40"
-        value="{{contact}}"
-        bindinput="onContactInput"
-      />
-    </view>
-
     <!-- 提交按钮 -->
     <view class="fb-submit" bindtap="submit">提交反馈</view>
 
