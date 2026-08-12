@@ -200,6 +200,11 @@ Page({
         campCount: merged.length
       });
       this.buildMarkers(merged);
+
+      // 数据库请求失败时提示用户
+      if (dbCamps.length === 0 && poiCamps.length === 0) {
+        util.showToast('数据加载失败，请检查网络');
+      }
     } catch (e) {
       util.showToast('加载失败，请重试');
     }

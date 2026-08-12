@@ -97,14 +97,15 @@ async function fetchCampsites(filters, bounds, limit) {
       if (bounds) {
         return [];
       }
-      console.warn('[Supabase] 营地数据为空，降级到 Mock 数据');
-      return JSON.parse(JSON.stringify(MOCK_CAMPS));
+      console.warn('[Supabase] 营地数据为空');
+      return [];
     }
     // 补充缺失字段
     return data.map(normalizeCamp);
   } catch (e) {
-    console.warn('[Supabase] 营地数据获取失败，降级到 Mock 数据:', e.message);
-    return JSON.parse(JSON.stringify(MOCK_CAMPS));
+    console.error('[Supabase] 营地数据获取失败:', e.message);
+    // 不再降级到 Mock 数据，返回空数组让前端处理
+    return [];
   }
 }
 
