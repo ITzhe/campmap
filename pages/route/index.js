@@ -610,7 +610,7 @@ Page({
     const allPOIs = [];
     const seen = new Set();
 
-    // 并行发送请求 (每个采样点+关键词组合一个请求)
+    // 限制并发为3, 避免触发API频率限制
     const tasks = [];
     for (const pt of samplePoints) {
       for (const kw of keywords) {
@@ -621,8 +621,8 @@ Page({
       }
     }
 
-    console.log('[Route] POI搜索总请求数:', tasks.length);
-    const results = await Promise.all(tasks);
+    console.log('[Route] POI搜索总请求数:', tasks.length, '(并发限制: 3)');
+    const results = await this._runWithConcurrency(tasks, 3);
 
     for (const res of results) {
       if (res && res.data && res.data.status === 0 && res.data.data) {
@@ -685,6 +685,27 @@ Page({
         fail: () => resolve(null)
       });
     });
+  },
+
+  // ============ 并发控制 (最大并发数限制) ============
+  async _runWithConcurrency(tasks, maxConcurrent) {
+    const results = [];
+    let index = 0;
+
+    async function runNext() {
+      while (index < tasks.length) {
+        const current = index++;
+        results[current] = await tasks[current];
+      }
+    }
+
+    // 启动 maxConcurrent 个工作线程
+    const workers = [];
+    for (let i = 0; i < Math.min(maxConcurrent, tasks.length); i++) {
+      workers.push(runNext());
+    }
+    await Promise.all(workers);
+    return results;
   },
 
   // ============ 合并数据库营地和POI搜索结果 ============

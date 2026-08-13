@@ -80,19 +80,5 @@
     </view>
   </view>
 
-  <!-- 最近路线 -->
-  <view class="section-header">📜 最近路线</view>
-  <view class="history-list">
-    <view class="history-item"
-      wx:for="{{historyList}}" wx:key="name"
-      data-idx="{{index}}" bindtap="onHistoryTap">
-      <view class="hi-main">
-        <view class="hi-name">{{item.name}}</view>
-        <view class="hi-meta">{{item.meta}}</view>
-      </view>
-      <view class="hi-arrow">›</view>
-    </view>
-  </view>
-
   <view class="bottom-spacer"></view>
 </view>
