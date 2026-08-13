@@ -357,12 +357,9 @@ Page({
     const mm = minutes % 60;
     const timeStr = hh > 0 ? (hh + '小时' + mm + '分') : (mm + '分钟');
 
-    // 沿途营地: 数据库营地 + POI搜索
+    // 沿途营地: 仅显示数据库中的营地, 不搜索外部POI
     const dbCamps = this.findCampsAlongRoute(allRoutePoints);
-    const poiCamps = await this.searchPOIAlongRoute(allRoutePoints);
-    // 合并去重
-    const mergedCamps = this.mergeCamps(dbCamps, poiCamps, allRoutePoints);
-    const campList = mergedCamps;
+    const campList = dbCamps;
 
     // 构建标记: 起点 + 途经点 + 终点 + 营地
     const markers = [
@@ -536,11 +533,8 @@ Page({
   findCampsAlongRoute(routePoints) {
     if (!routePoints || routePoints.length < 2) return [];
 
-    // 走廊宽度根据路线总长度自适应
-    const startPt = routePoints[0];
-    const endPt = routePoints[routePoints.length - 1];
-    const straight = util.distance(startPt.latitude, startPt.longitude, endPt.latitude, endPt.longitude);
-    const corridor = Math.max(15, Math.min(60, straight / 10));
+    // 走廊宽度固定3公里, 只显示路线附近3km内的营地
+    const corridor = 3;
 
     const list = this.data.allCamps.map(c => {
       // 计算到路线每一段的最小距离
