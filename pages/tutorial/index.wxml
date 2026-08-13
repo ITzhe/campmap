@@ -13,7 +13,7 @@
   <view class="tut-intro">
     <view class="tut-intro-icon">📖</view>
     <view class="tut-intro-title">快速上手指南</view>
-    <view class="tut-intro-desc">几个简单步骤，玩转露营地图</view>
+    <view class="tut-intro-desc">几个简单步骤，玩转营图</view>
   </view>
 
   <!-- 步骤卡片 -->

@@ -2,7 +2,7 @@
 const util = require('../../utils/util');
 
 // 应用版本号常量
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.0.2';
 
 Page({
   data: {
@@ -107,7 +107,14 @@ Page({
     const idx = Number(e.detail.value);
     this.setData({ zoomIndex: idx }, () => {
       this.saveSettings();
-      util.showToast('已设置：' + this.data.zoomLevels[idx]);
+      const labels = ['低缩放 (3-8级)', '中缩放 (9-12级)', '高缩放 (13-16级)', '超高缩放 (17-20级)'];
+      wx.showModal({
+        title: '设置已保存',
+        content: '默认缩放级别已设为：' + labels[idx] + '\n\n下次打开地图首页时生效。',
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#2d6a4f'
+      });
     });
   },
 

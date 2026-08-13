@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-公益露营地图 - 全国营地数据采集工具 v6.0
+营图 - 全国营地数据采集工具 v6.0
 从安营驻车 API 采集营地数据, 导入 Supabase 数据库
 
 覆盖全国 337 个地级行政区（地级市、自治州、地区、盟）
@@ -381,7 +381,7 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
 # ======================== 主函数 ========================
 
 def main():
-    parser = argparse.ArgumentParser(description="公益露营地图 - 全国营地数据采集工具 v6.0")
+    parser = argparse.ArgumentParser(description="营图 - 全国营地数据采集工具 v6.0")
     parser.add_argument("--city", help="采集指定城市 (如: 青岛)")
     parser.add_argument("--province", help="采集整个省 (如: 山东省)")
     parser.add_argument("--all", action="store_true", help="采集所有城市 (全国337个地级行政区)")
@@ -500,7 +500,7 @@ def main():
         sys.exit(1)
 
     log(f"=" * 60)
-    log(f"公益露营地图 - 数据采集工具 v6.0")
+    log(f"营图 - 数据采集工具 v6.0")
     log(f"待采集城市: {len(targets)} 个 (全国共 {len(CITIES)} 个)")
     log(f"城市间间隔: {args.city_delay}秒")
     if args.no_import:

@@ -12,8 +12,8 @@
   <!-- 英雄区 -->
   <view class="about-hero">
     <view class="about-logo">🏕</view>
-    <view class="about-name">露营地图</view>
-    <view class="about-ver">版本 1.0.0</view>
+    <view class="about-name">营图</view>
+    <view class="about-ver">版本 1.0.2</view>
   </view>
 
   <!-- 项目介绍 -->
@@ -22,7 +22,7 @@
       <text class="about-h-emoji">📋</text>
       <text>项目介绍</text>
     </view>
-    <view class="about-p">露营地图是一款专注于房车、帐篷露营爱好者的营地发现工具。我们整合全国各地营地信息，提供精确的地图定位、设施查询与线路规划服务，帮助露营者轻松找到心仪的营地。</view>
+    <view class="about-p">营图是一款专注于房车、帐篷露营爱好者的营地发现工具。我们整合全国各地营地信息，提供精确的地图定位、设施查询与线路规划服务，帮助露营者轻松找到心仪的营地。</view>
   </view>
 
   <!-- 数据来源 -->

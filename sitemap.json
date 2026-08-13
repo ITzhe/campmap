@@ -1,5 +1,5 @@
 {
-  "desc": "露营地图小程序sitemap配置",
+  "desc": "营图小程序sitemap配置",
   "rules": [{
     "action": "allow",
     "page": "*"

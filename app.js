@@ -1,4 +1,4 @@
-// app.js — 露营地图小程序入口
+// app.js — 营图小程序入口
 const { initUser, getUserState, getNearestCity } = require('./utils/util');
 
 App({

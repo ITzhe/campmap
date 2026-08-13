@@ -197,21 +197,26 @@ Page({
     return new Promise((resolve) => {
       if (!key) {
         console.error('[Route] MAP_KEY 未配置');
-        resolve({ success: false, error: '地图 Key 未配置' });
+        resolve({ success: false, error: '地图 Key 未配置，请在 config.js 中设置 MAP_KEY' });
         return;
       }
       console.log('[Route] 请求驾车路线 API, from:', fromLat + ',' + fromLng, 'to:', toLat + ',' + toLng);
       wx.request({
         url: 'https://apis.map.qq.com/ws/direction/v1/driving/',
         data: {
-          from: `${fromLat},${fromLng}`,
-          to: `${toLat},${toLng}`,
+          from: fromLat + ',' + fromLng,
+          to: toLat + ',' + toLng,
           key: key
         },
         method: 'GET',
         success: (res) => {
           console.log('[Route] API 响应状态码:', res.statusCode);
           console.log('[Route] API 响应数据:', JSON.stringify(res.data).slice(0, 500));
+
+          if (res.statusCode !== 200) {
+            resolve({ success: false, error: 'HTTP ' + res.statusCode + ': 服务器错误' });
+            return;
+          }
 
           if (!res.data) {
             resolve({ success: false, error: 'API 返回空数据' });
@@ -223,20 +228,35 @@ Page({
           if (status !== 0 && status !== '0') {
             const msg = res.data.message || ('状态码: ' + status);
             console.error('[Route] API 返回错误:', msg);
-            resolve({ success: false, error: msg });
+            // 常见错误提示
+            let userTip = msg;
+            if (status === 120 || status === '120') {
+              userTip = 'API Key 未开通路径规划服务，请在腾讯地图控制台启用';
+            } else if (status === 311 || status === '311') {
+              userTip = '请求频率超限，请稍后重试';
+            } else if (status === 310 || status === '310') {
+              userTip = 'API Key 无效或被禁用';
+            }
+            resolve({ success: false, error: userTip, apiError: true });
             return;
           }
 
           const routes = res.data.result && res.data.result.routes;
-          if (routes && routes.length > 0) {
+          if (routes && routes.length > 0 && routes[0].polyline) {
             resolve({ success: true, route: routes[0] });
           } else {
-            resolve({ success: false, error: '未找到可用路线' });
+            resolve({ success: false, error: '未找到可用路线，可能是起终点距离过近或道路不通' });
           }
         },
         fail: (err) => {
           console.error('[Route] API 请求失败:', err);
-          resolve({ success: false, error: '网络请求失败: ' + (err.errMsg || '未知错误') });
+          let errMsg = '网络请求失败';
+          if (err.errMsg && err.errMsg.indexOf('not in domain list') > -1) {
+            errMsg = '域名未配置: 请在小程序后台添加 apis.map.qq.com 为合法域名';
+          } else if (err.errMsg) {
+            errMsg = '网络错误: ' + err.errMsg;
+          }
+          resolve({ success: false, error: errMsg, apiError: true });
         }
       });
     });
@@ -467,7 +487,15 @@ Page({
     if (allUsedReal) {
       util.showToast(`已规划驾车路线，沿途${campList.length}个营地`);
     } else {
-      util.showToast(`部分路段使用直线，沿途${campList.length}个营地`);
+      // 显示详细的错误信息
+      const errMsg = apiErrors[0] || '未知错误';
+      wx.showModal({
+        title: '路线规划提醒',
+        content: '部分路段无法获取真实路线，已用直线连接。\n\n错误原因: ' + errMsg + '\n\n请检查:\n1. 腾讯地图Key是否已开通"路径规划"服务\n2. 小程序后台是否已添加 apis.map.qq.com 为合法域名',
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#2d6a4f'
+      });
     }
   },
 

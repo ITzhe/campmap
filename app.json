@@ -17,7 +17,7 @@
     "pages/privacy/index"
   ],
   "window": {
-    "navigationBarTitleText": "露营地图",
+    "navigationBarTitleText": "营图",
     "navigationBarBackgroundColor": "#2d6a4f",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f4f7f5",

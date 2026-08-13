@@ -58,12 +58,23 @@ Page({
       }
     } catch (e) {}
 
+    // 读取用户设置的默认缩放级别
+    let defaultScale = 11;
+    try {
+      const settings = wx.getStorageSync('camp_settings') || {};
+      if (typeof settings.zoomIndex === 'number') {
+        const zoomMap = [6, 11, 14, 17]; // 低/中/高/超高
+        defaultScale = zoomMap[settings.zoomIndex] || 11;
+      }
+    } catch (e) {}
+
     const app = getApp();
     this.setData({
       statusBarHeight: sbh,
       topbarHeight: sbh + 44,
       latitude: app.globalData.cityCenter.latitude,
       longitude: app.globalData.cityCenter.longitude,
+      scale: defaultScale,
       cityName: app.globalData.cityName,
       userPoints: app.globalData.points
     });
