@@ -234,7 +234,7 @@ Page({
     const latSpan = (bounds.maxLat - bounds.minLat) * 111000;
     const radius = Math.min(50000, Math.max(10000, latSpan / 2));
 
-    const keywords = ['露营', '房车营地', '露营地', '帐篷营地'];
+    const keywords = ['露营地', '房车营地', '帐篷营地', '露营', '房车露营'];
     const allPOIs = [];
     const seen = new Set();
 
@@ -264,6 +264,17 @@ Page({
             const lat = poi.location ? poi.location.lat : 0;
             const lng = poi.location ? poi.location.lng : 0;
             if (!lat || !lng) continue;
+
+            // 名称过滤: 必须包含露营相关词, 排除"教育基地""考研基地"等
+            const poiName = poi.title || '';
+            const campingTerms = ['露营', '房车', '帐篷', '野营', 'caravan', 'camping', 'RV'];
+            const hasCampingTerm = campingTerms.some(term => poiName.indexOf(term) > -1);
+            if (!hasCampingTerm) continue;
+
+            const excludeTerms = ['教育', '培训', '考研', '帮教', '实习', '拓展', '书法', '实训', '种植', '养殖', '科研', '实验', '产业'];
+            const hasExcludeTerm = excludeTerms.some(term => poiName.indexOf(term) > -1);
+            if (hasExcludeTerm) continue;
+
             // 去重: 用坐标前4位作为key
             const dedupKey = lat.toFixed(4) + ',' + lng.toFixed(4);
             if (seen.has(dedupKey)) continue;

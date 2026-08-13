@@ -272,59 +272,7 @@
   color: var(--text-ph);
 }
 
-/* ============ 最近路线 ============ */
-.section-header {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: var(--text);
-  padding: 8rpx 28rpx 16rpx;
-}
-
-.history-list {
-  margin: 0 28rpx;
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 28rpx;
-  border-bottom: 2rpx solid var(--line);
-  gap: 16rpx;
-}
-
-.history-item:last-child {
-  border-bottom: none;
-}
-
-.hi-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.hi-name {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.hi-meta {
-  font-size: 22rpx;
-  color: var(--text-2);
-  margin-top: 8rpx;
-}
-
-.hi-arrow {
-  font-size: 40rpx;
-  color: var(--text-ph);
-  flex-shrink: 0;
-  line-height: 1;
-}
-
+/* ============ 底部间距 ============ */
 .bottom-spacer {
   height: 40rpx;
 }

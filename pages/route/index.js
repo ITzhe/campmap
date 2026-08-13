@@ -27,13 +27,7 @@ Page({
     polyline: [],
 
     // 营地缓存
-    allCamps: [],
-
-    // 最近路线
-    historyList: [
-      { name: '青岛火车站 → 崂山风景区', meta: '32.6 km · 沿途3个营地 · 今天 09:12' },
-      { name: '五四广场 → 黄岛金沙滩', meta: '21.4 km · 沿途2个营地 · 昨天 18:30' }
-    ]
+    allCamps: []
   },
 
   onLoad() {
@@ -343,7 +337,7 @@ Page({
         console.warn('[Route] 分段' + (i + 1) + '降级为直线:', err);
         const straight = util.distance(from.lat, from.lng, to.lat, to.lng);
         totalDist += straight * 1.3 * 1000; // m
-        totalDuration += straight * 1.3 / 80 * 3600; // s
+        totalDuration += straight * 1.3 / 80 * 60; // 分钟 (80km/h -> 分钟)
         const stepCount = Math.max(8, Math.min(30, Math.round(straight / 20)));
         const segPoints = this.genRoutePoints(from.lat, from.lng, to.lat, to.lng, stepCount);
         if (i === 0) {
@@ -357,11 +351,11 @@ Page({
     const dist = Math.round((totalDist / 1000) * 10) / 10; // m -> km
     const duration = totalDuration;
 
-    // 预计时长
-    const minutes = Math.max(1, Math.round(duration / 60));
+    // 预计时长 (腾讯地图 API 返回的 duration 单位为分钟)
+    const minutes = Math.max(1, Math.round(duration));
     const hh = Math.floor(minutes / 60);
     const mm = minutes % 60;
-    const timeStr = hh > 0 ? `${hh}小时${mm}分` : `${mm}分钟`;
+    const timeStr = hh > 0 ? (hh + '小时' + mm + '分') : (mm + '分钟');
 
     // 沿途营地: 数据库营地 + POI搜索
     const dbCamps = this.findCampsAlongRoute(allRoutePoints);
@@ -606,7 +600,8 @@ Page({
     }
 
     console.log('[Route] POI搜索采样点数:', samplePoints.length);
-    const keywords = ['露营', '营地', '房车营地', '露营地'];
+    // 使用更精确的关键词, 避免匹配到"教育基地""考研基地"等无关场所
+    const keywords = ['露营地', '房车营地', '帐篷营地', '露营', '房车露营'];
     const allPOIs = [];
     const seen = new Set();
 
@@ -630,6 +625,18 @@ Page({
           const lat = poi.location ? poi.location.lat : 0;
           const lng = poi.location ? poi.location.lng : 0;
           if (!lat || !lng) continue;
+
+          // 名称过滤: 必须包含露营相关词, 排除"教育基地""考研基地"等
+          const name = poi.title || '';
+          const campingTerms = ['露营', '房车', '帐篷', '野营', '露天生', 'caravan', 'camping', 'RV'];
+          const hasCampingTerm = campingTerms.some(term => name.indexOf(term) > -1);
+          if (!hasCampingTerm) continue;
+
+          // 排除明确不是营地的场所
+          const excludeTerms = ['教育', '培训', '考研', '帮教', '实习', '拓展', '书法', '实训', '种植', '养殖', '科研', '实验', '产业'];
+          const hasExcludeTerm = excludeTerms.some(term => name.indexOf(term) > -1);
+          if (hasExcludeTerm) continue;
+
           // 去重: 用坐标前4位作为key
           const dedupKey = lat.toFixed(4) + ',' + lng.toFixed(4);
           if (seen.has(dedupKey)) continue;
@@ -772,18 +779,6 @@ Page({
     app.globalData.selectedCamp = camp;
     app.globalData.pendingCampFocus = true;
     wx.switchTab({ url: '/pages/map/index' });
-  },
-
-  // ============ 历史路线点击 ============
-  onHistoryTap(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const item = this.data.historyList[idx];
-    if (!item || !item.name) return;
-    const parts = item.name.split('→').map(s => s.trim());
-    if (parts.length === 2) {
-      this.setData({ routeStart: parts[0], routeEnd: parts[1] });
-      util.showToast('请重新选择起终点位置');
-    }
   },
 
   // ============ 交换起终点 ============
