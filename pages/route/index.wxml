@@ -29,12 +29,13 @@
       <view class="ri-addway {{waypoints.length >= 5 ? 'disabled' : ''}}" bindtap="addWaypoint">＋ 添加途经点{{waypoints.length > 0 ? '(' + waypoints.length + '/5)' : ''}}</view>
       <view class="ri-swap" bindtap="swapRoute">⇅ 交换</view>
     </view>
-    <button class="ri-btn" bindtap="calcRoute">规划路线</button>
+    <button class="ri-btn" bindtap="calcRoute" disabled="{{routePlanning}}">{{routePlanning ? '规划中...' : '规划路线'}}</button>
+    <view class="ri-cancel" wx:if="{{showCancelBtn}}" bindtap="cancelRoutePlanning">取消规划</view>
     <view class="ri-hint">提示：点击输入框通过地图搜索选择准确位置</view>
   </view>
 
   <!-- 路线地图 -->
-  <map class="route-map"
+  <map class="route-map {{!showResult ? 'route-map-full' : ''}}"
     latitude="{{latitude}}"
     longitude="{{longitude}}"
     scale="{{scale}}"

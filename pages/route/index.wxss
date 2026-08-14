@@ -146,6 +146,20 @@
   margin-bottom: 20rpx;
 }
 
+/* 没有路线结果时, 地图填充剩余空间, 隐藏白框 */
+.route-map-full {
+  height: calc(100vh - 520rpx);
+  margin-bottom: 0;
+}
+
+/* 取消规划按钮 */
+.ri-cancel {
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--red);
+  padding: 16rpx 0 0;
+}
+
 /* ============ 路线结果 ============ */
 .route-result {
   padding: 0 28rpx;

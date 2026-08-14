@@ -18,6 +18,7 @@ Page({
     routeTime: '',
     routeCampList: [],
     routePlanning: false,
+    showCancelBtn: false,
 
     // 地图
     latitude: 36.0671,
@@ -40,7 +41,7 @@ Page({
       latitude: app.globalData.cityCenter.latitude,
       longitude: app.globalData.cityCenter.longitude
     });
-    this.loadCamps();
+    // 不再预加载全国营地, 改为规划路线时按路线范围加载
 
     // 恢复待定路线 (从收藏页跳来)
     if (app.globalData.pendingRoute) {
@@ -295,7 +296,7 @@ Page({
 
     const waypoints = this.data.waypoints || [];
 
-    this.setData({ routePlanning: true });
+    this.setData({ routePlanning: true, showCancelBtn: true });
     util.showLoading('规划路线中...');
 
     // 构建路径点序列: 起点 → 途经点1 → ... → 途经点N → 终点
@@ -314,7 +315,14 @@ Page({
     let allUsedReal = true;
     let apiErrors = [];
 
+    this._cancelled = false;
+
     for (let i = 0; i < allPoints.length - 1; i++) {
+      if (this._cancelled) {
+        util.hideLoading();
+        this.setData({ routePlanning: false, showCancelBtn: false });
+        return;
+      }
       const from = allPoints[i];
       const to = allPoints[i + 1];
       const segResult = await this.fetchDrivingRoute(from.lat, from.lng, to.lat, to.lng);
@@ -348,6 +356,12 @@ Page({
       }
     }
 
+    if (this._cancelled) {
+      util.hideLoading();
+      this.setData({ routePlanning: false, showCancelBtn: false });
+      return;
+    }
+
     const dist = Math.round((totalDist / 1000) * 10) / 10; // m -> km
     const duration = totalDuration;
 
@@ -356,6 +370,19 @@ Page({
     const hh = Math.floor(minutes / 60);
     const mm = minutes % 60;
     const timeStr = hh > 0 ? (hh + '小时' + mm + '分') : (mm + '分钟');
+
+    // 按路线范围加载营地 (不再预加载全国数据)
+    util.showLoading('查找沿途营地...');
+    const routeBounds = this._getRouteBounds(allRoutePoints, 0.05); // 0.05度≈5km padding
+    const routeCamps = await api.fetchCampsites({ fee: 'all' }, routeBounds, 2000);
+    this.data.allCamps = routeCamps || [];
+    console.log('[Route] 路线范围内营地数:', this.data.allCamps.length);
+
+    if (this._cancelled) {
+      util.hideLoading();
+      this.setData({ routePlanning: false, showCancelBtn: false });
+      return;
+    }
 
     // 沿途营地: 仅显示数据库中的营地, 不搜索外部POI
     const dbCamps = this.findCampsAlongRoute(allRoutePoints);
@@ -471,7 +498,8 @@ Page({
       latitude: midLat,
       longitude: midLng,
       scale,
-      routePlanning: false
+      routePlanning: false,
+      showCancelBtn: false
     });
 
     util.hideLoading();
@@ -773,6 +801,34 @@ Page({
     app.globalData.selectedCamp = camp;
     app.globalData.pendingCampFocus = true;
     wx.switchTab({ url: '/pages/map/index' });
+  },
+
+  // ============ 取消路线规划 ============
+  cancelRoutePlanning() {
+    this._cancelled = true;
+    util.hideLoading();
+    this.setData({ routePlanning: false, showCancelBtn: false });
+    util.showToast('已取消');
+  },
+
+  // ============ 计算路线折线的地理范围 ============
+  _getRouteBounds(points, padding) {
+    if (!points || points.length === 0) return null;
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity, maxLng = -Infinity;
+    for (const p of points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+    const pad = padding || 0.05;
+    return {
+      minLat: minLat - pad,
+      maxLat: maxLat + pad,
+      minLng: minLng - pad,
+      maxLng: maxLng + pad
+    };
   },
 
   // ============ 交换起终点 ============
