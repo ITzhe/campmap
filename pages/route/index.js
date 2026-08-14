@@ -204,6 +204,7 @@ Page({
           key: key
         },
         method: 'GET',
+        timeout: 8000,
         success: (res) => {
           console.log('[Route] API 响应状态码:', res.statusCode);
           console.log('[Route] API 响应数据:', JSON.stringify(res.data).slice(0, 500));
@@ -372,11 +373,8 @@ Page({
     const timeStr = hh > 0 ? (hh + '小时' + mm + '分') : (mm + '分钟');
 
     // 按路线范围加载营地 (不再预加载全国数据)
-    util.showLoading('查找沿途营地...');
+    // 改为后台异步加载, 不阻塞路线结果显示
     const routeBounds = this._getRouteBounds(allRoutePoints, 0.05); // 0.05度≈5km padding
-    const routeCamps = await api.fetchCampsites({ fee: 'all' }, routeBounds, 2000);
-    this.data.allCamps = routeCamps || [];
-    console.log('[Route] 路线范围内营地数:', this.data.allCamps.length);
 
     if (this._cancelled) {
       util.hideLoading();
@@ -384,7 +382,7 @@ Page({
       return;
     }
 
-    // 沿途营地: 仅显示数据库中的营地, 不搜索外部POI
+    // 沿途营地: 先用已有数据 (可能为空), 后台加载后再更新
     const dbCamps = this.findCampsAlongRoute(allRoutePoints);
     const campList = dbCamps;
 
@@ -515,6 +513,120 @@ Page({
         confirmText: '知道了',
         confirmColor: '#2d6a4f'
       });
+    }
+
+    // 后台异步加载路线范围内的营地, 加载完后更新营地列表
+    this._loadRouteCampsAsync(routeBounds, allRoutePoints);
+  },
+
+  // ============ 后台异步加载路线范围内营地 ============
+  async _loadRouteCampsAsync(routeBounds, allRoutePoints) {
+    try {
+      console.log('[Route] 后台加载路线范围内营地...');
+      // 添加5秒超时, 防止无限等待
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('营地加载超时')), 5000);
+      });
+      const routeCamps = await Promise.race([
+        api.fetchCampsites({ fee: 'all' }, routeBounds, 2000),
+        timeoutPromise
+      ]);
+      this.data.allCamps = routeCamps || [];
+      console.log('[Route] 路线范围内营地数:', this.data.allCamps.length);
+
+      // 重新计算沿途营地
+      const dbCamps = this.findCampsAlongRoute(allRoutePoints);
+
+      // 重建标记 (保留起终点和途经点, 更新营地标记)
+      const s = this.data.startCoord;
+      const e = this.data.endCoord;
+      const waypoints = this.data.waypoints || [];
+      const markers = [
+        {
+          id: 0,
+          latitude: s.lat,
+          longitude: s.lng,
+          width: 30,
+          height: 30,
+          callout: {
+            content: '起点',
+            color: '#ffffff',
+            fontSize: 12,
+            bgColor: '#2d6a4f',
+            borderRadius: 8,
+            borderWidth: 0,
+            padding: 6,
+            display: 'ALWAYS',
+            textAlign: 'center'
+          }
+        },
+        {
+          id: 1,
+          latitude: e.lat,
+          longitude: e.lng,
+          width: 30,
+          height: 30,
+          callout: {
+            content: '终点',
+            color: '#ffffff',
+            fontSize: 12,
+            bgColor: '#ee6c4d',
+            borderRadius: 8,
+            borderWidth: 0,
+            padding: 6,
+            display: 'ALWAYS',
+            textAlign: 'center'
+          }
+        }
+      ];
+
+      // 途经点标记
+      waypoints.forEach((wp, i) => {
+        markers.push({
+          id: i + 100,
+          latitude: wp.lat,
+          longitude: wp.lng,
+          width: 26,
+          height: 26,
+          callout: {
+            content: '途经' + (i + 1),
+            color: '#ffffff',
+            fontSize: 11,
+            bgColor: '#f4a261',
+            borderRadius: 8,
+            borderWidth: 0,
+            padding: 5,
+            display: 'ALWAYS',
+            textAlign: 'center'
+          }
+        });
+      });
+
+      // 营地标记
+      dbCamps.forEach((c, i) => {
+        const isFree = c.parking_status == 0;
+        let iconPath = '/assets/markers/free.png';
+        if (!isFree) iconPath = '/assets/markers/paid.png';
+        if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
+        markers.push({
+          id: i + 200,
+          latitude: c.latitude,
+          longitude: c.longitude,
+          iconPath: iconPath,
+          width: 28,
+          height: 32,
+          anchor: { x: 0.5, y: 1 }
+        });
+      });
+
+      this.setData({
+        routeCamps: dbCamps.length,
+        routeCampList: dbCamps,
+        markers
+      });
+      console.log('[Route] 营地加载完成, 沿途营地数:', dbCamps.length);
+    } catch (err) {
+      console.error('[Route] 后台加载营地失败:', err.message);
     }
   },
 
