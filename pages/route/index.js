@@ -675,6 +675,7 @@ Page({
 
     // 走廊宽度固定3公里, 只显示路线附近3km内的营地
     const corridor = 3;
+    const startPt = routePoints[0];
 
     const list = this.data.allCamps.map(c => {
       // 计算到路线每一段的最小距离
