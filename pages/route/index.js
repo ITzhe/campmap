@@ -666,8 +666,8 @@ Page({
   findCampsAlongRoute(routePoints) {
     if (!routePoints || routePoints.length < 2) return [];
 
-    // 走廊宽度固定3公里, 只显示路线附近3km内的营地
-    const corridor = 3;
+    // 走廊宽度固定5公里, 只显示路线附近5km内的营地
+    const corridor = 5;
     const startPt = routePoints[0];
 
     console.log('[Route] 开始筛选沿途营地, 数据库营地数:', this.data.allCamps.length, '路线点数:', routePoints.length, '走廊宽度:', corridor + 'km');
