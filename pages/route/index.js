@@ -374,7 +374,7 @@ Page({
 
     // 按路线范围加载营地 (不再预加载全国数据)
     // 改为后台异步加载, 不阻塞路线结果显示
-    const routeBounds = this._getRouteBounds(allRoutePoints, 0.05); // 0.05度≈5km padding
+    const routeBounds = this._getRouteBounds(allRoutePoints, 0.1); // 0.1度≈10km padding
 
     if (this._cancelled) {
       util.hideLoading();
@@ -523,14 +523,7 @@ Page({
   async _loadRouteCampsAsync(routeBounds, allRoutePoints) {
     try {
       console.log('[Route] 后台加载路线范围内营地...');
-      // 添加5秒超时, 防止无限等待
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('营地加载超时')), 5000);
-      });
-      const routeCamps = await Promise.race([
-        api.fetchCampsites({ fee: 'all' }, routeBounds, 2000),
-        timeoutPromise
-      ]);
+      const routeCamps = await api.fetchCampsites({ fee: 'all' }, routeBounds, 2000);
       this.data.allCamps = routeCamps || [];
       console.log('[Route] 路线范围内营地数:', this.data.allCamps.length);
 
@@ -677,6 +670,8 @@ Page({
     const corridor = 3;
     const startPt = routePoints[0];
 
+    console.log('[Route] 开始筛选沿途营地, 数据库营地数:', this.data.allCamps.length, '路线点数:', routePoints.length, '走廊宽度:', corridor + 'km');
+
     const list = this.data.allCamps.map(c => {
       // 计算到路线每一段的最小距离
       let minOffset = Infinity;
@@ -695,6 +690,8 @@ Page({
       const distFromStart = util.distance(c.latitude, c.longitude, startPt.latitude, startPt.longitude);
       return { camp: c, offset: minOffset, distFromStart };
     }).filter(o => o.offset <= corridor);
+
+    console.log('[Route] 筛选后沿途营地数:', list.length, '(总营地:', this.data.allCamps.length + ')');
 
     list.sort((a, b) => a.distFromStart - b.distFromStart);
 
