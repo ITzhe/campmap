@@ -196,7 +196,7 @@ Page({
       url: 'https://apis.map.qq.com/ws/place/v1/search',
       data: {
         keyword: kw,
-        boundary: 'region(' + lat + ',' + lng + ',50000)',
+        boundary: 'nearby(' + lat + ',' + lng + ',50000)',
         key: key,
         page_size: 20,
         page_index: 1
