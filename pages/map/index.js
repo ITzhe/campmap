@@ -388,25 +388,14 @@ Page({
     this.setData({ showBottomCard: false });
   },
 
-  // ============ 查看详情 (积分校验) ============
+  // ============ 查看详情 (推广期免费, 无积分限制) ============
   viewDetail() {
     const camp = this.data.selectedCamp;
     if (!camp) return;
 
-    const userData = util.getUserState();
-    if (userData.points <= 0) {
-      this.setData({ showPointsModal: true, userPoints: userData.points });
-      return;
-    }
-
-    // 扣减积分
-    util.updatePoints(config.POINTS_RULES.view_detail);
-    api.deductPointApi(userData.openid, camp.spot_code);
-
     // 保存选中营地到全局
     const app = getApp();
     app.globalData.selectedCamp = camp;
-    app.globalData.points = userData.points - 1;
 
     // 跳转详情页
     wx.navigateTo({

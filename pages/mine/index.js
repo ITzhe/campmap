@@ -16,10 +16,9 @@ Page({
     checkinAmt: config.POINTS_RULES.daily_checkin,
     checkinBtnText: '📅 签到 +10',
 
-    // 核心功能
+    // 核心功能 (推广期隐藏积分明细)
     coreFuncs: [
       { key: 'submit', icon: '📝', label: '营地录入' },
-      { key: 'points', icon: '🪙', label: '积分明细' },
       { key: 'fav', icon: '❤️', label: '我的收藏' },
       { key: 'mysub', icon: '📋', label: '我的提交' }
     ],

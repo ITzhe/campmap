@@ -22,7 +22,8 @@
     </view>
   </view>
 
-  <!-- 签到栏 -->
+  <!-- 签到栏 (推广期隐藏积分功能) -->
+  <!--
   <view class="checkin-bar">
     <view class="cb-left">
       <view class="cb-label">积分</view>
@@ -34,6 +35,7 @@
       {{checkinBtnText}}
     </view>
   </view>
+  -->
 
   <!-- 核心功能 -->
   <view class="grid-section">

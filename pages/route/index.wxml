@@ -17,7 +17,11 @@
     <view class="ri-waypoint" wx:for="{{waypoints}}" wx:key="id" data-idx="{{index}}">
       <view class="ri-dot way"></view>
       <view class="ri-input" bindtap="chooseWaypoint" data-idx="{{index}}">{{item.name}}</view>
-      <view class="ri-way-del" catchtap="removeWaypoint" data-idx="{{index}}">✕</view>
+      <view class="ri-way-btns">
+        <view class="ri-way-btn {{index === 0 ? 'disabled' : ''}}" catchtap="moveWaypointUp" data-idx="{{index}}">↑</view>
+        <view class="ri-way-btn {{index === waypoints.length - 1 ? 'disabled' : ''}}" catchtap="moveWaypointDown" data-idx="{{index}}">↓</view>
+        <view class="ri-way-del" catchtap="removeWaypoint" data-idx="{{index}}">✕</view>
+      </view>
     </view>
 
     <view class="ri-row" bindtap="chooseEnd">
@@ -82,4 +86,41 @@
   </view>
 
   <view class="bottom-spacer"></view>
+</view>
+
+<!-- 搜索弹窗 -->
+<view wx:if="{{searchVisible}}" class="search-overlay">
+  <view class="so-mask" bindtap="closeSearch"></view>
+  <view class="so-panel" catchtap="noop">
+    <view class="so-header">
+      <view class="so-title">
+        {{searchTarget === 'start' ? '选择起点' : searchTarget === 'end' ? '选择终点' : '选择途经点'}}
+      </view>
+      <view class="so-close" bindtap="closeSearch">✕</view>
+    </view>
+    <view class="so-input-row">
+      <input class="so-input" placeholder="输入地点名称搜索"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+        bindconfirm="confirmSearch"
+        focus="{{searchVisible}}" />
+      <view class="so-search-btn" bindtap="confirmSearch">确定</view>
+    </view>
+    <view class="so-results" wx:if="{{searchResults.length > 0}}">
+      <view class="so-item {{index === searchSelectedIdx ? 'selected' : ''}}"
+        wx:for="{{searchResults}}" wx:key="index"
+        data-idx="{{index}}" bindtap="onSearchResultTap">
+        <view class="so-item-title">{{item.title}}</view>
+        <view class="so-item-addr">{{item.address}}</view>
+        <view class="so-item-check" wx:if="{{index === searchSelectedIdx}}">✓</view>
+      </view>
+    </view>
+    <view class="so-empty" wx:elif="{{!searching && searchKeyword}}">
+      <text>未找到相关地点</text>
+    </view>
+    <view class="so-loading" wx:if="{{searching}}">
+      <text>搜索中...</text>
+    </view>
+  </view>
 </view>

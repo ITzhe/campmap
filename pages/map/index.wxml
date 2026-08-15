@@ -86,7 +86,8 @@
     bind:close="onFilterClose"
   />
 
-  <!-- 积分不足弹窗 -->
+  <!-- 积分不足弹窗 (推广期隐藏) -->
+  <!--
   <view wx:if="{{showPointsModal}}" class="modal-mask" bindtap="closePointsModal">
     <view class="pe-card" catchtap="">
       <view class="pe-close" bindtap="closePointsModal">✕</view>
@@ -97,4 +98,5 @@
       <view class="pe-tip">签到后即可查看营地详情</view>
     </view>
   </view>
+  -->
 </view>

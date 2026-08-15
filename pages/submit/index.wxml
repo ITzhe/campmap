@@ -100,7 +100,6 @@
 
   <!-- 底部提交栏 -->
   <view class="submit-bar safe-bottom">
-    <view class="sb-tip">🪙 审核通过后可获得 {{rewardPoints}} 积分奖励</view>
     <view class="sb-btn {{submitting ? 'disabled' : ''}}" bindtap="submitCamp">提交审核</view>
   </view>
 </view>

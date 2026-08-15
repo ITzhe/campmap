@@ -28,7 +28,16 @@ Page({
     polyline: [],
 
     // 营地缓存
-    allCamps: []
+    allCamps: [],
+
+    // 搜索弹窗
+    searchVisible: false,
+    searchTarget: '',     // 'start' | 'end' | 'waypoint'
+    searchKeyword: '',
+    searchResults: [],
+    searchSelectedIdx: 0, // 默认选中第一个
+    searching: false,
+    searchWaypointIdx: -1 // 编辑途经点时用
   },
 
   onLoad() {
@@ -88,101 +97,225 @@ Page({
     }
   },
 
-  // ============ 选择起点 ============
+  // ============ 选择起点 (打开搜索弹窗) ============
   chooseStart() {
-    const cur = this.data.startCoord || {
-      lat: this.data.latitude,
-      lng: this.data.longitude
-    };
-    wx.chooseLocation({
-      latitude: cur.lat,
-      longitude: cur.lng,
-      success: (res) => {
-        this.setData({
-          routeStart: res.name || res.address,
-          startCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
-        });
-      },
-      fail: () => {}
+    this.setData({
+      searchVisible: true,
+      searchTarget: 'start',
+      searchKeyword: '',
+      searchResults: [],
+      searchSelectedIdx: 0,
+      searching: false,
+      searchWaypointIdx: -1
     });
   },
 
-  // ============ 选择终点 ============
+  // ============ 选择终点 (打开搜索弹窗) ============
   chooseEnd() {
-    const cur = this.data.endCoord || this.data.startCoord || {
-      lat: this.data.latitude,
-      lng: this.data.longitude
-    };
-    wx.chooseLocation({
-      latitude: cur.lat,
-      longitude: cur.lng,
-      success: (res) => {
-        this.setData({
-          routeEnd: res.name || res.address,
-          endCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
-        });
-      },
-      fail: () => {}
+    this.setData({
+      searchVisible: true,
+      searchTarget: 'end',
+      searchKeyword: '',
+      searchResults: [],
+      searchSelectedIdx: 0,
+      searching: false,
+      searchWaypointIdx: -1
     });
   },
 
-  // ============ 添加途经点 ============
+  // ============ 添加途经点 (打开搜索弹窗) ============
   addWaypoint() {
     if (this.data.waypoints.length >= 5) {
       util.showToast('最多添加5个途经点');
       return;
     }
-    // 弹出位置选择
-    const cur = this.data.startCoord || this.data.endCoord || {
-      lat: this.data.latitude,
-      lng: this.data.longitude
-    };
-    wx.chooseLocation({
-      latitude: cur.lat,
-      longitude: cur.lng,
-      success: (res) => {
-        const wp = {
-          id: 'wp_' + Date.now(),
-          name: res.name || res.address,
-          lat: res.latitude,
-          lng: res.longitude
-        };
-        const waypoints = this.data.waypoints.concat([wp]);
-        this.setData({ waypoints });
-      },
-      fail: () => {}
+    this.setData({
+      searchVisible: true,
+      searchTarget: 'waypoint',
+      searchKeyword: '',
+      searchResults: [],
+      searchSelectedIdx: 0,
+      searching: false,
+      searchWaypointIdx: -1
     });
   },
 
-  // ============ 重新选择途经点 ============
+  // ============ 重新选择途经点 (打开搜索弹窗) ============
   chooseWaypoint(e) {
     const idx = e.currentTarget.dataset.idx;
-    const cur = this.data.waypoints[idx] || this.data.startCoord || {
-      lat: this.data.latitude,
-      lng: this.data.longitude
-    };
-    wx.chooseLocation({
-      latitude: cur.lat,
-      longitude: cur.lng,
-      success: (res) => {
-        const waypoints = this.data.waypoints.slice();
-        waypoints[idx] = {
-          id: waypoints[idx].id,
-          name: res.name || res.address,
-          lat: res.latitude,
-          lng: res.longitude
-        };
-        this.setData({ waypoints });
+    this.setData({
+      searchVisible: true,
+      searchTarget: 'waypoint',
+      searchKeyword: this.data.waypoints[idx].name || '',
+      searchResults: [],
+      searchSelectedIdx: 0,
+      searching: false,
+      searchWaypointIdx: idx
+    });
+    // 自动搜索
+    if (this.data.searchKeyword) {
+      this.doSearch();
+    }
+  },
+
+  // ============ 搜索弹窗: 输入关键词 ============
+  onSearchInput(e) {
+    const kw = e.detail.value;
+    this.setData({ searchKeyword: kw, searchSelectedIdx: 0 });
+    // 防抖搜索
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    if (!kw.trim()) {
+      this.setData({ searchResults: [], searching: false });
+      return;
+    }
+    this.setData({ searching: true });
+    this._searchTimer = setTimeout(() => {
+      this.doSearch();
+    }, 500);
+  },
+
+  // ============ 调用腾讯地图 POI 搜索 ============
+  doSearch() {
+    const kw = (this.data.searchKeyword || '').trim();
+    if (!kw) {
+      this.setData({ searchResults: [], searching: false });
+      return;
+    }
+    const key = config.MAP_KEY || '';
+    if (!key) {
+      this.setData({ searching: false });
+      util.showToast('地图Key未配置');
+      return;
+    }
+
+    // 以当前地图中心为搜索中心
+    const lat = this.data.latitude;
+    const lng = this.data.longitude;
+
+    wx.request({
+      url: 'https://apis.map.qq.com/ws/place/v1/search',
+      data: {
+        keyword: kw,
+        boundary: 'region(' + lat + ',' + lng + ',50000)',
+        key: key,
+        page_size: 20,
+        page_index: 1
       },
-      fail: () => {}
+      method: 'GET',
+      success: (res) => {
+        if (res.data && res.data.status === 0 && res.data.data) {
+          const results = res.data.data.map(poi => ({
+            title: poi.title,
+            address: poi.address || '',
+            lat: poi.location ? poi.location.lat : 0,
+            lng: poi.location ? poi.location.lng : 0
+          }));
+          this.setData({
+            searchResults: results,
+            searchSelectedIdx: 0,
+            searching: false
+          });
+        } else {
+          this.setData({ searchResults: [], searching: false });
+        }
+      },
+      fail: () => {
+        this.setData({ searchResults: [], searching: false });
+        util.showToast('搜索失败');
+      }
     });
   },
+
+  // ============ 搜索结果点击 ============
+  onSearchResultTap(e) {
+    const idx = e.currentTarget.dataset.idx;
+    this.selectSearchResult(idx);
+  },
+
+  // ============ 确认选择 (默认选第一个) ============
+  confirmSearch() {
+    if (this.data.searchResults.length === 0) {
+      util.showToast('请先输入关键词搜索');
+      return;
+    }
+    this.selectSearchResult(this.data.searchSelectedIdx);
+  },
+
+  // ============ 选中搜索结果 ============
+  selectSearchResult(idx) {
+    const result = this.data.searchResults[idx];
+    if (!result || !result.lat) return;
+
+    const target = this.data.searchTarget;
+    const coord = { lat: result.lat, lng: result.lng, name: result.title };
+
+    if (target === 'start') {
+      this.setData({ routeStart: result.title, startCoord: coord });
+    } else if (target === 'end') {
+      this.setData({ routeEnd: result.title, endCoord: coord });
+    } else if (target === 'waypoint') {
+      const wpIdx = this.data.searchWaypointIdx;
+      if (wpIdx >= 0) {
+        // 编辑已有途经点
+        const waypoints = this.data.waypoints.slice();
+        waypoints[wpIdx] = {
+          id: waypoints[wpIdx].id,
+          name: result.title,
+          lat: result.lat,
+          lng: result.lng
+        };
+        this.setData({ waypoints });
+      } else {
+        // 新增途经点
+        const wp = {
+          id: 'wp_' + Date.now(),
+          name: result.title,
+          lat: result.lat,
+          lng: result.lng
+        };
+        const waypoints = this.data.waypoints.concat([wp]);
+        this.setData({ waypoints });
+      }
+    }
+
+    this.setData({ searchVisible: false });
+  },
+
+  // ============ 关闭搜索弹窗 ============
+  closeSearch() {
+    this.setData({ searchVisible: false });
+  },
+
+  // 阻止冒泡
+  noop() {},
 
   // ============ 删除途经点 ============
   removeWaypoint(e) {
     const idx = e.currentTarget.dataset.idx;
     const waypoints = this.data.waypoints.slice();
     waypoints.splice(idx, 1);
+    this.setData({ waypoints });
+  },
+
+  // ============ 途经点上移 ============
+  moveWaypointUp(e) {
+    const idx = e.currentTarget.dataset.idx;
+    if (idx <= 0) return;
+    const waypoints = this.data.waypoints.slice();
+    const tmp = waypoints[idx - 1];
+    waypoints[idx - 1] = waypoints[idx];
+    waypoints[idx] = tmp;
+    this.setData({ waypoints });
+  },
+
+  // ============ 途经点下移 ============
+  moveWaypointDown(e) {
+    const idx = e.currentTarget.dataset.idx;
+    if (idx >= this.data.waypoints.length - 1) return;
+    const waypoints = this.data.waypoints.slice();
+    const tmp = waypoints[idx + 1];
+    waypoints[idx + 1] = waypoints[idx];
+    waypoints[idx] = tmp;
     this.setData({ waypoints });
   },
 

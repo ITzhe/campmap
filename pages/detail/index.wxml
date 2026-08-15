@@ -5,7 +5,6 @@
     <view class="dn-bar">
       <view class="dn-back" bindtap="goBack">‹</view>
       <view class="dn-title">营地详情</view>
-      <view class="dn-badge">−1积分</view>
     </view>
     <view class="hero-content">
       <view class="hero-deco">🏕</view>
