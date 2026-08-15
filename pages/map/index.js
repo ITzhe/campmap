@@ -27,6 +27,10 @@ Page({
     selectedCampDist: 0,
     bottomCardTags: [],
 
+    // 天气信息
+    weatherInfo: '',
+    weatherLoading: false,
+
     // 筛选
     filterVisible: false,
     filters: { fee: 'all', park: [], fac: [] },
@@ -130,8 +134,13 @@ Page({
         showBottomCard: true,
         selectedCamp: camp,
         selectedCampDist: camp.distance || dist,
-        bottomCardTags: tags
+        bottomCardTags: tags,
+        weatherInfo: '',
+        weatherLoading: true
       });
+
+      // 获取营地天气信息
+      this.fetchWeather(camp.latitude, camp.longitude);
     }
   },
 
@@ -190,16 +199,12 @@ Page({
 
     const bounds = this.getMapBounds();
 
-    // 如果有筛选条件，先加载全部再本地筛选
-    const hasFilter = this.data.filterCount > 0;
-    const fetchBounds = hasFilter ? null : bounds;
-
     util.showLoading('加载营地...');
 
     try {
       // 并行请求: 数据库营地 + 腾讯地图POI搜索
       const [dbCamps, poiCamps] = await Promise.all([
-        api.fetchCampsites(this.data.filters, fetchBounds, 5000),
+        api.fetchCampsites(this.data.filters, bounds, 5000),
         this.searchPOI(bounds)
       ]);
 
@@ -380,12 +385,94 @@ Page({
       showBottomCard: true,
       selectedCamp: camp,
       selectedCampDist: dist,
-      bottomCardTags: tags
+      bottomCardTags: tags,
+      weatherInfo: '',
+      weatherLoading: true
+    });
+
+    // 获取营地天气信息
+    this.fetchWeather(camp.latitude, camp.longitude);
+  },
+
+  // ============ 获取天气信息 (腾讯地图天气API) ============
+  fetchWeather(lat, lng) {
+    const key = config.MAP_KEY || '';
+    if (!key) {
+      this.setData({ weatherInfo: '', weatherLoading: false });
+      return;
+    }
+
+    wx.request({
+      url: 'https://apis.map.qq.com/ws/weather/v1/',
+      data: {
+        key: key,
+        location: lat + ',' + lng,
+        type: 'now'
+      },
+      method: 'GET',
+      success: (res) => {
+        if (res.data && res.data.status === 0 && res.data.result &&
+            res.data.result.realtime && res.data.result.realtime.length > 0) {
+          const rt = res.data.result.realtime[0];
+          const info = rt.infos || {};
+          const weather = info.weather || '';
+          const temp = (info.temperature !== undefined && info.temperature !== null) ? info.temperature + '°' : '';
+          const windDir = info.wind_direction || '';
+          const windPower = info.wind_power_v2 || info.wind_power || '';
+          const humidity = (info.humidity !== undefined && info.humidity !== null) ? info.humidity + '%' : '';
+
+          const emoji = this.getWeatherEmoji(weather);
+          const parts = [];
+          if (temp) parts.push(temp);
+          if (weather) parts.push(weather);
+          if (windDir && windPower) parts.push(windDir + ' ' + windPower);
+          if (humidity) parts.push('湿度' + humidity);
+
+          this.setData({
+            weatherInfo: emoji + ' ' + parts.join(' · '),
+            weatherLoading: false
+          });
+        } else {
+          this.setData({ weatherInfo: '', weatherLoading: false });
+        }
+      },
+      fail: () => {
+        this.setData({ weatherInfo: '', weatherLoading: false });
+      }
     });
   },
 
+  // 天气描述转 emoji
+  getWeatherEmoji(weather) {
+    const emojiMap = {
+      '晴': '☀️',
+      '多云': '⛅',
+      '阴': '☁️',
+      '阵雨': '🌦',
+      '雷阵雨': '⛈',
+      '小雨': '🌦',
+      '中雨': '🌧',
+      '大雨': '🌧',
+      '暴雨': '⛈',
+      '小雪': '🌨',
+      '中雪': '🌨',
+      '大雪': '❄️',
+      '暴雪': '❄️',
+      '雨夹雪': '🌨',
+      '雾': '🌫',
+      '霾': '🌫',
+      '沙尘': '🌪',
+      '浮尘': '🌫',
+      '扬沙': '🌫'
+    };
+    for (const key in emojiMap) {
+      if (weather.indexOf(key) > -1) return emojiMap[key];
+    }
+    return '🌡';
+  },
+
   closeBottomCard() {
-    this.setData({ showBottomCard: false });
+    this.setData({ showBottomCard: false, weatherInfo: '', weatherLoading: false });
   },
 
   // ============ 查看详情 (推广期免费, 无积分限制) ============

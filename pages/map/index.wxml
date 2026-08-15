@@ -65,6 +65,9 @@
         </cover-view>
         <cover-view class="bc-close" bindtap="closeBottomCard">✕</cover-view>
       </cover-view>
+      <!-- 天气信息 -->
+      <cover-view wx:if="{{weatherLoading}}" class="bc-weather loading">天气加载中...</cover-view>
+      <cover-view wx:elif="{{weatherInfo}}" class="bc-weather">{{weatherInfo}}</cover-view>
       <cover-view class="bc-tags">
         <cover-view wx:for="{{bottomCardTags}}" wx:key="label"
           class="bc-tag {{item.on ? '' : 'off'}}">{{item.label}}</cover-view>

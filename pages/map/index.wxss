@@ -207,6 +207,21 @@
   margin-top: 6rpx;
 }
 
+/* 天气信息行 */
+.bc-weather {
+  font-size: 24rpx;
+  color: #40916c;
+  margin-top: 10rpx;
+  background: #e9f5ee;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.bc-weather.loading {
+  color: #adb5bd;
+  background: #f8f9fa;
+}
+
 .bc-close {
   color: #adb5bd;
   font-size: 36rpx;

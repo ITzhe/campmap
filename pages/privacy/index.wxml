@@ -120,6 +120,27 @@
     </view>
   </view>
 
+  <!-- 七、数据版权与禁止爬取 -->
+  <view class="pv-card">
+    <view class="pv-section-h">七、数据版权与禁止爬取</view>
+    <view class="pv-item">
+      <text class="pv-item-num">1、</text>
+      <text class="pv-item-txt">本应用所展示的全部营地数据、图文信息、界面设计及相关内容，其知识产权及所有权均归营图平台所有，受中华人民共和国著作权法及相关法律法规保护。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">2、</text>
+      <text class="pv-item-txt">未经营图平台书面授权，任何单位或个人不得以任何方式（包括但不限于爬虫抓取、数据抓取、批量复制、镜像、转载、摘编等）获取、存储、使用、传播本应用的营地数据及其他受版权保护的内容。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">3、</text>
+      <text class="pv-item-txt">本应用已采取技术措施限制批量数据获取，包括但不限于地理范围限制、请求频率限制、返回行数限制等。任何试图绕过这些技术措施的行为均构成侵权。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">4、</text>
+      <text class="pv-item-txt">对于侵犯营图平台知识产权和数据权益的行为，我们将依法追究其法律责任，包括但不限于要求停止侵权、赔偿损失等。</text>
+    </view>
+  </view>
+
   <!-- 结尾 -->
   <view class="pv-card">
     <view class="pv-closing">请您妥善保护个人信息，仅在必要时向他人提供。如发现个人信息泄密，尤其是本应用用户名及密码发生泄露，请立即联系本应用客服，以便本应用采取相应措施。</view>

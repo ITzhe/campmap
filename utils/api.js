@@ -72,32 +72,30 @@ function normalizeCamp(camp) {
  * @param {number} limit - 返回数量限制 (默认200)
  */
 async function fetchCampsites(filters, bounds, limit) {
+  // 防爬虫: 必须传入地理范围, 禁止全量查询
+  if (!bounds) {
+    console.warn('[api] 拒绝无 bounds 的全量查询');
+    return [];
+  }
+
   // 只查询数据库中确定存在的字段
-  // 注意: price_info/toilet_info/water_info/power_info 列需要先通过 SQL 迁移添加
-  // 迁移完成后可将其加入 select (fetchCampDetail 使用 select=* 已自动包含)
   let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status';
 
   let url = `${config.API_BASE}/camping_spots?select=${selectFields}`;
 
   // 地理范围过滤：只加载可见区域内的营地
-  if (bounds) {
-    url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
-    url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
-  }
+  url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
+  url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
 
   if (filters && filters.fee && filters.fee !== 'all') {
     url += `&parking_status=eq.${filters.fee}`;
   }
-  url += `&limit=${limit || 1000}`;
+  // 最大返回100条, 防止一次性拉取大量数据
+  url += `&limit=${Math.min(limit || 100, 100)}`;
 
   try {
     const data = await request(url, 'GET');
     if (!Array.isArray(data) || data.length === 0) {
-      // 有地理范围时，说明用户在看特定区域（如拖到北京），该区域确实没有营地
-      if (bounds) {
-        return [];
-      }
-      console.warn('[Supabase] 营地数据为空');
       return [];
     }
     // 补充缺失字段

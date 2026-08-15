@@ -13,7 +13,7 @@
   <view class="about-hero">
     <view class="about-logo">🏕</view>
     <view class="about-name">营图</view>
-    <view class="about-ver">版本 1.0.2</view>
+    <view class="about-ver">版本 1.0.3</view>
   </view>
 
   <!-- 项目介绍 -->
@@ -32,6 +32,17 @@
       <text>数据来源</text>
     </view>
     <view class="about-p">营地数据由授权商业伙伴提供，并经平台审核后展示，同时整合用户共同提交的信息。地图瓦片由高德地图提供，数据仅供参考，请以实地情况为准。</view>
+  </view>
+
+  <!-- 版权声明 -->
+  <view class="about-card">
+    <view class="about-h">
+      <text class="about-h-emoji">©️</text>
+      <text>版权声明</text>
+    </view>
+    <view class="about-p">本应用所展示的全部营地数据、图文信息、界面设计、软件代码及相关内容，其知识产权及所有权均归营图平台所有，受中华人民共和国著作权法及相关法律法规保护。</view>
+    <view class="about-p">未经营图平台书面授权，任何单位或个人不得以任何方式（包括但不限于爬虫抓取、数据抓取、批量复制、镜像、转载、摘编等）获取、存储、使用、传播本应用的营地数据及其他受版权保护的内容。</view>
+    <view class="about-p">对于侵犯营图平台知识产权和数据权益的行为，我们将依法追究其法律责任，包括但不限于要求停止侵权、赔偿损失等。</view>
   </view>
 
   <!-- 免责声明 -->
