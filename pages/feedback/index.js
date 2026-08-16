@@ -1,5 +1,6 @@
 // pages/feedback/index.js — 意见反馈页逻辑
 const util = require('../../utils/util');
+const security = require('../../utils/security');
 
 const STORAGE_KEY = 'feedback_list';
 
@@ -60,12 +61,18 @@ Page({
   },
 
   // 提交反馈
-  submit() {
+  async submit() {
     const content = (this.data.content || '').trim();
     if (content.length < 10) {
       util.showToast('请至少输入 10 个字');
       return;
     }
+
+    // 内容安全检测
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+    const textSafe = await security.checkTextWithToast(content, openid);
+    if (!textSafe) return;
 
     // 读取已有列表
     let list = [];

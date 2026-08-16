@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "filter-sheet": "/components/filter-sheet/index"
+    "filter-sheet": "/components/filter-sheet/index",
+    "privacy-popup": "/components/privacy-popup/index"
   }
 }

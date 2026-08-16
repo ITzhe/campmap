@@ -1,0 +1,16 @@
+<!-- components/privacy-popup/index.wxml -->
+<view wx:if="{{show}}" class="pp-mask">
+  <view class="pp-card">
+    <view class="pp-title">隐私保护提示</view>
+    <view class="pp-desc">
+      感谢您使用营图。为了提供地图定位、营地搜索、路线规划、头像设置等功能，我们需要收集和使用您的位置信息、头像、昵称等信息。
+    </view>
+    <view class="pp-desc">
+      您可以在「我的 - 隐私协议」中查看完整的隐私政策。如同意，请点击「同意」继续使用。
+    </view>
+    <view class="pp-actions">
+      <view class="pp-btn pp-reject" bindtap="onReject">拒绝</view>
+      <view class="pp-btn pp-agree" bindtap="onAgree">同意</view>
+    </view>
+  </view>
+</view>

@@ -3,6 +3,7 @@ const config = require('../../utils/config');
 const api = require('../../utils/api');
 const util = require('../../utils/util');
 const oss = require('../../utils/oss');
+const security = require('../../utils/security');
 
 // 照片占位 emoji 池
 const PHOTO_EMOJIS = ['🏕️', '⛰️', '🌲', '🌅', '🔥', '🚐', '⛺', '🏞️', '🌄'];
@@ -207,6 +208,13 @@ Page({
     // 联系人信息非必填, 但如果填了电话则校验格式
     if (phone && !/^1\d{10}$/.test(phone)) { util.showToast('请输入正确的手机号'); return; }
 
+    // 内容安全检测: 合并所有文本字段
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+    const allText = name + ' ' + addr + ' ' + contact + ' ' + this.data.subIntro.trim();
+    const textSafe = await security.checkTextWithToast(allText, openid);
+    if (!textSafe) return;
+
     this.setData({ submitting: true });
     util.showLoading('提交中...');
 
@@ -216,6 +224,20 @@ Page({
       const paths = this.data.photos.map(p => p.path);
       try {
         photoUrls = await oss.uploadBatchToOSS(paths, 'camps');
+        // 图片内容安全检测
+        const imgResult = await security.checkImages(photoUrls.filter(u => u), openid);
+        if (!imgResult.safe) {
+          util.hideLoading();
+          this.setData({ submitting: false });
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的图片含违规信息，请更换后重新提交。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          return;
+        }
       } catch (e) {
         console.warn('[submit] 照片上传失败:', e.message);
       }

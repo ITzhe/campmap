@@ -57,8 +57,11 @@
   },
   "requiredPrivateInfos": [
     "getLocation",
-    "chooseLocation"
+    "chooseLocation",
+    "chooseAddress",
+    "chooseMedia"
   ],
+  "__usePrivacyCheck__": true,
   "sitemapLocation": "sitemap.json",
   "style": "v2",
   "lazyCodeLoading": "requiredComponents"

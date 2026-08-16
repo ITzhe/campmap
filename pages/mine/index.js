@@ -2,6 +2,7 @@
 const util = require('../../utils/util');
 const config = require('../../utils/config');
 const oss = require('../../utils/oss');
+const security = require('../../utils/security');
 
 Page({
   data: {
@@ -175,14 +176,33 @@ Page({
       return;
     }
 
+    // 内容安全检测: 昵称文本
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+    const textSafe = await security.checkTextWithToast(nick, openid);
+    if (!textSafe) return;
+
     // 保存昵称
     util.setUserNick(nick);
 
-    // 如果头像有变化, 上传到 OSS
+    // 如果头像有变化, 先上传再检测图片安全
     if (this.data.avatarChanged && this.data.tempAvatarUrl) {
       util.showLoading('保存中...');
       try {
         const url = await oss.uploadToOSS(this.data.tempAvatarUrl, 'avatars', 'jpg');
+        // 图片内容安全检测
+        const imgSafe = await security.checkImage(url, openid);
+        if (!imgSafe.safe) {
+          util.hideLoading();
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的头像图片含违规信息，请更换后重新提交。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          return;
+        }
         const u = util.getUserState();
         u.avatarUrl = url;
         util.saveUser(u);

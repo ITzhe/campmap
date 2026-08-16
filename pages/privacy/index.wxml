@@ -11,33 +11,81 @@
 
   <!-- 标题区 -->
   <view class="pv-hero">
-    <view class="pv-hero-title">隐私协议</view>
-    <view class="pv-hero-sub">尊重并保护您的个人信息</view>
+    <view class="pv-hero-title">营图用户隐私保护协议</view>
+    <view class="pv-hero-sub">最后更新：2026年8月17日</view>
   </view>
 
   <!-- 引言 -->
   <view class="pv-card">
-    <view class="pv-intro">本小程序高度重视用户隐私，并严格遵循相关法律规定。请您在继续使用前，仔细阅读本《用户协议》。若您继续使用我们的服务则表示您已充分阅读并理解本协议的全部内容。本小程序尊重并保护所有使用服务用户的个人隐私权。为向您提供更精准、更优质的服务，本应用将按照本隐私权政策的规定，使用和披露您的个人信息。未经您事先许可，除本隐私权政策另有规定外，本应用不会将这些信息对外披露或向第三方提供。本应用会适时对本隐私权政策进行更新。您在同意本应用服务使用协议之时，即视为您已同意本隐私权政策的全部内容。</view>
+    <view class="pv-intro">营图（以下简称"本应用"）是一款露营地图导航服务小程序。本应用高度重视用户隐私保护，严格遵守《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》等相关法律法规。本协议旨在向您清晰说明本应用收集、使用、存储和保护您个人信息的方式和目的。请您在使用本应用前仔细阅读本协议，使用本应用即表示您同意本协议的全部内容。</view>
   </view>
 
-  <!-- 一、适用范围 -->
+  <!-- 一、收集的个人信息及目的 -->
   <view class="pv-card">
-    <view class="pv-section-h">一、适用范围</view>
+    <view class="pv-section-h">一、收集的个人信息及目的</view>
+
+    <view class="pv-sub-h">1. 位置信息</view>
     <view class="pv-item">
-      <text class="pv-item-num">1、</text>
-      <text class="pv-item-txt">您在注册本小程序帐号时，根据小程序要求提供的个人注册信息。</text>
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集内容：</text>您的地理位置坐标（经纬度）</text>
     </view>
     <view class="pv-item">
-      <text class="pv-item-num">2、</text>
-      <text class="pv-item-txt">您使用本应用网络服务或访问本应用平台网页时，本应用自动接收并记录的您的浏览器和计算机上的信息，包括但不限于您的IP地址、浏览器类型、使用语言、访问日期和时间、软硬件特征信息及您需求的网页记录等数据。</text>
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集目的：</text>用于在地图上显示您附近的露营地、计算您与营地的距离、提供路线规划服务</text>
     </view>
     <view class="pv-item">
-      <text class="pv-item-num">3、</text>
-      <text class="pv-item-txt">本应用通过合法途径从商业伙伴处获取的用户个人数据。</text>
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集场景：</text>打开地图首页时获取定位、使用路线规划功能时选择起终点</text>
     </view>
     <view class="pv-item">
-      <text class="pv-item-num">4、</text>
-      <text class="pv-item-txt">本应用严禁用户发布不良信息，如裸露、色情和亵渎内容。我们会对发布的内容进行审核，一旦发现不良信息，将禁用该用户的所有权限，并予以封号处理。</text>
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">授权方式：</text>通过微信小程序 getLocation 接口获取，您可随时在微信设置中关闭授权</text>
+    </view>
+
+    <view class="pv-sub-h">2. 头像和昵称</view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集内容：</text>您的头像图片和昵称</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-bold">收集目的：</text>用于在评论、营地打卡、营地录入等场景中展示用户身份</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集场景：</text>您在「我的」页面主动设置头像和昵称时</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">授权方式：</text>通过微信 chooseAvatar 组件或从相册选择，仅在您主动操作时收集</text>
+    </view>
+
+    <view class="pv-sub-h">3. 用户发布内容</view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集内容：</text>营地评价文字及图片、营地照片、营地纠错信息、营地录入信息、意见反馈</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集目的：</text>用于展示用户生成内容（UGC），丰富营地信息，帮助其他用户选择营地</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集场景：</text>您在营地详情页发布评价/照片/纠错、在营地录入页提交新营地、在意见反馈页提交反馈时</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">内容安全：</text>所有用户发布的文字和图片内容均会通过微信内容安全API（msgSecCheck/imgSecCheck）进行检测，违规内容将被拦截并提示用户修改</text>
+    </view>
+
+    <view class="pv-sub-h">4. 设备信息</view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集内容：</text>设备型号、操作系统版本、屏幕尺寸</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">·</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集目的：</text>用于适配界面显示、保障小程序正常运行</text>
     </view>
   </view>
 
@@ -46,83 +94,104 @@
     <view class="pv-section-h">二、信息使用</view>
     <view class="pv-item">
       <text class="pv-item-num">1、</text>
-      <text class="pv-item-txt">本应用不会向任何无关第三方提供、出售、出租、分享或交易您的个人登录信息。若发生存储维修或升级，我们将提前发出推送消息通知您，请您提前允许本应用消息通知。</text>
+      <text class="pv-item-txt">本应用收集的个人信息仅用于上述明确的目的，不会用于其他用途。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">2、</text>
-      <text class="pv-item-txt">本应用亦不允许任何第三方以任何手段收集、编辑、出售或无偿传播您的个人信息。任何本应用平台用户如从事上述活动，一经发现，本应用有权立即终止与该用户的服务协议。</text>
+      <text class="pv-item-txt">本应用不会向任何无关第三方提供、出售、出租、分享或交易您的个人信息。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">3、</text>
-      <text class="pv-item-txt">为满足您的需求，向您提供您感兴趣的信息，包括但不限于向您发送产品和服务信息，或与本应用合作伙伴共享信息以便他们向您发送有关其产品和服务的信息（需您事先同意）。</text>
+      <text class="pv-item-txt">本应用不允许任何第三方以任何手段收集、编辑、出售或无偿传播您的个人信息。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">4、</text>
+      <text class="pv-item-txt">本应用严禁用户发布不良信息，如裸露、色情和亵渎内容。所有用户发布的内容均经过微信内容安全API检测，一旦发现不良信息，将拒绝发布并提醒用户修改。情节严重者将禁用相关权限。</text>
     </view>
   </view>
 
   <!-- 三、信息披露 -->
   <view class="pv-card">
     <view class="pv-section-h">三、信息披露</view>
-    <view class="pv-note">在以下情况下，本应用将依据您的个人意愿或法律规定，全部或部分披露您的个人信息:</view>
+    <view class="pv-note">在以下情况下，本应用将依据您的个人意愿或法律规定，全部或部分披露您的个人信息：</view>
     <view class="pv-item">
       <text class="pv-item-num">1、</text>
-      <text class="pv-item-txt">未经您事先同意，我们不会向第三方披露。</text>
+      <text class="pv-item-txt">未经您事先同意，我们不会向第三方披露您的个人信息。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">2、</text>
-      <text class="pv-item-txt">为提供您所要求的产品和服务而必须与第三方分享您的个人信息。</text>
-    </view>
-    <view class="pv-item">
-      <text class="pv-item-num">3、</text>
       <text class="pv-item-txt">根据法律相关规定，或行政、司法机构的要求，向第三方或行政、司法机构披露。</text>
     </view>
     <view class="pv-item">
-      <text class="pv-item-num">4、</text>
-      <text class="pv-item-txt">如您出现违反中国有关法律、法规或本应用服务协议或相关规则的情况，需向第三方披露。</text>
-    </view>
-    <view class="pv-item">
-      <text class="pv-item-num">5、</text>
-      <text class="pv-item-txt">如您是适格的知识产权投诉人并已提起投诉，应被投诉人要求，向被投诉人披露，以便双方处理可能的权利纠纷。</text>
+      <text class="pv-item-num">3、</text>
+      <text class="pv-item-txt">如您出现违反中国有关法律、法规或本应用服务协议的情况，需向第三方披露。</text>
     </view>
   </view>
 
-  <!-- 四、信息存储与交换 -->
+  <!-- 四、信息存储与保护 -->
   <view class="pv-card">
-    <view class="pv-section-h">四、信息存储与交换</view>
-    <view class="pv-p">本应用收集的有关您的信息和资料将保存在本应用及（或)其关联公司的服务器上。</view>
-  </view>
-
-  <!-- 五、Cookie的使用 -->
-  <view class="pv-card">
-    <view class="pv-section-h">五、Cookie的使用</view>
+    <view class="pv-section-h">四、信息存储与保护</view>
     <view class="pv-item">
       <text class="pv-item-num">1、</text>
-      <text class="pv-item-txt">在您未拒绝接受 cookies 的情况下，本应用会在您的计算机上设定或取用cookies，以便您能登录或使用依赖于cookies的本应用平台服务或功能。本应用使用cookies 可为您提供更周到的个性化服务，包括推广服务。</text>
+      <text class="pv-item-txt">您的个人信息存储在安全的云服务器（Supabase）和对象存储（阿里云OSS）中，采用HTTPS加密传输。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">2、</text>
-      <text class="pv-item-txt">您有权选择接受或拒绝接受 cookies。您可以通过修改浏览器设置的方式拒绝接受 cookies。但若您选择拒绝接受cookies，则您可能无法登录或使用依赖于cookies的本应用网络服务或功能。</text>
+      <text class="pv-item-txt">数据库启用行级安全策略（RLS），确保用户只能访问和修改自己的数据。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">3、</text>
-      <text class="pv-item-txt">通过本应用所设cookies所取得的有关信息，将适用本政策。</text>
+      <text class="pv-item-txt">本应用已采取技术措施防止批量数据获取，包括地理范围限制、请求频率限制、返回行数限制等。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">4、</text>
+      <text class="pv-item-txt">在您删除本应用或撤销授权后，我们将按照法律法规要求在合理期限内删除您的个人信息。</text>
     </view>
   </view>
 
-  <!-- 六、本隐私政策的更改 -->
+  <!-- 五、您的权利 -->
   <view class="pv-card">
-    <view class="pv-section-h">六、本隐私政策的更改</view>
+    <view class="pv-section-h">五、您的权利</view>
     <view class="pv-item">
       <text class="pv-item-num">1、</text>
-      <text class="pv-item-txt">若决定更改隐私政策，我们将在本政策中、本公司网站中以及我们认为适当的位置发布更改内容，以便您了解我们如何收集、使用您的个人信息，哪些人可以访问这些信息，以及在什么情况下我们会透露这些信息。</text>
+      <text class="pv-item-txt"><text class="pv-bold">查询和访问：</text>您可以在「我的」页面查看您的昵称、头像等信息。</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">2、</text>
-      <text class="pv-item-txt">本公司保留随时修改本政策的权利，因此请您经常查看。如对本政策作出重大更改，本公司将通过网站通知的形式告知。</text>
+      <text class="pv-item-txt"><text class="pv-bold">更正和修改：</text>您可以随时在「我的」页面修改您的昵称和头像。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">3、</text>
+      <text class="pv-item-txt"><text class="pv-bold">撤回授权：</text>您可以在微信「设置-隐私-授权管理」中撤回位置、相册等授权。撤回后相关功能将无法使用。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">4、</text>
+      <text class="pv-item-txt"><text class="pv-bold">删除账号：</text>您可以通过「意见反馈」联系我们删除账号及相关数据。</text>
     </view>
   </view>
 
-  <!-- 七、数据版权与禁止爬取 -->
+  <!-- 六、未成年人保护 -->
   <view class="pv-card">
-    <view class="pv-section-h">七、数据版权与禁止爬取</view>
+    <view class="pv-section-h">六、未成年人保护</view>
+    <view class="pv-p">本应用主要面向成年用户。若您是未满18周岁的未成年人，请在监护人的陪同下阅读本协议并使用本应用。监护人应承担对未成年人使用本应用的监督责任。</view>
+  </view>
+
+  <!-- 七、本隐私政策的更改 -->
+  <view class="pv-card">
+    <view class="pv-section-h">七、本隐私政策的更改</view>
+    <view class="pv-item">
+      <text class="pv-item-num">1、</text>
+      <text class="pv-item-txt">本应用保留随时修改本协议的权利，修改后的协议将在本页面发布。请您经常查看本协议。</text>
+    </view>
+    <view class="pv-item">
+      <text class="pv-item-num">2、</text>
+      <text class="pv-item-txt">如对本协议作出重大更改，我们将通过适当方式通知您。</text>
+    </view>
+  </view>
+
+  <!-- 八、数据版权与禁止爬取 -->
+  <view class="pv-card">
+    <view class="pv-section-h">八、数据版权与禁止爬取</view>
     <view class="pv-item">
       <text class="pv-item-num">1、</text>
       <text class="pv-item-txt">本应用所展示的全部营地数据、图文信息、界面设计及相关内容，其知识产权及所有权均归营图平台所有，受中华人民共和国著作权法及相关法律法规保护。</text>
@@ -143,8 +212,7 @@
 
   <!-- 结尾 -->
   <view class="pv-card">
-    <view class="pv-closing">请您妥善保护个人信息，仅在必要时向他人提供。如发现个人信息泄密，尤其是本应用用户名及密码发生泄露，请立即联系本应用客服，以便本应用采取相应措施。</view>
-    <view class="pv-thanks">感谢您抽出时间了解我们的隐私政策！我们将竭尽全力保护您的个人信息和合法权益，再次感谢您的信任！</view>
+    <view class="pv-closing">如您对本协议有任何疑问，可通过「意见反馈」功能与我们联系。感谢您的信任与使用！</view>
   </view>
 
   <view class="safe-bottom"></view>

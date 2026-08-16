@@ -13,7 +13,7 @@
   <view class="about-hero">
     <view class="about-logo">🏕</view>
     <view class="about-name">营图</view>
-    <view class="about-ver">版本 1.0.3</view>
+    <view class="about-ver">版本 1.0.5</view>
   </view>
 
   <!-- 项目介绍 -->

@@ -3,6 +3,7 @@ const config = require('../../utils/config');
 const api = require('../../utils/api');
 const util = require('../../utils/util');
 const oss = require('../../utils/oss');
+const security = require('../../utils/security');
 
 Page({
   data: {
@@ -321,6 +322,14 @@ Page({
     const camp = this.data.camp;
     if (!camp) return;
 
+    // 内容安全检测: 评论文本
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+    if (text) {
+      const textSafe = await security.checkTextWithToast(text, openid);
+      if (!textSafe) return;
+    }
+
     this.setData({ submittingDynamics: true });
     util.showLoading('发布中...');
 
@@ -331,6 +340,20 @@ Page({
       try {
         photoUrls = await oss.uploadBatchToOSS(paths, 'comments');
         photoUrls = photoUrls.filter(u => u);
+        // 图片内容安全检测
+        const imgResult = await security.checkImages(photoUrls, openid);
+        if (!imgResult.safe) {
+          util.hideLoading();
+          this.setData({ submittingDynamics: false });
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的图片含违规信息，请更换后重新提交。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          return;
+        }
       } catch (e) {
         console.warn('[comment] 图片上传失败:', e.message);
       }
@@ -599,6 +622,19 @@ Page({
       try {
         // 上传到 OSS
         const url = await oss.uploadToOSS(photo.path, 'camps', 'jpg');
+        // 图片内容安全检测
+        const imgSafe = await security.checkImage(url, userData.openid);
+        if (!imgSafe.safe) {
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的图片含违规信息，已跳过该图片。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          failCount++;
+          continue;
+        }
         // 保存到数据库
         const result = await api.submitCampPhoto(camp.spot_code, userData.openid, url);
         if (result.success) {
@@ -802,6 +838,13 @@ Page({
       return;
     }
 
+    // 内容安全检测: 纠错文本
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+    const allText = (data.name || '') + ' ' + (data.address || '') + ' ' + (data.intro || '');
+    const textSafe = await security.checkTextWithToast(allText, openid);
+    if (!textSafe) return;
+
     this.setData({ submittingCorrection: true });
     util.showLoading('提交纠错...');
 
@@ -811,6 +854,20 @@ Page({
       const paths = this.data.correctionPhotos.map(p => p.path);
       try {
         photoUrls = await oss.uploadBatchToOSS(paths, 'corrections');
+        // 图片内容安全检测
+        const imgResult = await security.checkImages(photoUrls.filter(u => u), openid);
+        if (!imgResult.safe) {
+          util.hideLoading();
+          this.setData({ submittingCorrection: false });
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的图片含违规信息，请更换后重新提交。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          return;
+        }
       } catch (e) {
         console.warn('[correction] 照片上传失败:', e.message);
       }
