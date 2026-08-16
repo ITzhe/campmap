@@ -111,10 +111,6 @@
   background: #f4a261;
 }
 
-.lg-dot.rv {
-  background: #277da1;
-}
-
 .lg-text {
   font-size: 22rpx;
   color: #1a2e1f;

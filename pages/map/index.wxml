@@ -42,10 +42,6 @@
         <cover-view class="lg-dot paid"></cover-view>
         <cover-view class="lg-text">收费</cover-view>
       </cover-view>
-      <cover-view class="lg">
-        <cover-view class="lg-dot rv"></cover-view>
-        <cover-view class="lg-text">房车</cover-view>
-      </cover-view>
     </cover-view>
 
     <!-- 浮动按钮 -->

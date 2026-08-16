@@ -239,7 +239,7 @@ Page({
     const latSpan = (bounds.maxLat - bounds.minLat) * 111000;
     const radius = Math.min(50000, Math.max(10000, latSpan / 2));
 
-    const keywords = ['露营地', '房车营地', '帐篷营地', '露营', '房车露营'];
+    const keywords = ['露营地', '房车营地', '帐篷营地', '露营基地', '房车露营'];
     const allPOIs = [];
     const seen = new Set();
 
@@ -270,13 +270,18 @@ Page({
             const lng = poi.location ? poi.location.lng : 0;
             if (!lat || !lng) continue;
 
-            // 名称过滤: 必须包含露营相关词, 排除"教育基地""考研基地"等
+            // 名称过滤: 必须包含露营地/房车营地等具体营地词
+            // 注意: 单独的"露营"太宽泛, 会匹配到"北京自驾蔚县露营徒步之旅"等旅行路线
             const poiName = poi.title || '';
-            const campingTerms = ['露营', '房车', '帐篷', '野营', 'caravan', 'camping', 'RV'];
-            const hasCampingTerm = campingTerms.some(term => poiName.indexOf(term) > -1);
+            const campingTerms = ['露营地', '房车营地', '帐篷营地', '野营地', '露营基地', '露营公园', '房车露营地', 'campground', 'camping site', 'RV park'];
+            const hasCampingTerm = campingTerms.some(term => poiName.toLowerCase().indexOf(term.toLowerCase()) > -1);
             if (!hasCampingTerm) continue;
 
-            const excludeTerms = ['教育', '培训', '考研', '帮教', '实习', '拓展', '书法', '实训', '种植', '养殖', '科研', '实验', '产业'];
+            // 排除明确不是营地的场所
+            const excludeTerms = ['教育', '培训', '考研', '帮教', '实习', '拓展', '书法', '实训', '种植', '养殖', '科研', '实验', '产业',
+              '旅行', '之旅', '徒步', '自驾', '攻略', '路线', '俱乐部', '用品', '装备', '销售', '体验', '农庄', '度假', '民宿',
+              '旅游', '行程', '游记', '户外店', '专卖店', '工厂', '批发', '租赁'
+            ];
             const hasExcludeTerm = excludeTerms.some(term => poiName.indexOf(term) > -1);
             if (hasExcludeTerm) continue;
 
@@ -338,7 +343,6 @@ Page({
       const isFree = c.parking_status == 0;
       let iconPath = '/assets/markers/free.png';
       if (!isFree) iconPath = '/assets/markers/paid.png';
-      if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
 
       return {
         id: idx,

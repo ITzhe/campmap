@@ -28,16 +28,7 @@ Page({
     polyline: [],
 
     // 营地缓存
-    allCamps: [],
-
-    // 搜索弹窗
-    searchVisible: false,
-    searchTarget: '',     // 'start' | 'end' | 'waypoint'
-    searchKeyword: '',
-    searchResults: [],
-    searchSelectedIdx: 0, // 默认选中第一个
-    searching: false,
-    searchWaypointIdx: -1 // 编辑途经点时用
+    allCamps: []
   },
 
   onLoad() {
@@ -50,7 +41,6 @@ Page({
       latitude: app.globalData.cityCenter.latitude,
       longitude: app.globalData.cityCenter.longitude
     });
-    // 不再预加载全国营地, 改为规划路线时按路线范围加载
 
     // 恢复待定路线 (从收藏页跳来)
     if (app.globalData.pendingRoute) {
@@ -97,197 +87,65 @@ Page({
     }
   },
 
-  // ============ 选择起点 (打开搜索弹窗) ============
+  // ============ 选择起点 (微信默认位置选择) ============
   chooseStart() {
-    this.setData({
-      searchVisible: true,
-      searchTarget: 'start',
-      searchKeyword: '',
-      searchResults: [],
-      searchSelectedIdx: 0,
-      searching: false,
-      searchWaypointIdx: -1
+    wx.chooseLocation({
+      success: (res) => {
+        this.setData({
+          routeStart: res.name || res.address,
+          startCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
+        });
+      }
     });
   },
 
-  // ============ 选择终点 (打开搜索弹窗) ============
+  // ============ 选择终点 (微信默认位置选择) ============
   chooseEnd() {
-    this.setData({
-      searchVisible: true,
-      searchTarget: 'end',
-      searchKeyword: '',
-      searchResults: [],
-      searchSelectedIdx: 0,
-      searching: false,
-      searchWaypointIdx: -1
+    wx.chooseLocation({
+      success: (res) => {
+        this.setData({
+          routeEnd: res.name || res.address,
+          endCoord: { lat: res.latitude, lng: res.longitude, name: res.name || res.address }
+        });
+      }
     });
   },
 
-  // ============ 添加途经点 (打开搜索弹窗) ============
+  // ============ 添加途经点 (微信默认位置选择) ============
   addWaypoint() {
     if (this.data.waypoints.length >= 5) {
       util.showToast('最多添加5个途经点');
       return;
     }
-    this.setData({
-      searchVisible: true,
-      searchTarget: 'waypoint',
-      searchKeyword: '',
-      searchResults: [],
-      searchSelectedIdx: 0,
-      searching: false,
-      searchWaypointIdx: -1
-    });
-  },
-
-  // ============ 重新选择途经点 (打开搜索弹窗) ============
-  chooseWaypoint(e) {
-    const idx = e.currentTarget.dataset.idx;
-    this.setData({
-      searchVisible: true,
-      searchTarget: 'waypoint',
-      searchKeyword: this.data.waypoints[idx].name || '',
-      searchResults: [],
-      searchSelectedIdx: 0,
-      searching: false,
-      searchWaypointIdx: idx
-    });
-    // 自动搜索
-    if (this.data.searchKeyword) {
-      this.doSearch();
-    }
-  },
-
-  // ============ 搜索弹窗: 输入关键词 ============
-  onSearchInput(e) {
-    const kw = e.detail.value;
-    this.setData({ searchKeyword: kw, searchSelectedIdx: 0 });
-    // 防抖搜索
-    if (this._searchTimer) clearTimeout(this._searchTimer);
-    if (!kw.trim()) {
-      this.setData({ searchResults: [], searching: false });
-      return;
-    }
-    this.setData({ searching: true });
-    this._searchTimer = setTimeout(() => {
-      this.doSearch();
-    }, 500);
-  },
-
-  // ============ 调用腾讯地图 POI 搜索 ============
-  doSearch() {
-    const kw = (this.data.searchKeyword || '').trim();
-    if (!kw) {
-      this.setData({ searchResults: [], searching: false });
-      return;
-    }
-    const key = config.MAP_KEY || '';
-    if (!key) {
-      this.setData({ searching: false });
-      util.showToast('地图Key未配置');
-      return;
-    }
-
-    // 以当前地图中心为搜索中心
-    const lat = this.data.latitude;
-    const lng = this.data.longitude;
-
-    wx.request({
-      url: 'https://apis.map.qq.com/ws/place/v1/search',
-      data: {
-        keyword: kw,
-        boundary: 'nearby(' + lat + ',' + lng + ',50000)',
-        key: key,
-        page_size: 20,
-        page_index: 1
-      },
-      method: 'GET',
+    wx.chooseLocation({
       success: (res) => {
-        if (res.data && res.data.status === 0 && res.data.data) {
-          const results = res.data.data.map(poi => ({
-            title: poi.title,
-            address: poi.address || '',
-            lat: poi.location ? poi.location.lat : 0,
-            lng: poi.location ? poi.location.lng : 0
-          }));
-          this.setData({
-            searchResults: results,
-            searchSelectedIdx: 0,
-            searching: false
-          });
-        } else {
-          this.setData({ searchResults: [], searching: false });
-        }
-      },
-      fail: () => {
-        this.setData({ searchResults: [], searching: false });
-        util.showToast('搜索失败');
-      }
-    });
-  },
-
-  // ============ 搜索结果点击 ============
-  onSearchResultTap(e) {
-    const idx = e.currentTarget.dataset.idx;
-    this.selectSearchResult(idx);
-  },
-
-  // ============ 确认选择 (默认选第一个) ============
-  confirmSearch() {
-    if (this.data.searchResults.length === 0) {
-      util.showToast('请先输入关键词搜索');
-      return;
-    }
-    this.selectSearchResult(this.data.searchSelectedIdx);
-  },
-
-  // ============ 选中搜索结果 ============
-  selectSearchResult(idx) {
-    const result = this.data.searchResults[idx];
-    if (!result || !result.lat) return;
-
-    const target = this.data.searchTarget;
-    const coord = { lat: result.lat, lng: result.lng, name: result.title };
-
-    if (target === 'start') {
-      this.setData({ routeStart: result.title, startCoord: coord });
-    } else if (target === 'end') {
-      this.setData({ routeEnd: result.title, endCoord: coord });
-    } else if (target === 'waypoint') {
-      const wpIdx = this.data.searchWaypointIdx;
-      if (wpIdx >= 0) {
-        // 编辑已有途经点
-        const waypoints = this.data.waypoints.slice();
-        waypoints[wpIdx] = {
-          id: waypoints[wpIdx].id,
-          name: result.title,
-          lat: result.lat,
-          lng: result.lng
-        };
-        this.setData({ waypoints });
-      } else {
-        // 新增途经点
         const wp = {
           id: 'wp_' + Date.now(),
-          name: result.title,
-          lat: result.lat,
-          lng: result.lng
+          name: res.name || res.address,
+          lat: res.latitude,
+          lng: res.longitude
         };
-        const waypoints = this.data.waypoints.concat([wp]);
+        this.setData({ waypoints: this.data.waypoints.concat([wp]) });
+      }
+    });
+  },
+
+  // ============ 重新选择途经点 (微信默认位置选择) ============
+  chooseWaypoint(e) {
+    const idx = e.currentTarget.dataset.idx;
+    wx.chooseLocation({
+      success: (res) => {
+        const waypoints = this.data.waypoints.slice();
+        waypoints[idx] = {
+          id: waypoints[idx].id,
+          name: res.name || res.address,
+          lat: res.latitude,
+          lng: res.longitude
+        };
         this.setData({ waypoints });
       }
-    }
-
-    this.setData({ searchVisible: false });
+    });
   },
-
-  // ============ 关闭搜索弹窗 ============
-  closeSearch() {
-    this.setData({ searchVisible: false });
-  },
-
-  // 阻止冒泡
-  noop() {},
 
   // ============ 删除途经点 ============
   removeWaypoint(e) {
@@ -357,7 +215,6 @@ Page({
           if (status !== 0 && status !== '0') {
             const msg = res.data.message || ('状态码: ' + status);
             console.error('[Route] API 返回错误:', msg);
-            // 常见错误提示
             let userTip = msg;
             if (status === 120 || status === '120') {
               userTip = 'API Key 未开通路径规划服务，请在腾讯地图控制台启用';
@@ -506,8 +363,7 @@ Page({
     const timeStr = hh > 0 ? (hh + '小时' + mm + '分') : (mm + '分钟');
 
     // 按路线范围加载营地 (不再预加载全国数据)
-    // 改为后台异步加载, 不阻塞路线结果显示
-    const routeBounds = this._getRouteBounds(allRoutePoints, 0.1); // 0.1度≈10km padding
+    const routeBounds = this._getRouteBounds(allRoutePoints, 0.1);
 
     if (this._cancelled) {
       util.hideLoading();
@@ -586,7 +442,6 @@ Page({
       const isFree = c.parking_status == 0;
       let iconPath = '/assets/markers/free.png';
       if (!isFree) iconPath = '/assets/markers/paid.png';
-      if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
       markers.push({
         id: i + 200,
         latitude: c.latitude,
@@ -637,7 +492,6 @@ Page({
     if (allUsedReal) {
       util.showToast(`已规划驾车路线，沿途${campList.length}个营地`);
     } else {
-      // 显示详细的错误信息
       const errMsg = apiErrors[0] || '未知错误';
       wx.showModal({
         title: '路线规划提醒',
@@ -733,7 +587,6 @@ Page({
         const isFree = c.parking_status == 0;
         let iconPath = '/assets/markers/free.png';
         if (!isFree) iconPath = '/assets/markers/paid.png';
-        if (c.rv_friendly == 1) iconPath = '/assets/markers/rv.png';
         markers.push({
           id: i + 200,
           latitude: c.latitude,
@@ -799,14 +652,12 @@ Page({
   findCampsAlongRoute(routePoints) {
     if (!routePoints || routePoints.length < 2) return [];
 
-    // 走廊宽度固定5公里, 只显示路线附近5km内的营地
     const corridor = 5;
     const startPt = routePoints[0];
 
     console.log('[Route] 开始筛选沿途营地, 数据库营地数:', this.data.allCamps.length, '路线点数:', routePoints.length, '走廊宽度:', corridor + 'km');
 
     const list = this.data.allCamps.map(c => {
-      // 计算到路线每一段的最小距离
       let minOffset = Infinity;
 
       for (let i = 0; i < routePoints.length - 1; i++) {
@@ -838,222 +689,6 @@ Page({
     });
   },
 
-  // ============ 沿途POI搜索 (腾讯地图地点搜索) ============
-  async searchPOIAlongRoute(routePoints) {
-    if (!routePoints || routePoints.length < 2) return [];
-    const key = config.MAP_KEY || '';
-    if (!key) return [];
-
-    // 沿路线每约50km采样一个搜索点 (更密集, 覆盖更多沿途营地)
-    let accumulated = 0;
-    const samplePoints = [routePoints[0]];
-    for (let i = 1; i < routePoints.length; i++) {
-      const d = util.distance(
-        routePoints[i - 1].latitude, routePoints[i - 1].longitude,
-        routePoints[i].latitude, routePoints[i].longitude
-      );
-      accumulated += d;
-      if (accumulated >= 50) {
-        samplePoints.push(routePoints[i]);
-        accumulated = 0;
-      }
-    }
-    // 确保终点也搜索
-    const lastPt = routePoints[routePoints.length - 1];
-    if (samplePoints[samplePoints.length - 1].latitude !== lastPt.latitude) {
-      samplePoints.push(lastPt);
-    }
-
-    console.log('[Route] POI搜索采样点数:', samplePoints.length);
-    // 使用更精确的关键词, 避免匹配到"教育基地""考研基地"等无关场所
-    const keywords = ['露营地', '房车营地', '帐篷营地', '露营', '房车露营'];
-    const allPOIs = [];
-    const seen = new Set();
-
-    // 限制并发为3, 避免触发API频率限制
-    const tasks = [];
-    for (const pt of samplePoints) {
-      for (const kw of keywords) {
-        // 每个关键词搜索2页, 获取更多结果
-        for (let page = 1; page <= 2; page++) {
-          tasks.push(this._fetchPOI(pt, kw, page, key));
-        }
-      }
-    }
-
-    console.log('[Route] POI搜索总请求数:', tasks.length, '(并发限制: 3)');
-    const results = await this._runWithConcurrency(tasks, 3);
-
-    for (const res of results) {
-      if (res && res.data && res.data.status === 0 && res.data.data) {
-        for (const poi of res.data.data) {
-          const lat = poi.location ? poi.location.lat : 0;
-          const lng = poi.location ? poi.location.lng : 0;
-          if (!lat || !lng) continue;
-
-          // 名称过滤: 必须包含露营相关词, 排除"教育基地""考研基地"等
-          const name = poi.title || '';
-          const campingTerms = ['露营', '房车', '帐篷', '野营', '露天生', 'caravan', 'camping', 'RV'];
-          const hasCampingTerm = campingTerms.some(term => name.indexOf(term) > -1);
-          if (!hasCampingTerm) continue;
-
-          // 排除明确不是营地的场所
-          const excludeTerms = ['教育', '培训', '考研', '帮教', '实习', '拓展', '书法', '实训', '种植', '养殖', '科研', '实验', '产业'];
-          const hasExcludeTerm = excludeTerms.some(term => name.indexOf(term) > -1);
-          if (hasExcludeTerm) continue;
-
-          // 去重: 用坐标前4位作为key
-          const dedupKey = lat.toFixed(4) + ',' + lng.toFixed(4);
-          if (seen.has(dedupKey)) continue;
-          seen.add(dedupKey);
-          allPOIs.push({
-            spot_code: 'POI_' + poi.id,
-            name: poi.title,
-            latitude: lat,
-            longitude: lng,
-            address: poi.address || '',
-            parking_status: 0,
-            toilet_status: 0,
-            water_status: 0,
-            power_status: 0,
-            charging_status: 0,
-            rv_friendly: 0,
-            trailer_friendly: 0,
-            tent_friendly: 1,
-            shower_status: 0,
-            fishing_status: 0,
-            cooking_status: 0,
-            fire_status: 0,
-            repair_status: 0,
-            grocery_status: 0,
-            dining_status: 0,
-            accommodation_status: 0,
-            intro: '地图搜索结果',
-            memo: '',
-            _source: 'poi'
-          });
-        }
-      }
-    }
-
-    console.log('[Route] POI搜索到露营点:', allPOIs.length);
-    return allPOIs;
-  },
-
-  // POI搜索单个请求
-  _fetchPOI(pt, keyword, pageIndex, key) {
-    return new Promise((resolve) => {
-      wx.request({
-        url: 'https://apis.map.qq.com/ws/place/v1/search',
-        data: {
-          keyword: keyword,
-          boundary: 'nearby(' + pt.latitude + ',' + pt.longitude + ',50000)',
-          key: key,
-          page_size: 20,
-          page_index: pageIndex
-        },
-        method: 'GET',
-        success: (r) => resolve(r),
-        fail: () => resolve(null)
-      });
-    });
-  },
-
-  // ============ 并发控制 (最大并发数限制) ============
-  async _runWithConcurrency(tasks, maxConcurrent) {
-    const results = [];
-    let index = 0;
-
-    async function runNext() {
-      while (index < tasks.length) {
-        const current = index++;
-        results[current] = await tasks[current];
-      }
-    }
-
-    // 启动 maxConcurrent 个工作线程
-    const workers = [];
-    for (let i = 0; i < Math.min(maxConcurrent, tasks.length); i++) {
-      workers.push(runNext());
-    }
-    await Promise.all(workers);
-    return results;
-  },
-
-  // ============ 合并数据库营地和POI搜索结果 ============
-  mergeCamps(dbCamps, poiCamps, routePoints) {
-    const startPt = routePoints && routePoints.length > 0 ? routePoints[0] : null;
-
-    // 走廊宽度 (与 findCampsAlongRoute 一致)
-    const endPt = routePoints && routePoints.length > 1 ? routePoints[routePoints.length - 1] : startPt;
-    const straight = startPt && endPt ? util.distance(startPt.latitude, startPt.longitude, endPt.latitude, endPt.longitude) : 0;
-    const corridor = Math.max(15, Math.min(60, straight / 10));
-
-    const result = [].concat(dbCamps);
-    for (const poi of poiCamps) {
-      let isDup = false;
-      for (const db of dbCamps) {
-        const d = util.distance(poi.latitude, poi.longitude, db.latitude, db.longitude);
-        if (d < 1) {
-          isDup = true;
-          break;
-        }
-      }
-      if (!isDup) {
-        // 计算POI点到路线的偏移距离
-        let minOffset = Infinity;
-        if (routePoints && routePoints.length >= 2) {
-          for (let i = 0; i < routePoints.length - 1; i++) {
-            const offset = this.distToSegment(
-              poi.latitude, poi.longitude,
-              routePoints[i].latitude, routePoints[i].longitude,
-              routePoints[i + 1].latitude, routePoints[i + 1].longitude
-            );
-            if (offset < minOffset) minOffset = offset;
-          }
-        }
-        // 过滤掉偏离路线太远的POI
-        if (minOffset <= corridor) {
-          poi.distance = startPt ? Math.round(util.distance(poi.latitude, poi.longitude, startPt.latitude, startPt.longitude) * 10) / 10 : 0;
-          poi.offset = Math.round(minOffset * 10) / 10;
-          result.push(poi);
-        }
-      }
-    }
-    // 按名称排序去重 (相同名称只保留一个)
-    const nameSet = new Set();
-    const uniqueResult = [];
-    for (const c of result) {
-      const nameKey = c.name.replace(/\s/g, '').substring(0, 8);
-      if (!nameSet.has(nameKey)) {
-        nameSet.add(nameKey);
-        uniqueResult.push(c);
-      }
-    }
-    // 按距起点距离排序
-    uniqueResult.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-    return uniqueResult;
-  },
-
-  // ============ 营地点击 ============
-  onCampTap(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const camp = this.data.routeCampList[idx];
-    if (!camp) return;
-    const app = getApp();
-    app.globalData.selectedCamp = camp;
-    app.globalData.pendingCampFocus = true;
-    wx.switchTab({ url: '/pages/map/index' });
-  },
-
-  // ============ 取消路线规划 ============
-  cancelRoutePlanning() {
-    this._cancelled = true;
-    util.hideLoading();
-    this.setData({ routePlanning: false, showCancelBtn: false });
-    util.showToast('已取消');
-  },
-
   // ============ 计算路线折线的地理范围 ============
   _getRouteBounds(points, padding) {
     if (!points || points.length === 0) return null;
@@ -1082,5 +717,24 @@ Page({
       startCoord: this.data.endCoord,
       endCoord: this.data.startCoord
     });
+  },
+
+  // ============ 取消路线规划 ============
+  cancelRoutePlanning() {
+    this._cancelled = true;
+    util.hideLoading();
+    this.setData({ routePlanning: false, showCancelBtn: false });
+    util.showToast('已取消');
+  },
+
+  // ============ 营地点击 ============
+  onCampTap(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const camp = this.data.routeCampList[idx];
+    if (!camp) return;
+    const app = getApp();
+    app.globalData.selectedCamp = camp;
+    app.globalData.pendingCampFocus = true;
+    wx.switchTab({ url: '/pages/map/index' });
   }
 });
