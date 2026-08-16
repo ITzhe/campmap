@@ -30,7 +30,7 @@
       <view class="ri-loc-icon">📍</view>
     </view>
     <view class="ri-actions">
-      <view class="ri-addway {{waypoints.length >= 5 ? 'disabled' : ''}}" bindtap="addWaypoint">＋ 添加途经点{{waypoints.length > 0 ? '(' + waypoints.length + '/5)' : ''}}</view>
+      <view class="ri-addway" bindtap="addWaypoint">＋ 添加途经点{{waypoints.length > 0 ? '(' + waypoints.length + ')' : ''}}</view>
       <view class="ri-swap" bindtap="swapRoute">⇅ 交换</view>
     </view>
     <button class="ri-btn" bindtap="calcRoute" disabled="{{routePlanning}}">{{routePlanning ? '规划中...' : '规划路线'}}</button>

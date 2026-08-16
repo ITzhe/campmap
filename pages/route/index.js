@@ -111,12 +111,8 @@ Page({
     });
   },
 
-  // ============ 添加途经点 (微信默认位置选择) ============
+  // ============ 添加途经点 (微信默认位置选择, 无数量限制) ============
   addWaypoint() {
-    if (this.data.waypoints.length >= 5) {
-      util.showToast('最多添加5个途经点');
-      return;
-    }
     wx.chooseLocation({
       success: (res) => {
         const wp = {
