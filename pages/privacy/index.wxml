@@ -49,7 +49,7 @@
     </view>
     <view class="pv-item">
       <text class="pv-item-num">·</text>
-      <text class="pv-bold">收集目的：</text>用于在评论、营地打卡、营地录入等场景中展示用户身份</text>
+      <text class="pv-item-txt"><text class="pv-bold">收集目的：</text>用于在评论、营地打卡、营地录入等场景中展示用户身份</text>
     </view>
     <view class="pv-item">
       <text class="pv-item-num">·</text>
