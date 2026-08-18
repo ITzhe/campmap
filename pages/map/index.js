@@ -146,9 +146,22 @@ Page({
 
   // ============ 定位 + 加载 ============
   tryLocateAndLoad() {
+    // 超时兜底: 3秒内如果定位未返回，先用默认中心加载营地
+    let located = false;
+    const fallbackTimer = setTimeout(() => {
+      if (!located) {
+        console.log('[map] 定位超时，使用默认中心加载营地');
+        located = true;
+        this.loadCamps();
+      }
+    }, 3000);
+
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
+        if (located) return;
+        located = true;
+        clearTimeout(fallbackTimer);
         const app = getApp();
         const cityName = util.getNearestCity(res.latitude, res.longitude);
         app.globalData.cityCenter = {
@@ -165,6 +178,9 @@ Page({
         this.loadCamps();
       },
       fail: () => {
+        if (located) return;
+        located = true;
+        clearTimeout(fallbackTimer);
         // 定位失败，用默认中心
         this.setData({ cityName: '青岛' });
         this.loadCamps();

@@ -13,7 +13,8 @@ App({
     filters: { fee: 'all', park: [], fac: [] },
     cityCenter: { latitude: 36.0671, longitude: 120.3826 },
     cityName: '定位中...',
-    cityChanged: false
+    cityChanged: false,
+    privacyAgreed: false
   },
 
   onLaunch() {
@@ -25,8 +26,34 @@ App({
     this.globalData.lastCheckin = userData.lastCheckin;
     this.globalData.joinDate = userData.joinDate;
 
+    // 注册全局隐私授权处理器 (必须在调用任何隐私API之前)
+    this.registerPrivacyHandler();
+
     // 尝试获取定位
     this.getLocation();
+  },
+
+  // 注册微信隐私授权处理
+  registerPrivacyHandler() {
+    if (wx.onNeedPrivacyAuthorization) {
+      wx.onNeedPrivacyAuthorization((resolve) => {
+        wx.showModal({
+          title: '隐私保护提示',
+          content: '营图需要获取您的位置信息以显示附近露营地。您可以在「我的-隐私协议」查看完整政策。如同意请点击确定。',
+          confirmText: '同意',
+          cancelText: '拒绝',
+          confirmColor: '#2d6a4f',
+          success: (res) => {
+            if (res.confirm) {
+              this.globalData.privacyAgreed = true;
+              resolve({ buttonId: 'agree-btn', event: 'agree' });
+            } else {
+              resolve({ event: 'disagree' });
+            }
+          }
+        });
+      });
+    }
   },
 
   getLocation() {
