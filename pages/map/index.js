@@ -83,8 +83,16 @@ Page({
       userPoints: app.globalData.points
     });
 
-    // 先尝试定位，再加载营地
-    this.tryLocateAndLoad();
+    // 立即用默认中心加载营地 (不等待定位)
+    this.loadCamps();
+
+    // 异步定位, 成功后刷新 (用 try-catch 防止任何错误中断页面生命周期)
+    try {
+      this.tryLocate();
+    } catch (e) {
+      console.error('[map] tryLocate 异常:', e.message);
+      this.setData({ cityName: '青岛' });
+    }
   },
 
   onShow() {
@@ -145,8 +153,30 @@ Page({
     }
   },
 
-  // ============ 定位 + 加载 ============
-  tryLocateAndLoad() {
+  // ============ 异步定位 (不阻塞营地加载) ============
+  tryLocate() {
+    // 先检查是否已有定位授权
+    wx.getSetting({
+      success: (settingRes) => {
+        const auth = settingRes.authSetting || {};
+        if (auth['scope.userLocation'] === false) {
+          // 用户曾拒绝授权, 需引导重新授权
+          console.log('[map] 定位授权曾被拒绝, 使用默认城市');
+          this.setData({ cityName: '青岛' });
+          return;
+        }
+        // 未授权或已授权, 都尝试 getLocation
+        this.doGetLocation();
+      },
+      fail: () => {
+        // getSetting 失败, 直接尝试定位
+        this.doGetLocation();
+      }
+    });
+  },
+
+  // ============ 执行定位 ============
+  doGetLocation() {
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
@@ -163,12 +193,13 @@ Page({
           scale: 12,
           cityName: cityName
         });
+        // 定位成功后, 用新坐标重新加载营地
+        this._needReload = true;
         this.loadCamps();
       },
-      fail: () => {
-        // 定位失败，用默认中心
+      fail: (err) => {
+        console.log('[map] 定位失败, 使用默认城市中心:', err.errMsg || '');
         this.setData({ cityName: '青岛' });
-        this.loadCamps();
       }
     });
   },
@@ -195,7 +226,12 @@ Page({
 
   // ============ 加载营地数据 (仅数据库) ============
   async loadCamps() {
-    if (this.data.loadingCamps) return;
+    // 如果正在加载, 标记需要重新加载
+    if (this.data.loadingCamps) {
+      this._needReload = true;
+      return;
+    }
+    this._needReload = false;
     this.setData({ loadingCamps: true });
 
     const bounds = this.getMapBounds();
@@ -215,10 +251,17 @@ Page({
         util.showToast('当前区域暂无营地数据');
       }
     } catch (e) {
+      console.error('[map] loadCamps 异常:', e.message);
       util.showToast('加载失败，请重试');
     }
     util.hideLoading();
     this.setData({ loadingCamps: false });
+
+    // 如果在加载期间有新的定位完成, 重新加载一次
+    if (this._needReload) {
+      this._needReload = false;
+      this.loadCamps();
+    }
   },
 
   // ============ 构建地图标记 ============
