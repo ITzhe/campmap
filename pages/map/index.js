@@ -83,11 +83,8 @@ Page({
       userPoints: app.globalData.points
     });
 
-    // 先用默认中心立即加载营地 (不阻塞)
-    this.loadCamps();
-
-    // 再异步尝试定位，成功后刷新
-    this.tryLocate();
+    // 先尝试定位，再加载营地
+    this.tryLocateAndLoad();
   },
 
   onShow() {
@@ -148,8 +145,8 @@ Page({
     }
   },
 
-  // ============ 异步定位 (不阻塞营地加载) ============
-  tryLocate() {
+  // ============ 定位 + 加载 ============
+  tryLocateAndLoad() {
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
@@ -160,19 +157,18 @@ Page({
           longitude: res.longitude
         };
         app.globalData.cityName = cityName;
-        app.globalData.locationReady = true;
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
           scale: 12,
           cityName: cityName
         });
-        // 定位成功后重新加载营地
         this.loadCamps();
       },
       fail: () => {
-        console.log('[map] 定位失败，使用默认城市中心');
+        // 定位失败，用默认中心
         this.setData({ cityName: '青岛' });
+        this.loadCamps();
       }
     });
   },
