@@ -12,9 +12,9 @@ App({
     selectedCamp: null,
     filters: { fee: 'all', park: [], fac: [] },
     cityCenter: { latitude: 36.0671, longitude: 120.3826 },
-    cityName: '定位中...',
+    cityName: '青岛',
     cityChanged: false,
-    privacyAgreed: false
+    locationReady: false
   },
 
   onLaunch() {
@@ -26,15 +26,8 @@ App({
     this.globalData.lastCheckin = userData.lastCheckin;
     this.globalData.joinDate = userData.joinDate;
 
-    // 注册全局隐私授权处理器 (必须在调用任何隐私API之前)
-    this.registerPrivacyHandler();
-
-    // 尝试获取定位
-    this.getLocation();
-  },
-
-  // 注册微信隐私授权处理
-  registerPrivacyHandler() {
+    // 注册全局隐私授权处理器
+    // 注意: 不在 onLaunch 中调用 getLocation, 避免隐私弹窗与页面渲染冲突
     if (wx.onNeedPrivacyAuthorization) {
       wx.onNeedPrivacyAuthorization((resolve) => {
         wx.showModal({
@@ -45,7 +38,6 @@ App({
           confirmColor: '#2d6a4f',
           success: (res) => {
             if (res.confirm) {
-              this.globalData.privacyAgreed = true;
               resolve({ buttonId: 'agree-btn', event: 'agree' });
             } else {
               resolve({ event: 'disagree' });
@@ -54,24 +46,5 @@ App({
         });
       });
     }
-  },
-
-  getLocation() {
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        const cityName = getNearestCity(res.latitude, res.longitude);
-        this.globalData.cityCenter = {
-          latitude: res.latitude,
-          longitude: res.longitude
-        };
-        this.globalData.cityName = cityName;
-        this.globalData.cityChanged = true;
-      },
-      fail: () => {
-        console.log('定位失败，使用默认城市中心');
-        this.globalData.cityName = '青岛';
-      }
-    });
   }
 });

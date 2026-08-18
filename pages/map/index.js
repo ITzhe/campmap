@@ -82,8 +82,12 @@ Page({
       cityName: app.globalData.cityName,
       userPoints: app.globalData.points
     });
-    // 先尝试定位，再加载营地
-    this.tryLocateAndLoad();
+
+    // 先用默认中心立即加载营地 (不阻塞)
+    this.loadCamps();
+
+    // 再异步尝试定位，成功后刷新
+    this.tryLocate();
   },
 
   onShow() {
@@ -144,24 +148,11 @@ Page({
     }
   },
 
-  // ============ 定位 + 加载 ============
-  tryLocateAndLoad() {
-    // 超时兜底: 3秒内如果定位未返回，先用默认中心加载营地
-    let located = false;
-    const fallbackTimer = setTimeout(() => {
-      if (!located) {
-        console.log('[map] 定位超时，使用默认中心加载营地');
-        located = true;
-        this.loadCamps();
-      }
-    }, 3000);
-
+  // ============ 异步定位 (不阻塞营地加载) ============
+  tryLocate() {
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
-        if (located) return;
-        located = true;
-        clearTimeout(fallbackTimer);
         const app = getApp();
         const cityName = util.getNearestCity(res.latitude, res.longitude);
         app.globalData.cityCenter = {
@@ -169,21 +160,19 @@ Page({
           longitude: res.longitude
         };
         app.globalData.cityName = cityName;
+        app.globalData.locationReady = true;
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
           scale: 12,
           cityName: cityName
         });
+        // 定位成功后重新加载营地
         this.loadCamps();
       },
       fail: () => {
-        if (located) return;
-        located = true;
-        clearTimeout(fallbackTimer);
-        // 定位失败，用默认中心
+        console.log('[map] 定位失败，使用默认城市中心');
         this.setData({ cityName: '青岛' });
-        this.loadCamps();
       }
     });
   },
