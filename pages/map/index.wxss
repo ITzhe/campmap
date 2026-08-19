@@ -129,9 +129,6 @@
 }
 
 .fab {
-  width: 92rpx;
-  height: 92rpx;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,17 +139,22 @@
   background: #2d6a4f;
   color: #fff;
   position: relative;
+  padding: 18rpx 36rpx;
+  border-radius: 40rpx;
+  box-shadow: 0 4rpx 16rpx rgba(45, 106, 79, 0.35);
 }
 
-.fab-filter-icon {
-  width: 44rpx;
-  height: 44rpx;
+.fab-filter-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
 }
 
 .fab-filter-badge {
   position: absolute;
-  top: -6rpx;
-  right: -6rpx;
+  top: -8rpx;
+  right: -8rpx;
   background: #ee6c4d;
   color: #fff;
   font-size: 20rpx;

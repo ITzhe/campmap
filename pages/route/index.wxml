@@ -2,7 +2,9 @@
 <view class="page-route">
   <!-- 自定义导航栏 -->
   <view class="rn-bar" style="padding-top: {{statusBarHeight}}px; height: {{navHeight}}px;">
+    <view class="rn-map-btn" bindtap="goToMap">🗺 地图</view>
     <view class="rn-title">线路规划</view>
+    <view class="rn-placeholder"></view>
   </view>
 
   <!-- 路线输入 -->

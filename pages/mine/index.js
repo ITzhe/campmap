@@ -8,6 +8,7 @@ Page({
   data: {
     statusBarHeight: 20,
     userName: '',
+    userPhone: '',
     avatar: '🏕',
     avatarUrl: '',
     points: 0,
@@ -43,6 +44,7 @@ Page({
     // 昵称编辑弹窗
     showNickPopup: false,
     tempNick: '',
+    tempPhone: '',
     tempAvatarUrl: '',
     avatarChanged: false
   },
@@ -71,6 +73,7 @@ Page({
     this.setData({
       userName: u.nick || '微信用户',
       avatarUrl: u.avatarUrl || '',
+      userPhone: u.phone || '',
       points: u.points || 0,
       streak: u.streak || 0,
       joinDays: util.calcJoinDays(u.joinDate),
@@ -116,6 +119,7 @@ Page({
     this.setData({
       showNickPopup: true,
       tempNick: (u.nick && u.nick !== '微信用户') ? u.nick : '',
+      tempPhone: u.phone || '',
       tempAvatarUrl: u.avatarUrl || '',
       avatarChanged: false
     });
@@ -131,6 +135,11 @@ Page({
     if (e.detail.value) {
       this.setData({ tempNick: e.detail.value });
     }
+  },
+
+  // 手机号输入
+  onPhoneInput(e) {
+    this.setData({ tempPhone: e.detail.value });
   },
 
   // 选择微信头像 (button open-type="chooseAvatar")
@@ -171,8 +180,14 @@ Page({
   // 保存昵称和头像
   async saveNick() {
     const nick = (this.data.tempNick || '').trim();
+    const phone = (this.data.tempPhone || '').trim();
     if (!nick) {
       util.showToast('请输入昵称');
+      return;
+    }
+    // 手机号格式校验 (选填, 但填了就校验)
+    if (phone && !/^1\d{10}$/.test(phone)) {
+      util.showToast('请输入正确的手机号');
       return;
     }
 
@@ -184,6 +199,11 @@ Page({
 
     // 保存昵称
     util.setUserNick(nick);
+
+    // 保存手机号
+    const u = util.getUserState();
+    u.phone = phone;
+    util.saveUser(u);
 
     // 如果头像有变化, 先上传再检测图片安全
     if (this.data.avatarChanged && this.data.tempAvatarUrl) {

@@ -87,6 +87,11 @@ Page({
     }
   },
 
+  // ============ 跳转到地图首页 ============
+  goToMap() {
+    wx.switchTab({ url: '/pages/map/index' });
+  },
+
   // ============ 选择起点 (微信默认位置选择) ============
   chooseStart() {
     wx.chooseLocation({

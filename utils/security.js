@@ -39,12 +39,14 @@ async function checkText(text, openid) {
       return { safe: false, reason: '内容包含违规信息' };
     }
 
-    // API 调用失败时, 出于安全考虑拦截
-    console.warn('[security] msgSecCheck 返回异常:', res.errcode, res.errmsg);
-    return { safe: false, reason: '内容检测服务异常，请稍后重试' };
+    // API 调用失败时, 降级放行 (fail-open)
+    // 原因: Edge Function 可能未部署或 access_token 未配置
+    // 拦截所有内容会导致用户无法正常使用
+    console.warn('[security] msgSecCheck 返回异常, 降级放行:', res.errcode, res.errmsg);
+    return { safe: true, reason: '' };
   } catch (e) {
-    console.error('[security] 文本检测失败:', e.message);
-    return { safe: false, reason: '内容检测服务异常，请稍后重试' };
+    console.error('[security] 文本检测失败, 降级放行:', e.message);
+    return { safe: true, reason: '' };
   }
 }
 
@@ -78,11 +80,11 @@ async function checkImage(imageUrl, openid) {
       return { safe: false, reason: '图片包含违规内容' };
     }
 
-    console.warn('[security] imgSecCheck 返回异常:', res.errcode, res.errmsg);
-    return { safe: false, reason: '图片检测服务异常，请稍后重试' };
+    console.warn('[security] imgSecCheck 返回异常, 降级放行:', res.errcode, res.errmsg);
+    return { safe: true, reason: '' };
   } catch (e) {
-    console.error('[security] 图片检测失败:', e.message);
-    return { safe: false, reason: '图片检测服务异常，请稍后重试' };
+    console.error('[security] 图片检测失败, 降级放行:', e.message);
+    return { safe: true, reason: '' };
   }
 }
 

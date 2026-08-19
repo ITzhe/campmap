@@ -135,9 +135,9 @@ Page({
         { key: 'grocery_status', label: '买菜' },
         { key: 'rv_friendly', label: '房车' }
       ];
-      const tags = tagConfigs.slice(0, 5).map(t => ({
+      const tags = tagConfigs.filter(t => t.always || Number(camp[t.key]) > 0).map(t => ({
         label: t.label,
-        on: t.always ? true : Number(camp[t.key]) > 0
+        on: true
       }));
       this.setData({
         showBottomCard: true,
@@ -295,7 +295,7 @@ Page({
       this.data.latitude, this.data.longitude
     );
 
-    // 构建标签
+    // 构建标签 (只显示已开启的设施)
     const tagConfigs = [
       { key: 'parking_status', label: camp.parking_status == 0 ? '免费' : '收费', always: true },
       { key: 'toilet_status', label: '厕所' },
@@ -307,9 +307,9 @@ Page({
       { key: 'tent_friendly', label: '帐篷' }
     ];
 
-    const tags = tagConfigs.slice(0, 5).map(t => ({
+    const tags = tagConfigs.filter(t => t.always || Number(camp[t.key]) > 0).map(t => ({
       label: t.label,
-      on: t.always ? true : Number(camp[t.key]) > 0
+      on: true
     }));
 
     this.setData({

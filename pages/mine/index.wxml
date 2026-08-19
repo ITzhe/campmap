@@ -15,7 +15,7 @@
         </view>
         <view class="mh-text">
           <view class="mh-name">{{userName}}</view>
-          <view class="mh-days">已加入 {{joinDays}} 天</view>
+          <view class="mh-days">已加入 {{joinDays}} 天{{userPhone ? ' · ' + userPhone : ''}}</view>
         </view>
       </view>
       <view class="mh-gear" bindtap="tapGear">⚙</view>
@@ -94,6 +94,13 @@
       <text class="np-label">昵称</text>
       <input class="np-input" type="nickname" placeholder="点击获取微信昵称"
         value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur" />
+    </view>
+
+    <!-- 手机号 -->
+    <view class="np-nick-row">
+      <text class="np-label">手机</text>
+      <input class="np-input" type="number" maxlength="11" placeholder="选填, 用于营地审核联系"
+        value="{{tempPhone}}" bindinput="onPhoneInput" />
     </view>
 
     <!-- 按钮 -->

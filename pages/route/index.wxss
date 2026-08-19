@@ -11,14 +11,29 @@
   background: var(--green);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   box-sizing: border-box;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+}
+
+.rn-map-btn {
+  font-size: 26rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8rpx 20rpx;
+  border-radius: 28rpx;
+  white-space: nowrap;
 }
 
 .rn-title {
   font-size: 32rpx;
   font-weight: 600;
   color: #fff;
+}
+
+.rn-placeholder {
+  width: 100rpx;
 }
 
 /* ============ 路线输入 ============ */
