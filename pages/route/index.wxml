@@ -68,7 +68,7 @@
       </view>
     </view>
 
-    <view class="rr-camph">沿途营地</view>
+    <view class="rr-camph">沿途营地 <text class="rr-camph-hint">点击查看详情</text></view>
     <view class="camp-list">
       <view class="camp-list-item"
         wx:for="{{routeCampList}}" wx:key="spot_code"
@@ -81,6 +81,7 @@
         <view class="cli-dist">
           <view class="cli-dist-main">{{item.distance}} km</view>
           <view class="cli-dist-off">偏路线 {{item.offset}}km</view>
+          <view class="cli-add-btn" catchtap="addCampToRoute" data-idx="{{index}}">+途经</view>
         </view>
       </view>
       <view class="camp-empty" wx:if="{{routeCampList.length === 0}}">沿途暂无营地</view>

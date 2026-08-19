@@ -1,0 +1,7 @@
+# Supabase 项目配置
+# 用于 Edge Functions 的本地配置
+
+[functions.security-check]
+# 禁用 JWT 验证 — 小程序客户端使用 ANON_KEY 调用
+# 安全检测 API 不涉及数据库读写, 无需用户身份验证
+verify_jwt = false

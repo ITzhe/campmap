@@ -728,14 +728,42 @@ Page({
     util.showToast('已取消');
   },
 
-  // ============ 营地点击 ============
+  // ============ 营地点击 — 跳转详情页 ============
   onCampTap(e) {
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];
     if (!camp) return;
     const app = getApp();
     app.globalData.selectedCamp = camp;
-    app.globalData.pendingCampFocus = true;
-    wx.switchTab({ url: '/pages/map/index' });
+    wx.navigateTo({
+      url: '/pages/detail/index?spot_code=' + camp.spot_code
+    });
+  },
+
+  // ============ 添加营地为途经点 ============
+  addCampToRoute(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const camp = this.data.routeCampList[idx];
+    if (!camp) return;
+
+    // 检查是否已在途经点列表中
+    const existing = this.data.waypoints.some(wp =>
+      wp.latitude === camp.latitude && wp.longitude === camp.longitude
+    );
+    if (existing) {
+      util.showToast('该营地已在途经点中');
+      return;
+    }
+
+    const newWaypoint = {
+      name: camp.name,
+      address: camp.address || '',
+      latitude: camp.latitude,
+      longitude: camp.longitude
+    };
+
+    const waypoints = [...this.data.waypoints, newWaypoint];
+    this.setData({ waypoints });
+    util.showToast('已添加为途经点');
   }
 });
