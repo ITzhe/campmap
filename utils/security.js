@@ -1,7 +1,7 @@
 // utils/security.js — 微信内容安全检测
 // 对所有 UGC 内容（文本、图片）进行安全检测
-// 优先调用 Supabase Edge Function 代理微信 security API
-// Edge Function 不可用时降级为客户端本地敏感词过滤 (fail-open)
+// 通过 Supabase Edge Function 代理调用微信 security API
+// Edge Function 异常时降级为本地敏感词过滤
 
 const config = require('./config');
 
