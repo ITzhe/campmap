@@ -133,16 +133,16 @@ async function checkImages(imageUrls, openid) {
 
 /**
  * 调用 Supabase Edge Function 代理微信安全 API
+ * 新版 Edge Runtime 通过 ?apikey= 传递凭证, 避免 Authorization header 被网关拦截
  */
 function callSecurityAPI(checkType, data) {
-  const url = config.SUPABASE_URL + '/functions/v1/security-check';
+  const url = config.SUPABASE_URL + '/functions/v1/security-check?apikey=' + config.ANON_KEY;
 
   return new Promise((resolve) => {
     wx.request({
       url: url,
       method: 'POST',
       header: {
-        'Authorization': 'Bearer ' + config.ANON_KEY,
         'Content-Type': 'application/json'
       },
       data: {
@@ -153,7 +153,6 @@ function callSecurityAPI(checkType, data) {
         if (res.statusCode === 200 && res.data) {
           resolve(res.data);
         } else {
-          // 401 或其他 HTTP 错误, 返回异常码让上层降级
           resolve({ errcode: -1, errmsg: 'Edge Function HTTP ' + res.statusCode });
         }
       },
