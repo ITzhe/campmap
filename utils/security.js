@@ -1,12 +1,39 @@
 // utils/security.js — 微信内容安全检测
 // 对所有 UGC 内容（文本、图片）进行安全检测
-// 依赖 Supabase Edge Function 代理调用微信 security API
+// 优先调用 Supabase Edge Function 代理微信 security API
+// Edge Function 不可用时降级为客户端本地敏感词过滤 (fail-open)
 
 const config = require('./config');
 
-// 缓存 access_token (有效期 2 小时, 提前 5 分钟刷新)
-let _accessToken = '';
-let _tokenExpireAt = 0;
+// ============ 本地敏感词库 (降级用) ============
+const SENSITIVE_WORDS = [
+  // 政治敏感
+  '法轮功', '六四', '天安门', '反共', '台独', '藏独', '疆独',
+  // 色情
+  '色情', '黄色', '成人', '裸体', '性服务', '一夜情', '约炮', '嫖娼', 'AV女优',
+  // 赌博
+  '赌博', '博彩', '地下赌场', '外围彩', '六合彩',
+  // 暴力/违禁
+  '炸弹', '枪支', '弹药', '杀人', '毒品', '吸毒', '贩毒',
+  // 诈骗
+  '诈骗', '兼职刷单', '代开发票', '银行卡套现',
+  // 其他
+  '代孕', '买卖器官', '传销'
+];
+
+/**
+ * 本地敏感词检测 (降级方案)
+ */
+function localCheckText(text) {
+  if (!text || !text.trim()) return { safe: true, reason: '' };
+  const lower = text.toLowerCase();
+  for (const word of SENSITIVE_WORDS) {
+    if (lower.indexOf(word.toLowerCase()) !== -1) {
+      return { safe: false, reason: '内容包含敏感信息' };
+    }
+  }
+  return { safe: true, reason: '' };
+}
 
 /**
  * 检测文本内容是否合规
@@ -39,14 +66,12 @@ async function checkText(text, openid) {
       return { safe: false, reason: '内容包含违规信息' };
     }
 
-    // API 调用失败时, 降级放行 (fail-open)
-    // 原因: Edge Function 可能未部署或 access_token 未配置
-    // 拦截所有内容会导致用户无法正常使用
-    console.warn('[security] msgSecCheck 返回异常, 降级放行:', res.errcode, res.errmsg);
-    return { safe: true, reason: '' };
+    // API 返回异常码, 降级为本地检测
+    console.warn('[security] msgSecCheck 返回异常, 降级本地检测:', res.errcode, res.errmsg);
+    return localCheckText(text);
   } catch (e) {
-    console.error('[security] 文本检测失败, 降级放行:', e.message);
-    return { safe: true, reason: '' };
+    console.error('[security] 文本检测失败, 降级本地检测:', e.message);
+    return localCheckText(text);
   }
 }
 
@@ -80,6 +105,7 @@ async function checkImage(imageUrl, openid) {
       return { safe: false, reason: '图片包含违规内容' };
     }
 
+    // 图片检测降级: 直接放行 (无法本地检测图片)
     console.warn('[security] imgSecCheck 返回异常, 降级放行:', res.errcode, res.errmsg);
     return { safe: true, reason: '' };
   } catch (e) {
@@ -90,9 +116,6 @@ async function checkImage(imageUrl, openid) {
 
 /**
  * 批量检测多张图片
- * @param {string[]} imageUrls - 图片 URL 数组
- * @param {string} openid - 用户 openid
- * @returns {Promise<{safe: boolean, reason: string}>}
  */
 async function checkImages(imageUrls, openid) {
   if (!imageUrls || imageUrls.length === 0) {
@@ -130,7 +153,8 @@ function callSecurityAPI(checkType, data) {
         if (res.statusCode === 200 && res.data) {
           resolve(res.data);
         } else {
-          resolve({ errcode: -1, errmsg: 'Edge Function 返回异常: ' + res.statusCode });
+          // 401 或其他 HTTP 错误, 返回异常码让上层降级
+          resolve({ errcode: -1, errmsg: 'Edge Function HTTP ' + res.statusCode });
         }
       },
       fail: (err) => {
@@ -161,7 +185,6 @@ function mapLabelToReason(label) {
 
 /**
  * 检测文本并在违规时弹出提示
- * @returns {Promise<boolean>} true=合规, false=违规
  */
 async function checkTextWithToast(text, openid) {
   const result = await checkText(text, openid);
@@ -179,7 +202,6 @@ async function checkTextWithToast(text, openid) {
 
 /**
  * 检测图片并在违规时弹出提示
- * @returns {Promise<boolean>} true=合规, false=违规
  */
 async function checkImageWithToast(imageUrl, openid) {
   const result = await checkImage(imageUrl, openid);
@@ -200,5 +222,6 @@ module.exports = {
   checkImage,
   checkImages,
   checkTextWithToast,
-  checkImageWithToast
+  checkImageWithToast,
+  localCheckText
 };
