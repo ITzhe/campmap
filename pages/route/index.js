@@ -28,7 +28,13 @@ Page({
     polyline: [],
 
     // 营地缓存
-    allCamps: []
+    allCamps: [],
+
+    // 营地概述弹窗
+    showCampPopup: false,
+    popupCamp: null,
+    popupTags: [],
+    popupIsFree: true
   },
 
   onLoad() {
@@ -728,11 +734,45 @@ Page({
     util.showToast('已取消');
   },
 
-  // ============ 营地点击 — 跳转详情页 ============
+  // ============ 营地点击 — 显示信息概述弹窗 ============
   onCampTap(e) {
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];
     if (!camp) return;
+
+    // 构建设施标签 (只显示已有的)
+    const facKeys = [
+      { key: 'toilet_status', label: '厕所' },
+      { key: 'water_status', label: '接水' },
+      { key: 'power_status', label: '市电' },
+      { key: 'charging_status', label: '充电' },
+      { key: 'rv_friendly', label: '房车' },
+      { key: 'tent_friendly', label: '帐篷' },
+      { key: 'shower_status', label: '淋浴' },
+      { key: 'cooking_status', label: '做饭' },
+      { key: 'grocery_status', label: '买菜' },
+      { key: 'dining_status', label: '餐饮' }
+    ];
+    const tags = facKeys.filter(t => Number(camp[t.key]) > 0).map(t => t.label);
+
+    this.setData({
+      showCampPopup: true,
+      popupCamp: camp,
+      popupTags: tags,
+      popupIsFree: camp.parking_status == 0
+    });
+  },
+
+  // ============ 关闭营地弹窗 ============
+  closeCampPopup() {
+    this.setData({ showCampPopup: false });
+  },
+
+  // ============ 从弹窗跳转详情页 ============
+  popupGoDetail() {
+    const camp = this.data.popupCamp;
+    if (!camp) return;
+    this.setData({ showCampPopup: false });
     const app = getApp();
     app.globalData.selectedCamp = camp;
     wx.navigateTo({
@@ -740,7 +780,33 @@ Page({
     });
   },
 
-  // ============ 添加营地为途经点 ============
+  // ============ 从弹窗添加为途经点 ============
+  popupAddWaypoint() {
+    const camp = this.data.popupCamp;
+    if (!camp) return;
+
+    const existing = this.data.waypoints.some(wp =>
+      wp.lat === camp.latitude && wp.lng === camp.longitude
+    );
+    if (existing) {
+      util.showToast('该营地已在途经点中');
+      return;
+    }
+
+    const wp = {
+      id: 'wp_' + Date.now(),
+      name: camp.name,
+      lat: camp.latitude,
+      lng: camp.longitude
+    };
+    this.setData({
+      waypoints: this.data.waypoints.concat([wp]),
+      showCampPopup: false
+    });
+    util.showToast('已添加为途经点');
+  },
+
+  // ============ 添加营地为途经点 (列表内按钮) ============
   addCampToRoute(e) {
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];

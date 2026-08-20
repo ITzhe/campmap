@@ -68,7 +68,7 @@
       </view>
     </view>
 
-    <view class="rr-camph">沿途营地 <text class="rr-camph-hint">点击查看详情</text></view>
+    <view class="rr-camph">沿途营地 <text class="rr-camph-hint">点击查看信息</text></view>
     <view class="camp-list">
       <view class="camp-list-item"
         wx:for="{{routeCampList}}" wx:key="spot_code"
@@ -89,4 +89,38 @@
   </view>
 
   <view class="bottom-spacer"></view>
+</view>
+
+<!-- 营地信息概述弹窗 -->
+<view class="camp-popup-mask" wx:if="{{showCampPopup}}" bindtap="closeCampPopup"></view>
+<view class="camp-popup {{showCampPopup ? 'camp-popup-show' : ''}}" wx:if="{{popupCamp}}">
+  <!-- 营地名称行 -->
+  <view class="cp-header">
+    <view class="cp-title">{{popupCamp.name}}</view>
+    <view class="cp-close" bindtap="closeCampPopup">✕</view>
+  </view>
+
+  <!-- 地址 -->
+  <view class="cp-addr">{{popupCamp.address || '暂无地址'}}</view>
+
+  <!-- 标签行 -->
+  <view class="cp-tags">
+    <view class="cp-tag cp-tag-fee {{popupIsFree ? 'cp-tag-free' : 'cp-tag-paid'}}">
+      {{popupIsFree ? '免费' : '收费'}}
+    </view>
+    <view class="cp-tag" wx:for="{{popupTags}}" wx:key="*this">{{item}}</view>
+    <view class="cp-tag cp-tag-empty" wx:if="{{popupTags.length === 0}}">暂无设施信息</view>
+  </view>
+
+  <!-- 距离信息 -->
+  <view class="cp-dist-row" wx:if="{{popupCamp.distance}}">
+    <text class="cp-dist-item">距路线 {{popupCamp.distance}}km</text>
+    <text class="cp-dist-item" wx:if="{{popupCamp.offset}}">偏路线 {{popupCamp.offset}}km</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="cp-actions">
+    <view class="cp-btn cp-btn-add" bindtap="popupAddWaypoint">+ 添加途经</view>
+    <view class="cp-btn cp-btn-detail" bindtap="popupGoDetail">查看详情</view>
+  </view>
 </view>
