@@ -444,7 +444,7 @@ Page({
       });
     });
 
-    // 沿途营地标记
+    // 沿途营地标记 (带名称callout)
     campList.forEach((c, i) => {
       const isFree = c.parking_status == 0;
       let iconPath = '/assets/markers/free.png';
@@ -456,7 +456,18 @@ Page({
         iconPath: iconPath,
         width: 28,
         height: 32,
-        anchor: { x: 0.5, y: 1 }
+        anchor: { x: 0.5, y: 1 },
+        callout: {
+          content: c.name || '营地',
+          color: '#333333',
+          fontSize: 10,
+          bgColor: '#ffffff',
+          borderRadius: 6,
+          borderWidth: 0,
+          padding: 4,
+          display: 'BYCLICK',
+          textAlign: 'center'
+        }
       });
     });
 
@@ -601,7 +612,18 @@ Page({
           iconPath: iconPath,
           width: 28,
           height: 32,
-          anchor: { x: 0.5, y: 1 }
+          anchor: { x: 0.5, y: 1 },
+          callout: {
+            content: c.name || '营地',
+            color: '#333333',
+            fontSize: 10,
+            bgColor: '#ffffff',
+            borderRadius: 6,
+            borderWidth: 0,
+            padding: 4,
+            display: 'BYCLICK',
+            textAlign: 'center'
+          }
         });
       });
 
@@ -734,12 +756,28 @@ Page({
     util.showToast('已取消');
   },
 
-  // ============ 营地点击 — 显示信息概述弹窗 ============
+  // ============ 地图标记点击 — 显示营地弹窗 ============
+  onMarkerTap(e) {
+    const markerId = e.markerId;
+    // 营地标记 id 从 200 开始
+    if (markerId >= 200) {
+      const idx = markerId - 200;
+      const camp = this.data.routeCampList[idx];
+      if (!camp) return;
+      this._showCampPopup(camp);
+    }
+  },
+
+  // ============ 营地列表点击 — 显示信息概述弹窗 ============
   onCampTap(e) {
     const idx = e.currentTarget.dataset.idx;
     const camp = this.data.routeCampList[idx];
     if (!camp) return;
+    this._showCampPopup(camp);
+  },
 
+  // ============ 显示营地弹窗 (公共方法) ============
+  _showCampPopup(camp) {
     // 构建设施标签 (只显示已有的)
     const facKeys = [
       { key: 'toilet_status', label: '厕所' },
