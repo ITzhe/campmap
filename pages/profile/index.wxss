@@ -2,8 +2,6 @@
 .page-profile {
   min-height: 100vh;
   background: var(--bg);
-  display: flex;
-  flex-direction: column;
 }
 
 /* 导航栏 */
@@ -14,7 +12,6 @@
   padding: 0 32rpx;
   background: #fff;
   border-bottom: 2rpx solid var(--line);
-  flex-shrink: 0;
 }
 
 .pp-back {
@@ -37,39 +34,29 @@
   width: 56rpx;
 }
 
-/* 居中内容区 — flex:1 让它占满中间空间，内容垂直居中 */
-.pp-center-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 32rpx;
-  gap: 48rpx;
+/* 内容区 */
+.pp-content {
+  padding: 0 0 24rpx;
 }
 
-/* 昵称卡片 — 居中显示 */
-.pp-nick-card {
-  width: 100%;
+/* 字段组 */
+.pp-field-group {
   background: #fff;
-  border-radius: 24rpx;
-  padding: 40rpx 32rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  padding: 32rpx;
 }
 
-.pp-nick-title {
-  font-size: 30rpx;
-  font-weight: 700;
+.pp-field-label {
+  font-size: 28rpx;
+  font-weight: 600;
   color: var(--text);
-  text-align: center;
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .pp-field-box {
   background: var(--bg);
   border-radius: 20rpx;
   padding: 0 24rpx;
-  height: 104rpx;
+  height: 100rpx;
   display: flex;
   align-items: center;
 }
@@ -79,15 +66,12 @@
   font-size: 32rpx;
   color: var(--text);
   height: 100%;
-  text-align: center;
 }
 
 .pp-field-tip {
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: var(--text-ph);
-  margin-top: 16rpx;
-  text-align: center;
-  line-height: 1.5;
+  margin-top: 12rpx;
 }
 
 /* 头像区 */
@@ -96,11 +80,14 @@
   flex-direction: column;
   align-items: center;
   gap: 12rpx;
+  padding: 48rpx 0;
+  background: #fff;
+  margin-top: 24rpx;
 }
 
 .pp-avatar-wrap {
-  width: 140rpx;
-  height: 140rpx;
+  width: 160rpx;
+  height: 160rpx;
   border-radius: 50%;
   background: var(--green-light);
   border: 4rpx solid var(--line);
@@ -117,7 +104,7 @@
 }
 
 .pp-avatar-placeholder {
-  font-size: 64rpx;
+  font-size: 72rpx;
 }
 
 .pp-avatar-hint {
@@ -125,11 +112,10 @@
   color: var(--text-ph);
 }
 
-/* 保存按钮 — 底部固定 */
+/* 保存按钮 */
 .pp-save-area {
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  flex-shrink: 0;
+  padding: 48rpx 32rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
 
 .pp-save-btn {

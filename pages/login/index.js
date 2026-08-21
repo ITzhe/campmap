@@ -13,8 +13,7 @@ Page({
     phoneText: '点击获取手机号',
     phoneCode: '',
     canLogin: false,
-    agreed: false,
-    nickFocus: false
+    agreed: false
   },
 
   onLoad() {
@@ -40,7 +39,6 @@ Page({
       this.setData({ tempNick: e.detail.value });
       this._updateCanLogin();
     }
-    this.setData({ nickFocus: false });
   },
 
   // 从相册/相机选择头像

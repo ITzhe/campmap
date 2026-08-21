@@ -10,16 +10,12 @@
 
   <!-- 表单区 -->
   <view class="login-form">
-    <!-- 昵称输入（居中卡片，adjust-position=false 保持不动） -->
-    <view class="lf-nick-card">
-      <view class="lf-nick-title">设置昵称</view>
-      <view class="lf-field">
-        <text class="lf-icon">👤</text>
-        <input class="lf-input" type="nickname" placeholder="点击获取微信昵称"
-          value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur"
-          adjust-position="{{false}}" cursor-spacing="20" focus="{{nickFocus}}" />
-      </view>
-      <view class="lf-nick-tip">点击输入框后，底部会弹出「使用微信昵称」快捷填入</view>
+    <!-- 昵称（放在最上方，键盘弹出时页面自动上滚） -->
+    <view class="lf-field">
+      <text class="lf-icon">👤</text>
+      <input class="lf-input" type="nickname" placeholder="点击获取微信昵称"
+        value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur"
+        cursor-spacing="80" />
     </view>
 
     <!-- 头像选择 -->

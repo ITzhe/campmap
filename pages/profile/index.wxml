@@ -7,17 +7,17 @@
     <view class="pp-nav-placeholder"></view>
   </view>
 
-  <!-- 居中内容区 -->
-  <view class="pp-center-wrap">
-    <!-- 昵称输入（垂直居中，adjust-position=false 保持不动） -->
-    <view class="pp-nick-card">
-      <view class="pp-nick-title">设置昵称</view>
+  <!-- 内容区 -->
+  <view class="pp-content">
+    <!-- 昵称输入（放在最上方，键盘弹出时页面自动上滚，输入框在可见区上方） -->
+    <view class="pp-field-group">
+      <view class="pp-field-label">昵称</view>
       <view class="pp-field-box">
         <input class="pp-input" type="nickname" placeholder="点击获取微信昵称"
           value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur"
-          adjust-position="{{false}}" cursor-spacing="20" focus="{{nickFocus}}" />
+          cursor-spacing="80" />
       </view>
-      <view class="pp-field-tip">点击输入框后，底部会弹出「使用微信昵称」快捷填入</view>
+      <view class="pp-field-tip">点击输入框可使用微信昵称</view>
     </view>
 
     <!-- 头像区 -->
@@ -30,7 +30,7 @@
     </view>
   </view>
 
-  <!-- 保存按钮（底部固定） -->
+  <!-- 保存按钮 -->
   <view class="pp-save-area">
     <view class="pp-save-btn" bindtap="saveProfile">保存</view>
   </view>
