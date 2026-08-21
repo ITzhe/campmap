@@ -50,9 +50,33 @@
   background: #fff;
   border-radius: 28rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
-  padding: 48rpx 40rpx 40rpx;
+  padding: 40rpx 40rpx 40rpx;
   position: relative;
   z-index: 2;
+}
+
+/* 昵称居中卡片 */
+.lf-nick-card {
+  background: var(--bg);
+  border-radius: 20rpx;
+  padding: 32rpx 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.lf-nick-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+
+.lf-nick-tip {
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-top: 14rpx;
+  text-align: center;
+  line-height: 1.5;
 }
 
 /* 头像 */
@@ -61,7 +85,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 40rpx;
+  margin-bottom: 32rpx;
 }
 
 .lf-avatar-wrap {
@@ -96,11 +120,10 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  background: var(--bg);
-  border-radius: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
   padding: 0 24rpx;
   height: 96rpx;
-  margin-bottom: 28rpx;
 }
 
 .lf-icon {

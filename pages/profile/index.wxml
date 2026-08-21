@@ -7,26 +7,30 @@
     <view class="pp-nav-placeholder"></view>
   </view>
 
-  <!-- 头像区 -->
-  <view class="pp-avatar-section">
-    <view class="pp-avatar-wrap" bindtap="chooseAvatarFromAlbum">
-      <image wx:if="{{tempAvatarUrl}}" class="pp-avatar-img" src="{{tempAvatarUrl}}" mode="aspectFill" />
-      <view wx:else class="pp-avatar-placeholder">🏕</view>
+  <!-- 居中内容区 -->
+  <view class="pp-center-wrap">
+    <!-- 昵称输入（垂直居中，adjust-position=false 保持不动） -->
+    <view class="pp-nick-card">
+      <view class="pp-nick-title">设置昵称</view>
+      <view class="pp-field-box">
+        <input class="pp-input" type="nickname" placeholder="点击获取微信昵称"
+          value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur"
+          adjust-position="{{false}}" cursor-spacing="20" focus="{{nickFocus}}" />
+      </view>
+      <view class="pp-field-tip">点击输入框后，底部会弹出「使用微信昵称」快捷填入</view>
     </view>
-    <view class="pp-avatar-hint">点击更换头像</view>
+
+    <!-- 头像区 -->
+    <view class="pp-avatar-section">
+      <view class="pp-avatar-wrap" bindtap="chooseAvatarFromAlbum">
+        <image wx:if="{{tempAvatarUrl}}" class="pp-avatar-img" src="{{tempAvatarUrl}}" mode="aspectFill" />
+        <view wx:else class="pp-avatar-placeholder">🏕</view>
+      </view>
+      <view class="pp-avatar-hint">点击更换头像</view>
+    </view>
   </view>
 
-  <!-- 昵称输入 -->
-  <view class="pp-field-group">
-    <view class="pp-field-label">昵称</view>
-    <view class="pp-field-box">
-      <input class="pp-input" type="nickname" placeholder="点击获取微信昵称"
-        value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur" />
-    </view>
-    <view class="pp-field-tip">点击输入框可使用微信昵称</view>
-  </view>
-
-  <!-- 保存按钮 -->
+  <!-- 保存按钮（底部固定） -->
   <view class="pp-save-area">
     <view class="pp-save-btn" bindtap="saveProfile">保存</view>
   </view>

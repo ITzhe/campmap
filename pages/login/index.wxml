@@ -10,6 +10,18 @@
 
   <!-- 表单区 -->
   <view class="login-form">
+    <!-- 昵称输入（居中卡片，adjust-position=false 保持不动） -->
+    <view class="lf-nick-card">
+      <view class="lf-nick-title">设置昵称</view>
+      <view class="lf-field">
+        <text class="lf-icon">👤</text>
+        <input class="lf-input" type="nickname" placeholder="点击获取微信昵称"
+          value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur"
+          adjust-position="{{false}}" cursor-spacing="20" focus="{{nickFocus}}" />
+      </view>
+      <view class="lf-nick-tip">点击输入框后，底部会弹出「使用微信昵称」快捷填入</view>
+    </view>
+
     <!-- 头像选择 -->
     <view class="lf-avatar-row">
       <view class="lf-avatar-wrap" bindtap="chooseAvatarFromAlbum">
@@ -17,13 +29,6 @@
         <view wx:else class="lf-avatar-placeholder">📷</view>
       </view>
       <view class="lf-avatar-hint">点击设置头像</view>
-    </view>
-
-    <!-- 昵称 (type=nickname 触发微信原生选择) -->
-    <view class="lf-field">
-      <text class="lf-icon">👤</text>
-      <input class="lf-input" type="nickname" placeholder="点击获取微信昵称"
-        value="{{tempNick}}" bindinput="onNickInput" bindblur="onNickBlur" />
     </view>
 
     <!-- 手机号登录 -->

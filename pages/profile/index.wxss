@@ -2,6 +2,8 @@
 .page-profile {
   min-height: 100vh;
   background: var(--bg);
+  display: flex;
+  flex-direction: column;
 }
 
 /* 导航栏 */
@@ -12,6 +14,7 @@
   padding: 0 32rpx;
   background: #fff;
   border-bottom: 2rpx solid var(--line);
+  flex-shrink: 0;
 }
 
 .pp-back {
@@ -34,20 +37,70 @@
   width: 56rpx;
 }
 
+/* 居中内容区 — flex:1 让它占满中间空间，内容垂直居中 */
+.pp-center-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32rpx;
+  gap: 48rpx;
+}
+
+/* 昵称卡片 — 居中显示 */
+.pp-nick-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.pp-nick-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.pp-field-box {
+  background: var(--bg);
+  border-radius: 20rpx;
+  padding: 0 24rpx;
+  height: 104rpx;
+  display: flex;
+  align-items: center;
+}
+
+.pp-input {
+  flex: 1;
+  font-size: 32rpx;
+  color: var(--text);
+  height: 100%;
+  text-align: center;
+}
+
+.pp-field-tip {
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-top: 16rpx;
+  text-align: center;
+  line-height: 1.5;
+}
+
 /* 头像区 */
 .pp-avatar-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
-  padding: 60rpx 0 48rpx;
-  background: #fff;
-  margin-bottom: 24rpx;
+  gap: 12rpx;
 }
 
 .pp-avatar-wrap {
-  width: 160rpx;
-  height: 160rpx;
+  width: 140rpx;
+  height: 140rpx;
   border-radius: 50%;
   background: var(--green-light);
   border: 4rpx solid var(--line);
@@ -64,7 +117,7 @@
 }
 
 .pp-avatar-placeholder {
-  font-size: 72rpx;
+  font-size: 64rpx;
 }
 
 .pp-avatar-hint {
@@ -72,45 +125,11 @@
   color: var(--text-ph);
 }
 
-/* 字段组 */
-.pp-field-group {
-  background: #fff;
-  margin: 0;
-  padding: 32rpx;
-}
-
-.pp-field-label {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 16rpx;
-}
-
-.pp-field-box {
-  background: var(--bg);
-  border-radius: 20rpx;
-  padding: 0 24rpx;
-  height: 100rpx;
-  display: flex;
-  align-items: center;
-}
-
-.pp-input {
-  flex: 1;
-  font-size: 32rpx;
-  color: var(--text);
-  height: 100%;
-}
-
-.pp-field-tip {
-  font-size: 24rpx;
-  color: var(--text-ph);
-  margin-top: 12rpx;
-}
-
-/* 保存按钮 */
+/* 保存按钮 — 底部固定 */
 .pp-save-area {
-  padding: 48rpx 32rpx;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  flex-shrink: 0;
 }
 
 .pp-save-btn {

@@ -9,7 +9,8 @@ Page({
     navHeight: 64,
     tempNick: '',
     tempAvatarUrl: '',
-    avatarChanged: false
+    avatarChanged: false,
+    nickFocus: false
   },
 
   onLoad() {
@@ -38,6 +39,7 @@ Page({
     if (e.detail.value) {
       this.setData({ tempNick: e.detail.value });
     }
+    this.setData({ nickFocus: false });
   },
 
   chooseAvatarFromAlbum() {
