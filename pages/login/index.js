@@ -1,19 +1,24 @@
 // pages/login/index.js — 登录/注册页逻辑
 const util = require('../../utils/util');
-const config = require('../../utils/config');
 const oss = require('../../utils/oss');
 const security = require('../../utils/security');
+const config = require('../../utils/config');
 
 Page({
   data: {
     statusBarHeight: 20,
-    tempNick: '',
-    tempAvatarUrl: '',
-    avatarChanged: false,
-    phoneText: '点击获取手机号',
+    navHeight: 64,
+    agreed: false,
+    // 微信快捷登录弹窗
+    showWxSheet: false,
+    wxNick: '',
+    phoneObtained: false,
     phoneCode: '',
-    canLogin: false,
-    agreed: false
+    // 手机验证码弹窗
+    showPhoneSheet: false,
+    phoneInput: '',
+    smsCode: '',
+    smsCountdown: 0
   },
 
   onLoad() {
@@ -25,57 +30,12 @@ Page({
         sbh = wx.getSystemInfoSync().statusBarHeight;
       }
     } catch (e) {}
-    this.setData({ statusBarHeight: sbh });
+    this.setData({ statusBarHeight: sbh, navHeight: sbh + 44 });
   },
 
-  // 昵称输入
-  onNickInput(e) {
-    this.setData({ tempNick: e.detail.value });
-    this._updateCanLogin();
-  },
-
-  onNickBlur(e) {
-    if (e.detail.value) {
-      this.setData({ tempNick: e.detail.value });
-      this._updateCanLogin();
-    }
-  },
-
-  // 从相册/相机选择头像
-  chooseAvatarFromAlbum() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        this.setData({
-          tempAvatarUrl: res.tempFiles[0].tempFilePath,
-          avatarChanged: true
-        });
-      },
-      fail: () => {}
-    });
-  },
-
-  // 手机号授权
-  onGetPhoneNumber(e) {
-    if (e.detail.errMsg === 'getPhoneNumber:ok') {
-      // e.detail.code 可在后端解密获取手机号
-      // 前端先用授权成功标记
-      this.setData({
-        phoneCode: e.detail.code,
-        phoneText: '✓ 已获取手机号'
-      });
-    } else {
-      util.showToast('未获取手机号授权');
-    }
-  },
-
-  // 协议勾选
+  // ===== 通用 =====
   toggleAgree() {
     this.setData({ agreed: !this.data.agreed });
-    this._updateCanLogin();
   },
 
   goPrivacy() {
@@ -86,27 +46,54 @@ Page({
     wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/map/index' }) });
   },
 
-  // 更新可登录状态
-  _updateCanLogin() {
-    const canLogin = !!(this.data.tempNick && this.data.tempNick.trim() && this.data.agreed);
-    this.setData({ canLogin });
+  stopProp() {},
+
+  checkAgreement() {
+    if (!this.data.agreed) {
+      util.showToast('请先阅读并同意隐私协议');
+      return false;
+    }
+    return true;
   },
 
-  // 完成登录
-  async doLogin() {
-    if (!this.data.canLogin) {
-      if (!this.data.tempNick || !this.data.tempNick.trim()) {
-        util.showToast('请输入昵称');
-        return;
-      }
-      if (!this.data.agreed) {
-        util.showToast('请先同意隐私协议');
-        return;
-      }
+  // ===== 微信快捷登录 =====
+  onWeChatLogin() {
+    if (!this.checkAgreement()) return;
+    this.setData({ showWxSheet: true });
+  },
+
+  hideWxSheet() {
+    this.setData({ showWxSheet: false });
+  },
+
+  onWxNickInput(e) {
+    this.setData({ wxNick: e.detail.value });
+  },
+
+  onWxNickBlur(e) {
+    if (e.detail.value) {
+      this.setData({ wxNick: e.detail.value });
+    }
+  },
+
+  onGetPhoneNumber(e) {
+    if (e.detail.errMsg === 'getPhoneNumber:ok') {
+      this.setData({
+        phoneObtained: true,
+        phoneCode: e.detail.code
+      });
+    } else {
+      util.showToast('未获取手机号授权');
+    }
+  },
+
+  async confirmWxLogin() {
+    const nick = (this.data.wxNick || '').trim();
+    if (!nick) {
+      util.showToast('请获取微信昵称');
       return;
     }
 
-    const nick = this.data.tempNick.trim();
     const userData = util.getUserState();
     const openid = userData.openid || '';
 
@@ -126,37 +113,111 @@ Page({
     u.hasLoggedIn = true;
     util.saveUser(u);
 
-    // 上传头像
-    if (this.data.avatarChanged && this.data.tempAvatarUrl) {
-      util.showLoading('保存中...');
-      try {
-        const url = await oss.uploadToOSS(this.data.tempAvatarUrl, 'avatars', 'jpg');
-        const imgSafe = await security.checkImage(url, openid);
-        if (!imgSafe.safe) {
-          util.hideLoading();
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的头像图片含违规信息，请更换后重新提交。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          return;
-        }
-        const u2 = util.getUserState();
-        u2.avatarUrl = url;
-        util.saveUser(u2);
-      } catch (e) {
-        console.error('[login] avatar upload failed:', e);
-        util.hideLoading();
-        util.showToast('头像上传失败，昵称已保存');
-        this.goBack();
-        return;
-      }
-      util.hideLoading();
-    }
-
+    this.setData({ showWxSheet: false });
     util.showToast('登录成功');
     setTimeout(() => this.goBack(), 800);
+  },
+
+  // ===== 手机号验证码登录 =====
+  onPhoneCodeLogin() {
+    if (!this.checkAgreement()) return;
+    this.setData({ showPhoneSheet: true });
+  },
+
+  hidePhoneSheet() {
+    this.setData({ showPhoneSheet: false });
+  },
+
+  onPhoneInput(e) {
+    this.setData({ phoneInput: e.detail.value });
+  },
+
+  onSmsCodeInput(e) {
+    this.setData({ smsCode: e.detail.value });
+  },
+
+  sendSmsCode() {
+    if (this.data.smsCountdown > 0) return;
+    const phone = (this.data.phoneInput || '').trim();
+    if (!phone || phone.length !== 11) {
+      util.showToast('请输入正确的手机号');
+      return;
+    }
+
+    util.showLoading('发送中...');
+    wx.request({
+      url: config.SUPABASE_URL + '/functions/v1/sms-send',
+      method: 'POST',
+      data: { phone: phone },
+      header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.ANON_KEY },
+      success: (res) => {
+        util.hideLoading();
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          util.showToast('验证码已发送');
+          this.setData({ smsCountdown: 60 });
+          this._startCountdown();
+        } else {
+          util.showToast(res.data && res.data.message || '发送失败');
+        }
+      },
+      fail: () => {
+        util.hideLoading();
+        util.showToast('网络错误，请重试');
+      }
+    });
+  },
+
+  _startCountdown() {
+    if (this.data.smsCountdown <= 0) return;
+    this._countdownTimer = setTimeout(() => {
+      this.setData({ smsCountdown: this.data.smsCountdown - 1 });
+      this._startCountdown();
+    }, 1000);
+  },
+
+  confirmPhoneLogin() {
+    const phone = (this.data.phoneInput || '').trim();
+    const code = (this.data.smsCode || '').trim();
+    if (!phone || phone.length !== 11) {
+      util.showToast('请输入正确的手机号');
+      return;
+    }
+    if (!code || code.length < 4) {
+      util.showToast('请输入验证码');
+      return;
+    }
+
+    util.showLoading('登录中...');
+    wx.request({
+      url: config.SUPABASE_URL + '/functions/v1/sms-verify',
+      method: 'POST',
+      data: { phone: phone, code: code },
+      header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.ANON_KEY },
+      success: (res) => {
+        util.hideLoading();
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          const u = util.getUserState();
+          u.phone = phone;
+          if (res.data.openid) u.openid = res.data.openid;
+          if (res.data.nick) util.setUserNick(res.data.nick);
+          u.hasLoggedIn = true;
+          util.saveUser(u);
+
+          this.setData({ showPhoneSheet: false });
+          util.showToast('登录成功');
+          setTimeout(() => this.goBack(), 800);
+        } else {
+          util.showToast(res.data && res.data.message || '验证码错误');
+        }
+      },
+      fail: () => {
+        util.hideLoading();
+        util.showToast('网络错误，请重试');
+      }
+    });
+  },
+
+  onUnload() {
+    if (this._countdownTimer) clearTimeout(this._countdownTimer);
   }
 });
