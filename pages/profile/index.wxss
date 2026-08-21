@@ -1,0 +1,127 @@
+/* pages/profile/index.wxss — 编辑资料页样式 */
+.page-profile {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* 导航栏 */
+.pp-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32rpx;
+  background: #fff;
+  border-bottom: 2rpx solid var(--line);
+}
+
+.pp-back {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  color: var(--text);
+}
+
+.pp-nav-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pp-nav-placeholder {
+  width: 56rpx;
+}
+
+/* 头像区 */
+.pp-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 60rpx 0 48rpx;
+  background: #fff;
+  margin-bottom: 24rpx;
+}
+
+.pp-avatar-wrap {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: var(--green-light);
+  border: 4rpx solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pp-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.pp-avatar-placeholder {
+  font-size: 72rpx;
+}
+
+.pp-avatar-hint {
+  font-size: 24rpx;
+  color: var(--text-ph);
+}
+
+/* 字段组 */
+.pp-field-group {
+  background: #fff;
+  margin: 0;
+  padding: 32rpx;
+}
+
+.pp-field-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16rpx;
+}
+
+.pp-field-box {
+  background: var(--bg);
+  border-radius: 20rpx;
+  padding: 0 24rpx;
+  height: 100rpx;
+  display: flex;
+  align-items: center;
+}
+
+.pp-input {
+  flex: 1;
+  font-size: 32rpx;
+  color: var(--text);
+  height: 100%;
+}
+
+.pp-field-tip {
+  font-size: 24rpx;
+  color: var(--text-ph);
+  margin-top: 12rpx;
+}
+
+/* 保存按钮 */
+.pp-save-area {
+  padding: 48rpx 32rpx;
+}
+
+.pp-save-btn {
+  height: 96rpx;
+  background: var(--green);
+  border-radius: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}

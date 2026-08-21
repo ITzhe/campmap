@@ -147,6 +147,32 @@
   color: var(--green);
 }
 
+/* ============ 登录提示 ============ */
+.login-hint {
+  margin: 24rpx;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lh-text {
+  font-size: 26rpx;
+  color: var(--text-2);
+}
+
+.lh-btn {
+  background: var(--green);
+  color: #fff;
+  border-radius: 32rpx;
+  padding: 14rpx 32rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
 /* ============ 功能网格 ============ */
 .grid-section {
   margin: 24rpx;

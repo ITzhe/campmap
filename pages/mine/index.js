@@ -1,8 +1,6 @@
 // pages/mine/index.js — 我的页面逻辑
 const util = require('../../utils/util');
 const config = require('../../utils/config');
-const oss = require('../../utils/oss');
-const security = require('../../utils/security');
 
 Page({
   data: {
@@ -17,6 +15,7 @@ Page({
     checkedToday: false,
     checkinAmt: config.POINTS_RULES.daily_checkin,
     checkinBtnText: '📅 签到 +10',
+    isLoggedIn: false,
 
     // 核心功能 (推广期隐藏积分明细)
     coreFuncs: [
@@ -39,14 +38,7 @@ Page({
       { key: 'faq', label: '常见问题' },
       { key: 'privacy', label: '隐私协议' },
       { key: 'logout', label: '退出登录', danger: true }
-    ],
-
-    // 昵称编辑弹窗
-    showNickPopup: false,
-    tempNick: '',
-    tempPhone: '',
-    tempAvatarUrl: '',
-    avatarChanged: false
+    ]
   },
 
   onLoad() {
@@ -78,9 +70,9 @@ Page({
       streak: u.streak || 0,
       joinDays: util.calcJoinDays(u.joinDate),
       checkedToday: checkedToday,
-      checkinBtnText: checkedToday ? '✓ 已签到' : ('📅 签到 +' + this.data.checkinAmt)
+      checkinBtnText: checkedToday ? '✓ 已签到' : ('📅 签到 +' + this.data.checkinAmt),
+      isLoggedIn: !!(u.nick && u.nick.trim() && u.nick !== '微信用户')
     });
-    // 同步全局
     const app = getApp();
     app.globalData.points = u.points;
     app.globalData.streak = u.streak;
@@ -113,133 +105,18 @@ Page({
     wx.navigateTo({ url: '/pages/settings/index' });
   },
 
-  // ============ 点击头像 — 打开编辑弹窗 ============
+  // 点击头像 — 跳转到编辑资料页 (全屏页面, 解决微信昵称弹窗位置问题)
   tapAvatar() {
-    const u = util.getUserState();
-    this.setData({
-      showNickPopup: true,
-      tempNick: (u.nick && u.nick !== '微信用户') ? u.nick : '',
-      tempPhone: u.phone || '',
-      tempAvatarUrl: u.avatarUrl || '',
-      avatarChanged: false
-    });
-  },
-
-  // 昵称输入 (type="nickname" 会触发微信原生选择)
-  onNickInput(e) {
-    this.setData({ tempNick: e.detail.value });
-  },
-
-  // 昵称失焦
-  onNickBlur(e) {
-    if (e.detail.value) {
-      this.setData({ tempNick: e.detail.value });
+    if (this.data.isLoggedIn) {
+      wx.navigateTo({ url: '/pages/profile/index' });
+    } else {
+      wx.navigateTo({ url: '/pages/login/index' });
     }
   },
 
-  // 手机号输入
-  onPhoneInput(e) {
-    this.setData({ tempPhone: e.detail.value });
-  },
-
-  // 选择微信头像 (button open-type="chooseAvatar")
-  onChooseAvatar(e) {
-    if (e.detail.avatarUrl) {
-      this.setData({
-        tempAvatarUrl: e.detail.avatarUrl,
-        avatarChanged: true
-      });
-    }
-  },
-
-  // 从相册选择头像
-  chooseAvatarFromAlbum() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        this.setData({
-          tempAvatarUrl: res.tempFiles[0].tempFilePath,
-          avatarChanged: true
-        });
-      },
-      fail: () => {}
-    });
-  },
-
-  // 关闭弹窗
-  closeNickPopup() {
-    this.setData({ showNickPopup: false });
-  },
-
-  // 阻止冒泡
-  noop() {},
-
-  // 保存昵称和头像
-  async saveNick() {
-    const nick = (this.data.tempNick || '').trim();
-    const phone = (this.data.tempPhone || '').trim();
-    if (!nick) {
-      util.showToast('请输入昵称');
-      return;
-    }
-    // 手机号格式校验 (选填, 但填了就校验)
-    if (phone && !/^1\d{10}$/.test(phone)) {
-      util.showToast('请输入正确的手机号');
-      return;
-    }
-
-    // 内容安全检测: 昵称文本
-    const userData = util.getUserState();
-    const openid = userData.openid || '';
-    const textSafe = await security.checkTextWithToast(nick, openid);
-    if (!textSafe) return;
-
-    // 保存昵称
-    util.setUserNick(nick);
-
-    // 保存手机号
-    const u = util.getUserState();
-    u.phone = phone;
-    util.saveUser(u);
-
-    // 如果头像有变化, 先上传再检测图片安全
-    if (this.data.avatarChanged && this.data.tempAvatarUrl) {
-      util.showLoading('保存中...');
-      try {
-        const url = await oss.uploadToOSS(this.data.tempAvatarUrl, 'avatars', 'jpg');
-        // 图片内容安全检测
-        const imgSafe = await security.checkImage(url, openid);
-        if (!imgSafe.safe) {
-          util.hideLoading();
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的头像图片含违规信息，请更换后重新提交。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          return;
-        }
-        const u = util.getUserState();
-        u.avatarUrl = url;
-        util.saveUser(u);
-      } catch (e) {
-        console.error('[avatar] upload failed:', e);
-        util.hideLoading();
-        util.showToast('头像上传失败，昵称已保存');
-        this.setData({ showNickPopup: false });
-        this.loadUser();
-        return;
-      }
-      util.hideLoading();
-    }
-
-    this.setData({ showNickPopup: false });
-    this.loadUser();
-    util.showToast('保存成功');
+  // 跳转登录页
+  goLogin() {
+    wx.navigateTo({ url: '/pages/login/index' });
   },
 
   // ============ 跳转 ============
