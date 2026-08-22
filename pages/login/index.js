@@ -120,8 +120,7 @@ Page({
   // ===== 手机号验证码登录 =====
   onPhoneCodeLogin() {
     if (!this.checkAgreement()) return;
-    util.showToast('手机号验证码登录功能开发中');
-    // this.setData({ showPhoneSheet: true });
+    this.setData({ showPhoneSheet: true });
   },
 
   hidePhoneSheet() {
@@ -143,11 +142,87 @@ Page({
       util.showToast('请输入正确的手机号');
       return;
     }
-    util.showToast('功能开发中');
+
+    util.showLoading('发送中...');
+    wx.request({
+      url: config.SUPABASE_URL + '/functions/v1/sms-send',
+      method: 'POST',
+      data: { phone: phone },
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + config.ANON_KEY,
+        'apikey': config.ANON_KEY
+      },
+      success: (res) => {
+        util.hideLoading();
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          util.showToast('验证码已发送');
+          this.setData({ smsCountdown: 60 });
+          this._startCountdown();
+        } else {
+          util.showToast(res.data && res.data.message || '发送失败');
+        }
+      },
+      fail: (err) => {
+        util.hideLoading();
+        console.error('发送验证码失败:', err);
+        util.showToast('网络错误，请重试');
+      }
+    });
+  },
+
+  _startCountdown() {
+    if (this.data.smsCountdown <= 0) return;
+    this._countdownTimer = setTimeout(() => {
+      this.setData({ smsCountdown: this.data.smsCountdown - 1 });
+      this._startCountdown();
+    }, 1000);
   },
 
   confirmPhoneLogin() {
-    util.showToast('功能开发中');
+    const phone = (this.data.phoneInput || '').trim();
+    const code = (this.data.smsCode || '').trim();
+    if (!phone || phone.length !== 11) {
+      util.showToast('请输入正确的手机号');
+      return;
+    }
+    if (!code || code.length < 4) {
+      util.showToast('请输入验证码');
+      return;
+    }
+
+    util.showLoading('登录中...');
+    wx.request({
+      url: config.SUPABASE_URL + '/functions/v1/sms-verify',
+      method: 'POST',
+      data: { phone: phone, code: code },
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + config.ANON_KEY,
+        'apikey': config.ANON_KEY
+      },
+      success: (res) => {
+        util.hideLoading();
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          // 验证成功，保存用户登录状态
+          const u = util.getUserState();
+          u.phone = phone;
+          u.hasLoggedIn = true;
+          util.saveUser(u);
+
+          this.setData({ showPhoneSheet: false });
+          util.showToast('登录成功');
+          setTimeout(() => this.goBack(), 800);
+        } else {
+          util.showToast(res.data && res.data.message || '验证码错误或已过期');
+        }
+      },
+      fail: (err) => {
+        util.hideLoading();
+        console.error('验证失败:', err);
+        util.showToast('网络错误，请重试');
+      }
+    });
   },
 
   onUnload() {
