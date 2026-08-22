@@ -14,7 +14,7 @@ Page({
     wxNick: '',
     phoneObtained: false,
     phoneCode: '',
-    // 手机验证码弹窗
+    // 手机验证码登录弹窗
     showPhoneSheet: false,
     phoneInput: '',
     smsCode: '',
@@ -46,8 +46,6 @@ Page({
     wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/map/index' }) });
   },
 
-  stopProp() {},
-
   checkAgreement() {
     if (!this.data.agreed) {
       util.showToast('请先阅读并同意隐私协议');
@@ -77,13 +75,14 @@ Page({
   },
 
   onGetPhoneNumber(e) {
-    if (e.detail.errMsg === 'getPhoneNumber:ok') {
+    if (e.detail.errMsg === 'getPhoneNumber:ok' || e.detail.code) {
       this.setData({
         phoneObtained: true,
-        phoneCode: e.detail.code
+        phoneCode: e.detail.code || ''
       });
+      util.showToast('手机号获取成功');
     } else {
-      util.showToast('未获取手机号授权');
+      util.showToast('已取消获取手机号');
     }
   },
 
@@ -104,7 +103,7 @@ Page({
     // 保存昵称
     util.setUserNick(nick);
 
-    // 保存手机号
+    // 保存手机号code
     const u = util.getUserState();
     if (this.data.phoneCode) {
       u.phoneCode = this.data.phoneCode;
@@ -121,7 +120,8 @@ Page({
   // ===== 手机号验证码登录 =====
   onPhoneCodeLogin() {
     if (!this.checkAgreement()) return;
-    this.setData({ showPhoneSheet: true });
+    util.showToast('手机号验证码登录功能开发中');
+    // this.setData({ showPhoneSheet: true });
   },
 
   hidePhoneSheet() {
@@ -143,78 +143,11 @@ Page({
       util.showToast('请输入正确的手机号');
       return;
     }
-
-    util.showLoading('发送中...');
-    wx.request({
-      url: config.SUPABASE_URL + '/functions/v1/sms-send',
-      method: 'POST',
-      data: { phone: phone },
-      header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.ANON_KEY },
-      success: (res) => {
-        util.hideLoading();
-        if (res.statusCode === 200 && res.data && res.data.success) {
-          util.showToast('验证码已发送');
-          this.setData({ smsCountdown: 60 });
-          this._startCountdown();
-        } else {
-          util.showToast(res.data && res.data.message || '发送失败');
-        }
-      },
-      fail: () => {
-        util.hideLoading();
-        util.showToast('网络错误，请重试');
-      }
-    });
-  },
-
-  _startCountdown() {
-    if (this.data.smsCountdown <= 0) return;
-    this._countdownTimer = setTimeout(() => {
-      this.setData({ smsCountdown: this.data.smsCountdown - 1 });
-      this._startCountdown();
-    }, 1000);
+    util.showToast('功能开发中');
   },
 
   confirmPhoneLogin() {
-    const phone = (this.data.phoneInput || '').trim();
-    const code = (this.data.smsCode || '').trim();
-    if (!phone || phone.length !== 11) {
-      util.showToast('请输入正确的手机号');
-      return;
-    }
-    if (!code || code.length < 4) {
-      util.showToast('请输入验证码');
-      return;
-    }
-
-    util.showLoading('登录中...');
-    wx.request({
-      url: config.SUPABASE_URL + '/functions/v1/sms-verify',
-      method: 'POST',
-      data: { phone: phone, code: code },
-      header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.ANON_KEY },
-      success: (res) => {
-        util.hideLoading();
-        if (res.statusCode === 200 && res.data && res.data.success) {
-          const u = util.getUserState();
-          u.phone = phone;
-          if (res.data.openid) u.openid = res.data.openid;
-          if (res.data.nick) util.setUserNick(res.data.nick);
-          u.hasLoggedIn = true;
-          util.saveUser(u);
-
-          this.setData({ showPhoneSheet: false });
-          util.showToast('登录成功');
-          setTimeout(() => this.goBack(), 800);
-        } else {
-          util.showToast(res.data && res.data.message || '验证码错误');
-        }
-      },
-      fail: () => {
-        util.hideLoading();
-        util.showToast('网络错误，请重试');
-      }
-    });
+    util.showToast('功能开发中');
   },
 
   onUnload() {

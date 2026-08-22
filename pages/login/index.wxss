@@ -173,21 +173,27 @@
   visibility: visible;
 }
 
-.lb-sheet {
-  position: absolute;
-  bottom: 0;
+.lb-sheet-wrap {
+  position: fixed;
   left: 0;
   right: 0;
-  background: #fff;
-  border-radius: 28rpx 28rpx 0 0;
-  padding: 0 32rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  bottom: 0;
+  z-index: 1001;
+  pointer-events: none;
   transform: translateY(100%);
   transition: transform 0.3s ease-out;
 }
 
-.lb-mask.show .lb-sheet {
+.lb-sheet-wrap.show {
+  pointer-events: auto;
   transform: translateY(0);
+}
+
+.lb-sheet {
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 0 32rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
 
 /* 弹窗头部 */

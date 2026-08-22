@@ -39,8 +39,11 @@
 </view>
 
 <!-- ========== 微信快捷登录授权弹窗 ========== -->
-<view class="lb-mask {{showWxSheet ? 'show' : ''}}" catchtap="hideWxSheet">
-  <view class="lb-sheet {{showWxSheet ? 'show' : ''}}" catchtap="stopProp">
+<!-- 遮罩层（独立，不包裹sheet，避免catchtap干扰open-type按钮） -->
+<view class="lb-mask {{showWxSheet ? 'show' : ''}}" bindtap="hideWxSheet"></view>
+<!-- 底部弹窗（与遮罩平级，sheet内部不需要catchtap） -->
+<view class="lb-sheet-wrap {{showWxSheet ? 'show' : ''}}">
+  <view class="lb-sheet">
     <!-- 弹窗头部：应用标识 -->
     <view class="lb-sheet-header">
       <view class="lb-sheet-app">
@@ -78,7 +81,8 @@
           <view class="lb-item-sub">用于营地审核联系，不会公开展示</view>
         </view>
         <view class="lb-item-btn-wrap">
-          <button class="lb-phone-btn {{phoneObtained ? 'done' : ''}}" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+          <button class="lb-phone-btn {{phoneObtained ? 'done' : ''}}"
+            open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
             {{phoneObtained ? '✓ 已获取' : '获取手机号'}}
           </button>
         </view>
@@ -94,8 +98,9 @@
 </view>
 
 <!-- ========== 手机号验证码登录弹窗 ========== -->
-<view class="lb-mask {{showPhoneSheet ? 'show' : ''}}" catchtap="hidePhoneSheet">
-  <view class="lb-sheet {{showPhoneSheet ? 'show' : ''}}" catchtap="stopProp">
+<view class="lb-mask {{showPhoneSheet ? 'show' : ''}}" bindtap="hidePhoneSheet"></view>
+<view class="lb-sheet-wrap {{showPhoneSheet ? 'show' : ''}}">
+  <view class="lb-sheet">
     <!-- 弹窗头部 -->
     <view class="lb-sheet-header">
       <view class="lb-sheet-app">
