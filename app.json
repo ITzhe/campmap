@@ -16,8 +16,7 @@
     "pages/submissions/index",
     "pages/privacy/index",
     "pages/login/index",
-    "pages/profile/index",
-    "pages/search/index"
+    "pages/profile/index"
   ],
   "window": {
     "navigationBarTitleText": "营图",

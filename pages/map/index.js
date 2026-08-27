@@ -44,7 +44,15 @@ Page({
 
     // 状态
     loadingCamps: false,
-    campCount: 0
+    campCount: 0,
+
+    // 搜索面板
+    searchPanelVisible: false,
+    searchKeyword: '',
+    searchResults: [],
+    searchSearching: false,
+    searchSearched: false,
+    searchHistory: []
   },
 
   // 防抖定时器
@@ -85,6 +93,12 @@ Page({
 
     // 立即用默认中心加载营地 (不等待定位)
     this.loadCamps();
+
+    // 加载搜索历史
+    try {
+      const h = wx.getStorageSync('camp_search_history');
+      if (h) this.setData({ searchHistory: h });
+    } catch (e) {}
 
     // 异步定位, 成功后刷新 (用 try-catch 防止任何错误中断页面生命周期)
     try {
@@ -601,7 +615,108 @@ Page({
 
   //Search tap
   onSearchTap() {
-    wx.navigateTo({ url: '/pages/search/index' });
+    this.setData({ searchPanelVisible: true });
+  },
+
+  closeSearchPanel() {
+    this.setData({
+      searchPanelVisible: false,
+      searchSearched: false,
+      searchResults: [],
+      searchKeyword: ''
+    });
+  },
+
+  onSearchInput(e) {
+    this.setData({ searchKeyword: e.detail.value });
+  },
+
+  clearSearchInput() {
+    this.setData({ searchKeyword: '', searchSearched: false, searchResults: [] });
+  },
+
+  doSearch() {
+    const kw = (this.data.searchKeyword || '').trim();
+    if (!kw) {
+      util.showToast('请输入搜索关键词');
+      return;
+    }
+
+    // 保存历史
+    let h = this.data.searchHistory.filter(k => k !== kw);
+    h.unshift(kw);
+    h = h.slice(0, 10);
+    this.setData({ searchHistory: h, searchSearching: true, searchSearched: true, searchResults: [] });
+    try { wx.setStorageSync('camp_search_history', h); } catch (e) {}
+
+    // 搜索
+    const url = `${config.API_BASE}/camping_spots?select=spot_code,name,longitude,latitude,address,parking_status,toilet_status,water_status,power_status,charging_status,rv_friendly,trailer_friendly,tent_friendly&or=(name.ilike.*${encodeURIComponent(kw)}*,address.ilike.*${encodeURIComponent(kw)}*)&limit=50`;
+
+    wx.request({
+      url: url,
+      method: 'GET',
+      header: config.getHeaders(),
+      timeout: 8000,
+      success: (res) => {
+        if (res.statusCode === 200 && Array.isArray(res.data)) {
+          const results = res.data.map(c => ({
+            ...c,
+            isFree: c.parking_status === 0,
+            tags: this._buildSearchTags(c)
+          }));
+          this.setData({ searchResults: results });
+        } else {
+          util.showToast('搜索失败');
+        }
+      },
+      fail: () => { util.showToast('网络错误'); },
+      complete: () => { this.setData({ searchSearching: false }); }
+    });
+  },
+
+  _buildSearchTags(c) {
+    const tags = [];
+    if (c.toilet_status) tags.push('🚻');
+    if (c.water_status) tags.push('💧');
+    if (c.power_status) tags.push('🔌');
+    if (c.charging_status) tags.push('🔋');
+    if (c.rv_friendly) tags.push('🚐');
+    if (c.tent_friendly) tags.push('⛺');
+    return tags.join(' ');
+  },
+
+  onTapHistory(e) {
+    const kw = e.currentTarget.dataset.kw;
+    this.setData({ searchKeyword: kw });
+    this.doSearch();
+  },
+
+  clearSearchHistory() {
+    wx.showModal({
+      title: '提示', content: '清除搜索历史？', confirmColor: '#2d6a4f',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({ searchHistory: [] });
+          try { wx.removeStorageSync('camp_search_history'); } catch (e) {}
+        }
+      }
+    });
+  },
+
+  onTapSearchResult(e) {
+    const spot = e.currentTarget.dataset.spot;
+    this.setData({ searchPanelVisible: false });
+    // 聚焦地图到该营地
+    this.setData({
+      latitude: spot.latitude,
+      longitude: spot.longitude,
+      scale: 15
+    });
+    this.loadCamps();
+    // 跳转详情
+    setTimeout(() => {
+      wx.navigateTo({ url: '/pages/detail/index?spotCode=' + spot.spot_code });
+    }, 300);
   },
 
   // ============ 跳转营地录入 ============

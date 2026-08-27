@@ -28,12 +28,12 @@
     </cover-view>
 
     <!-- 营地数量提示 -->
-    <cover-view wx:if="{{campCount > 0}}" class="camp-count-badge" style="top: {{topbarHeight + 8}}px;">
+    <cover-view wx:if="{{campCount > 0 && !searchPanelVisible}}" class="camp-count-badge" style="top: {{topbarHeight + 8}}px;">
       <cover-view class="cc-text">附近 {{campCount}} 个营地</cover-view>
     </cover-view>
 
     <!-- 地图图例 -->
-    <cover-view class="map-legend" style="top: {{topbarHeight + 52}}px;">
+    <cover-view wx:if="{{!searchPanelVisible}}" class="map-legend" style="top: {{topbarHeight + 52}}px;">
       <cover-view class="lg">
         <cover-view class="lg-dot free"></cover-view>
         <cover-view class="lg-text">免费</cover-view>
@@ -74,6 +74,59 @@
       </cover-view>
     </cover-view>
   </map>
+
+  <!-- 搜索浮层面板（在map组件外，可用普通view+input） -->
+  <view wx:if="{{searchPanelVisible}}" class="search-panel">
+    <!-- 搜索输入区 -->
+    <view class="sp-header" style="padding-top: {{statusBarHeight}}px;">
+      <view class="sp-bar">
+        <view class="sp-back" bindtap="closeSearchPanel">‹</view>
+        <view class="sp-input-wrap">
+          <text class="sp-icon">🔍</text>
+          <input class="sp-input" type="text" placeholder="搜索营地名称或地址"
+            value="{{searchKeyword}}" bindinput="onSearchInput" bindconfirm="doSearch"
+            focus="{{searchPanelVisible}}" confirm-type="search" />
+          <view wx:if="{{searchKeyword}}" class="sp-clear" bindtap="clearSearchInput">✕</view>
+        </view>
+        <view class="sp-btn" bindtap="doSearch">搜索</view>
+      </view>
+    </view>
+
+    <!-- 搜索历史 -->
+    <view class="sp-body" wx:if="{{!searchSearched && searchHistory.length > 0}}">
+      <view class="sp-section-head">
+        <text class="sp-section-title">搜索历史</text>
+        <text class="sp-section-clear" bindtap="clearSearchHistory">清除</text>
+      </view>
+      <view class="sp-history-list">
+        <view class="sp-history-item" wx:for="{{searchHistory}}" wx:key="*this"
+          data-kw="{{item}}" bindtap="onTapHistory">{{item}}</view>
+      </view>
+    </view>
+
+    <!-- 搜索中 -->
+    <view class="sp-body" wx:if="{{searchSearching}}">
+      <view class="sp-loading">搜索中...</view>
+    </view>
+
+    <!-- 搜索结果 -->
+    <view class="sp-body" wx:if="{{searchSearched && !searchSearching}}">
+      <view class="sp-result-tip" wx:if="{{searchResults.length > 0}}">共找到 {{searchResults.length}} 个营地</view>
+      <view class="sp-empty" wx:if="{{searchResults.length === 0}}">
+        <text class="sp-empty-icon">😅</text>
+        <text class="sp-empty-text">未找到相关营地</text>
+      </view>
+      <view class="sp-result" wx:for="{{searchResults}}" wx:key="spot_code"
+        data-spot="{{item}}" bindtap="onTapSearchResult">
+        <view class="spr-top">
+          <text class="spr-name">{{item.name}}</text>
+          <text class="spr-badge {{item.isFree ? 'free' : 'paid'}}">{{item.isFree ? '免费' : '收费'}}</text>
+        </view>
+        <view class="spr-addr" wx:if="{{item.address}}">{{item.address}}</view>
+        <view class="spr-tags" wx:if="{{item.tags}}">{{item.tags}}</view>
+      </view>
+    </view>
+  </view>
 
   <!-- 筛选弹窗组件 -->
   <filter-sheet
