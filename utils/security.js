@@ -46,10 +46,15 @@ async function checkText(text, openid) {
     return { safe: true, reason: '' };
   }
 
+  // openid 为空时跳过 API 调用（个人主体小程序无有效 openid）
+  if (!openid) {
+    return localCheckText(text);
+  }
+
   try {
     const res = await callSecurityAPI('text', {
       content: text,
-      openid: openid || ''
+      openid: openid
     });
 
     if (res.errcode === 0) {
@@ -86,10 +91,16 @@ async function checkImage(imageUrl, openid) {
     return { safe: true, reason: '' };
   }
 
+  // openid 为空时跳过 API 调用（个人主体小程序无有效 openid）
+  if (!openid) {
+    console.warn('[security] 无 openid, 图片检测降级放行');
+    return { safe: true, reason: '' };
+  }
+
   try {
     const res = await callSecurityAPI('image', {
       media_url: imageUrl,
-      openid: openid || ''
+      openid: openid
     });
 
     if (res.errcode === 0) {
