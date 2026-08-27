@@ -20,14 +20,15 @@ function percentEncode(str: string): string {
 
 async function getSignature(
   params: Record<string, string>,
-  accessKeySecret: string
+  accessKeySecret: string,
+  method: string = "POST"
 ): Promise<string> {
   const sortedKeys = Object.keys(params).sort();
   const canonicalizedQueryString = sortedKeys
     .map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`)
     .join("&");
 
-  const stringToSign = `GET&${percentEncode("/")}&${percentEncode(canonicalizedQueryString)}`;
+  const stringToSign = `${method}&${percentEncode("/")}&${percentEncode(canonicalizedQueryString)}`;
 
   const key = new TextEncoder().encode(accessKeySecret + "&");
   const data = new TextEncoder().encode(stringToSign);
