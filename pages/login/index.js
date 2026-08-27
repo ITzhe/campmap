@@ -76,17 +76,26 @@ Page({
 
   onGetPhoneNumber(e) {
     console.log('getPhoneNumber回调:', JSON.stringify(e.detail));
-    // 新版基础库返回 code，旧版返回 errMsg
-    // 用户拒绝: errMsg 包含 "fail" 或 "deny"
     const errMsg = e.detail.errMsg || '';
-    const isDenied = errMsg.indexOf('fail') >= 0 || errMsg.indexOf('deny') >= 0;
+    const errno = e.detail.errno;
     
-    if (isDenied) {
+    // 额度不足
+    if (errno === 1400001) {
+      wx.showModal({
+        title: '提示',
+        content: '手机号获取功能使用次数已达上限，请使用手机号验证码登录',
+        showCancel: false
+      });
+      return;
+    }
+    
+    // 用户拒绝
+    if (errMsg.indexOf('fail') >= 0 || errMsg.indexOf('deny') >= 0) {
       util.showToast('已取消获取手机号');
       return;
     }
     
-    // 有 code 或 errMsg 为 ok 都算成功
+    // 成功：新版返回code，旧版返回errMsg含ok
     if (e.detail.code || errMsg.indexOf('ok') >= 0) {
       this.setData({
         phoneObtained: true,
@@ -94,8 +103,10 @@ Page({
       });
       util.showToast('手机号获取成功');
     } else {
-      // 回调但没有 code 也没有明确失败，可能是能力未开通
-      util.showToast('获取失败，请检查手机号能力是否开通');
+      // 其他错误（如未认证主体）
+      let tip = '获取失败';
+      if (errMsg) tip += '：' + errMsg;
+      util.showToast(tip);
     }
   },
 
