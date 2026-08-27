@@ -12,7 +12,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// 阿里云 API 签名工具
 function percentEncode(str: string): string {
   return encodeURIComponent(str)
     .replace(/\+/g, "%20")
@@ -31,7 +30,6 @@ async function getSignature(
 
   const stringToSign = `GET&${percentEncode("/")}&${percentEncode(canonicalizedQueryString)}`;
 
-  // 使用 Web Crypto API 计算 HMAC-SHA1
   const key = new TextEncoder().encode(accessKeySecret + "&");
   const data = new TextEncoder().encode(stringToSign);
 
@@ -61,7 +59,6 @@ async function sendSmsVerifyCode(phone: string): Promise<any> {
     throw new Error("服务端未配置短信签名 ALIYUN_SMS_SIGN_NAME");
   }
 
-  // 模板参数：##code## 是验证码占位符，min 是有效期（仅用于短信内容展示）
   const templateParam = JSON.stringify({ code: "##code##", min: "5" });
 
   const params: Record<string, string> = {
@@ -77,28 +74,30 @@ async function sendSmsVerifyCode(phone: string): Promise<any> {
     SignName: signName,
     TemplateCode: templateCode,
     TemplateParam: templateParam,
-    ValidTime: "5", // 验证码有效期5分钟
+    ValidTime: "5",
   };
 
-  // 计算签名
+  // 计算签名（签名算法固定用 GET，但实际请求可以用 POST）
   const signature = await getSignature(params, accessKeySecret);
   params["Signature"] = signature;
 
-  // 构建请求URL
-  const queryString = Object.keys(params)
+  // 使用 POST application/x-www-form-urlencoded 方式发送
+  // 避免 GET URL 中 TemplateParam 的特殊字符（##）导致参数丢失
+  const bodyParts = Object.keys(params)
     .sort()
     .map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`)
     .join("&");
 
-  const url = `https://dypnsapi.aliyuncs.com/?${queryString}`;
+  const url = "https://dypnsapi.aliyuncs.com/";
 
-  console.log("调用阿里云短信接口, phone:", phone);
+  console.log("调用阿里云短信接口(POST), phone:", phone);
 
   const res = await fetch(url, {
-    method: "GET",
+    method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
+    body: bodyParts,
   });
 
   const data = await res.json();
@@ -111,7 +110,6 @@ console.info("sms-send function started");
 
 export default {
   async fetch(req: Request): Promise<Response> {
-    // CORS preflight
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
     }
@@ -126,7 +124,6 @@ export default {
         );
       }
 
-      // 简单的手机号格式校验
       if (!/^1[3-9]\d{9}$/.test(phone)) {
         return Response.json(
           { success: false, message: "手机号格式不正确" },
@@ -136,7 +133,6 @@ export default {
 
       const result = await sendSmsVerifyCode(phone);
 
-      // 阿里云返回 Code=OK 表示成功
       if (result.Code === "OK") {
         return Response.json(
           { success: true, message: "验证码已发送", requestId: result.RequestId },

@@ -3,7 +3,7 @@
 // 环境变量需设置:
 //   ALIYUN_ACCESS_KEY_ID     - 阿里云 AccessKey ID
 //   ALIYUN_ACCESS_KEY_SECRET - 阿里云 AccessKey Secret
-//   ALIYUN_SMS_SIGN_NAME     - 短信签名名称（需与发送时一致）
+//   ALIYUN_SMS_SIGN_NAME     - 短信签名名称（与发送时一致）
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +11,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// 阿里云 API 签名工具
 function percentEncode(str: string): string {
   return encodeURIComponent(str)
     .replace(/\+/g, "%20")
@@ -30,7 +29,6 @@ async function getSignature(
 
   const stringToSign = `GET&${percentEncode("/")}&${percentEncode(canonicalizedQueryString)}`;
 
-  // 使用 Web Crypto API 计算 HMAC-SHA1
   const key = new TextEncoder().encode(accessKeySecret + "&");
   const data = new TextEncoder().encode(stringToSign);
 
@@ -73,25 +71,25 @@ async function checkSmsVerifyCode(phone: string, code: string): Promise<any> {
     SignName: signName,
   };
 
-  // 计算签名
   const signature = await getSignature(params, accessKeySecret);
   params["Signature"] = signature;
 
-  // 构建请求URL
-  const queryString = Object.keys(params)
+  // 使用 POST 方式发送
+  const bodyParts = Object.keys(params)
     .sort()
     .map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`)
     .join("&");
 
-  const url = `https://dypnsapi.aliyuncs.com/?${queryString}`;
+  const url = "https://dypnsapi.aliyuncs.com/";
 
-  console.log("调用阿里云核验接口, phone:", phone);
+  console.log("调用阿里云核验接口(POST), phone:", phone);
 
   const res = await fetch(url, {
-    method: "GET",
+    method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
+    body: bodyParts,
   });
 
   const data = await res.json();
@@ -104,7 +102,6 @@ console.info("sms-verify function started");
 
 export default {
   async fetch(req: Request): Promise<Response> {
-    // CORS preflight
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
     }
@@ -119,7 +116,6 @@ export default {
         );
       }
 
-      // 简单的手机号格式校验
       if (!/^1[3-9]\d{9}$/.test(phone)) {
         return Response.json(
           { success: false, message: "手机号格式不正确" },
@@ -129,7 +125,6 @@ export default {
 
       const result = await checkSmsVerifyCode(phone, code);
 
-      // 阿里云返回 Code=OK 且 VerifyResult=true 表示验证成功
       if (result.Code === "OK" && result.VerifyResult) {
         return Response.json(
           {
