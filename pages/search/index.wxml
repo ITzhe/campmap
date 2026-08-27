@@ -1,0 +1,57 @@
+<!-- pages/search/index.wxml — 营地搜索页 -->
+<view class="page-search">
+  <!-- 导航栏 + 搜索框 -->
+  <view class="ss-header" style="padding-top: {{statusBarHeight}}px;">
+    <view class="ss-bar">
+      <view class="ss-back" bindtap="goBack">‹</view>
+      <view class="ss-input-wrap">
+        <text class="ss-icon">🔍</text>
+        <input class="ss-input" type="text" placeholder="搜索营地名称或地址"
+          value="{{keyword}}" bindinput="onInput" bindconfirm="onSearch"
+          focus="{{true}}" confirm-type="search" />
+      </view>
+      <view class="ss-btn" bindtap="onSearch">搜索</view>
+    </view>
+  </view>
+
+  <!-- 搜索历史 -->
+  <view class="ss-history" wx:if="{{!searched && history.length > 0}}">
+    <view class="ss-history-head">
+      <text class="ss-history-title">搜索历史</text>
+      <text class="ss-clear" bindtap="onClearHistory">清除</text>
+    </view>
+    <view class="ss-history-list">
+      <view class="ss-history-item" wx:for="{{history}}" wx:key="*this"
+        data-kw="{{item}}" bindtap="onTapHistory">{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 搜索中 -->
+  <view class="ss-loading" wx:if="{{searching}}">
+    <text>搜索中...</text>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view class="ss-results" wx:if="{{searched && !searching}}">
+    <view class="ss-result-tip" wx:if="{{results.length > 0}}">
+      共找到 {{results.length}} 个营地
+    </view>
+    <view class="ss-result-tip" wx:else>
+      <view class="ss-empty">😅</view>
+      <view class="ss-empty-text">未找到相关营地</view>
+    </view>
+
+    <view class="ss-result-item" wx:for="{{results}}" wx:key="spot_code"
+      data-spot="{{item}}" bindtap="onTapResult">
+      <view class="ss-ri-top">
+        <view class="ss-ri-name">{{item.name}}</view>
+        <view class="ss-ri-badge {{item.isFree ? 'free' : 'paid'}}">{{item.isFree ? '免费' : '收费'}}</view>
+      </view>
+      <view class="ss-ri-addr" wx:if="{{item.address}}">{{item.address}}</view>
+      <view class="ss-ri-tags" wx:if="{{item.tags}}">{{item.tags}}</view>
+      <view class="ss-ri-actions">
+        <view class="ss-ri-map" catchtap="onShowOnMap" data-spot="{{item}}">📍 在地图上查看</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -113,6 +113,24 @@ Page({
       this.loadCamps();
     }
 
+    // 从搜索页返回时，聚焦到选中的营地
+    if (app.globalData.mapFocus) {
+      const focus = app.globalData.mapFocus;
+      app.globalData.mapFocus = null;
+      this.setData({
+        latitude: focus.latitude,
+        longitude: focus.longitude,
+        scale: 15
+      });
+      this.loadCamps();
+      // 延迟跳转详情页
+      if (focus.spotCode) {
+        setTimeout(() => {
+          wx.navigateTo({ url: '/pages/detail/index?spotCode=' + focus.spotCode });
+        }, 500);
+      }
+    }
+
     // 如果有筛选变化，重新加载
     if (JSON.stringify(app.globalData.filters) !== JSON.stringify(this.data.filters)) {
       this.setData({ filters: app.globalData.filters });
@@ -583,7 +601,7 @@ Page({
 
   //Search tap
   onSearchTap() {
-    util.showToast('搜索功能开发中');
+    wx.navigateTo({ url: '/pages/search/index' });
   },
 
   // ============ 跳转营地录入 ============
