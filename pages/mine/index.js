@@ -6,7 +6,6 @@ Page({
   data: {
     statusBarHeight: 20,
     userName: '',
-    userPhone: '',
     avatar: '🏕',
     avatarUrl: '',
     points: 0,
@@ -65,7 +64,6 @@ Page({
     this.setData({
       userName: u.nick || '微信用户',
       avatarUrl: u.avatarUrl || '',
-      userPhone: u.phone || '',
       points: u.points || 0,
       streak: u.streak || 0,
       joinDays: util.calcJoinDays(u.joinDate),

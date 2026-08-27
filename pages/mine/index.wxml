@@ -15,7 +15,7 @@
         </view>
         <view class="mh-text">
           <view class="mh-name">{{userName}}</view>
-          <view class="mh-days">已加入 {{joinDays}} 天{{userPhone ? ' · ' + userPhone : ''}}</view>
+          <view class="mh-days">已加入 {{joinDays}} 天</view>
         </view>
       </view>
       <view class="mh-gear" bindtap="tapGear">⚙</view>
