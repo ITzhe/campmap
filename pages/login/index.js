@@ -75,14 +75,27 @@ Page({
   },
 
   onGetPhoneNumber(e) {
-    if (e.detail.errMsg === 'getPhoneNumber:ok' || e.detail.code) {
+    console.log('getPhoneNumber回调:', JSON.stringify(e.detail));
+    // 新版基础库返回 code，旧版返回 errMsg
+    // 用户拒绝: errMsg 包含 "fail" 或 "deny"
+    const errMsg = e.detail.errMsg || '';
+    const isDenied = errMsg.indexOf('fail') >= 0 || errMsg.indexOf('deny') >= 0;
+    
+    if (isDenied) {
+      util.showToast('已取消获取手机号');
+      return;
+    }
+    
+    // 有 code 或 errMsg 为 ok 都算成功
+    if (e.detail.code || errMsg.indexOf('ok') >= 0) {
       this.setData({
         phoneObtained: true,
         phoneCode: e.detail.code || ''
       });
       util.showToast('手机号获取成功');
     } else {
-      util.showToast('已取消获取手机号');
+      // 回调但没有 code 也没有明确失败，可能是能力未开通
+      util.showToast('获取失败，请检查手机号能力是否开通');
     }
   },
 
