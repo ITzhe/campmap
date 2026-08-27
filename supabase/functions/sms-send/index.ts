@@ -3,7 +3,8 @@
 // 环境变量需设置:
 //   ALIYUN_ACCESS_KEY_ID     - 阿里云 AccessKey ID
 //   ALIYUN_ACCESS_KEY_SECRET - 阿里云 AccessKey Secret
-//   ALIYUN_SMS_SIGN_NAME     - 短信签名名称（需在阿里云控制台配置）
+//   ALIYUN_SMS_SIGN_NAME     - 短信签名名称（赠送签名列表中选一个）
+//   ALIYUN_SMS_TEMPLATE_CODE - 短信模板Code（默认100001登录/注册模板）
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +52,7 @@ async function sendSmsVerifyCode(phone: string): Promise<any> {
   const accessKeyId = Deno.env.get("ALIYUN_ACCESS_KEY_ID") || "";
   const accessKeySecret = Deno.env.get("ALIYUN_ACCESS_KEY_SECRET") || "";
   const signName = Deno.env.get("ALIYUN_SMS_SIGN_NAME") || "";
+  const templateCode = Deno.env.get("ALIYUN_SMS_TEMPLATE_CODE") || "100001";
 
   if (!accessKeyId || !accessKeySecret) {
     throw new Error("服务端未配置阿里云 AccessKey");
@@ -58,6 +60,9 @@ async function sendSmsVerifyCode(phone: string): Promise<any> {
   if (!signName) {
     throw new Error("服务端未配置短信签名 ALIYUN_SMS_SIGN_NAME");
   }
+
+  // 模板参数：##code## 是验证码占位符，min 是有效期（仅用于短信内容展示）
+  const templateParam = JSON.stringify({ code: "##code##", min: "5" });
 
   const params: Record<string, string> = {
     Action: "SendSmsVerifyCode",
@@ -70,6 +75,8 @@ async function sendSmsVerifyCode(phone: string): Promise<any> {
     Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
     PhoneNumber: phone,
     SignName: signName,
+    TemplateCode: templateCode,
+    TemplateParam: templateParam,
     ValidTime: "5", // 验证码有效期5分钟
   };
 
