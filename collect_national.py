@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-营图 - 全国营地数据采集工具 v6.0
+营图 - 全国营地数据采集工具 v7.0
 从安营驻车 API 采集营地数据, 导入 Supabase 数据库
+采集后自动标注过夜属性 + 同步列表字段
 
 覆盖全国 337 个地级行政区（地级市、自治州、地区、盟）
 
@@ -27,6 +28,9 @@
 
     # 指定从第 N 个城市开始
     python collect_national.py --all --start-index 50
+
+    # 跳过过夜标注（默认自动标注）
+    python collect_national.py --all --no-tag
 
     # 列出所有城市
     python collect_national.py --list-cities
@@ -55,6 +59,64 @@ import httpx
 
 # ======================== 城市数据 ========================
 from cities_data import CITIES
+
+# ======================== 过夜标注 ========================
+from overnight_tagger import analyze_overnight
+
+
+def enrich_record(record: Dict) -> Dict:
+    """
+    给单条营地记录添加:
+    1. 过夜属性标注 (overnight_status, noise_level, safety_level,
+       signal_level, ground_type, overnight_score, overnight_data_source)
+    2. 列表字段同步 (list_has_toilet/water/power/charging,
+       list_vehicle_types, facilities)
+    """
+    # --- 过夜属性标注 ---
+    overnight = analyze_overnight(record)
+    record["overnight_status"] = overnight["overnight_status"]
+    record["noise_level"] = overnight["noise_level"]
+    record["safety_level"] = overnight["safety_level"]
+    record["signal_level"] = overnight["signal_level"]
+    record["ground_type"] = overnight["ground_type"]
+    record["overnight_score"] = overnight["overnight_score"]
+    record["overnight_data_source"] = overnight["overnight_data_source"]
+
+    # --- 列表字段同步 ---
+    record["list_has_toilet"] = record.get("toilet_status", 0) == 1
+    record["list_has_water"] = record.get("water_status", 0) == 1
+    record["list_has_power"] = record.get("power_status", 0) == 1
+    record["list_has_charging"] = record.get("charging_status", 0) == 1
+
+    # 车辆类型数组
+    vehicle_types = []
+    if record.get("rv_friendly") == 1:
+        vehicle_types.append("rv")
+    if record.get("trailer_friendly") == 1:
+        vehicle_types.append("trailer")
+    if record.get("tent_friendly") == 1:
+        vehicle_types.append("tent")
+    record["list_vehicle_types"] = vehicle_types
+
+    # 设施列表
+    facilities = []
+    facility_map = {
+        "toilet_status": "toilet",
+        "water_status": "water",
+        "power_status": "power",
+        "charging_status": "charging",
+        "shower_status": "shower",
+        "fishing_status": "fishing",
+        "dining_status": "dining",
+        "grocery_status": "grocery",
+        "accommodation_status": "accommodation",
+    }
+    for field, label in facility_map.items():
+        if record.get(field) == 1:
+            facilities.append(label)
+    record["facilities"] = facilities
+
+    return record
 
 # ======================== 配置 ========================
 
@@ -266,7 +328,7 @@ def import_to_db(client: httpx.Client, key: str, records: List[Dict]) -> int:
 
 
 def collect_city(http: httpx.Client, city: Dict, grid_size: float,
-                 grid_delay: float, detail_delay: float) -> List[Dict]:
+                 grid_delay: float, detail_delay: float, auto_tag: bool = True) -> List[Dict]:
     """采集单个城市"""
     city_name = city["name"]
     log(f"\n[{city_name}] 开始采集")
@@ -375,6 +437,18 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
         time.sleep(detail_delay)
 
     log(f"  {city_name} 采集完成: {len(records)} 条, 详情 {detail_count}")
+
+    # 标注过夜属性 + 同步列表字段
+    if auto_tag and records:
+        tagged = 0
+        for record in records:
+            try:
+                enrich_record(record)
+                tagged += 1
+            except Exception as e:
+                log(f"  [标注失败] {record.get('name', '?')} - {e}")
+        log(f"  过夜标注: {tagged}/{len(records)} 条")
+
     return records
 
 
@@ -396,6 +470,7 @@ def main():
     parser.add_argument("--list-provinces", action="store_true", help="列出所有省份及城市数")
     parser.add_argument("--progress", action="store_true", help="查看采集进度")
     parser.add_argument("--reset-progress", action="store_true", help="清除采集进度")
+    parser.add_argument("--no-tag", action="store_true", help="跳过过夜属性标注 (默认自动标注)")
     args = parser.parse_args()
 
     # ---- 查看进度 ----
@@ -500,9 +575,13 @@ def main():
         sys.exit(1)
 
     log(f"=" * 60)
-    log(f"营图 - 数据采集工具 v6.0")
+    log(f"营图 - 数据采集工具 v7.0")
     log(f"待采集城市: {len(targets)} 个 (全国共 {len(CITIES)} 个)")
     log(f"城市间间隔: {args.city_delay}秒")
+    if args.no_tag:
+        log(f"过夜标注: 已跳过 (--no-tag)")
+    else:
+        log(f"过夜标注: 已启用 (采集后自动标注)")
     if args.no_import:
         log(f"模式: 仅导出JSON (不导入数据库)")
     else:
@@ -525,7 +604,7 @@ def main():
         log(f"进度: {ci + 1}/{len(targets)} - {city_name} ({city['province']})")
 
         try:
-            records = collect_city(http, city, args.grid_size, args.grid_delay, args.detail_delay)
+            records = collect_city(http, city, args.grid_size, args.grid_delay, args.detail_delay, auto_tag=not args.no_tag)
 
             if records:
                 total_spots += len(records)
@@ -570,6 +649,8 @@ def main():
     log(f"  总营地数: {total_spots}")
     if not args.no_import:
         log(f"  总导入数: {total_imported}")
+    if not args.no_tag:
+        log(f"  过夜标注: 已随采集自动完成")
     log(f"  进度文件: {PROGRESS_FILE}")
     log(f"  使用 --progress 查看详细进度")
     log(f"  使用 --resume 断点续采")
