@@ -50,7 +50,10 @@ Page({
     pendingPhotos: [],
     // 昵称设置弹窗 (评论前需设置昵称)
     showNickPopup: false,
-    tempNick: ''
+    tempNick: '',
+    // 过夜友好度
+    overnightInfo: null,
+    hasOvernightData: false
   },
 
   onLoad(options) {
@@ -118,6 +121,26 @@ Page({
     const priceInfo = camp.price_info || '';
     const parkingText = Number(camp.parking_status) === 1 ? '收费' : '免费';
 
+    // 过夜友好度数据
+    const ov = config.OVERNIGHT;
+    const overnightScore = Number(camp.overnight_score) || 0;
+    const hasOvernightData = overnightScore > 0 || Number(camp.overnight_status) > 0;
+    const overnightInfo = hasOvernightData ? {
+      score: overnightScore.toFixed(1),
+      stars: '★'.repeat(Math.round(overnightScore)) + '☆'.repeat(5 - Math.round(overnightScore)),
+      status: ov.statusLabels[camp.overnight_status] || '待确认',
+      statusEmoji: ov.statusEmoji[camp.overnight_status] || '❓',
+      noise: ov.noiseLabels[camp.noise_level] || '未知',
+      noiseEmoji: ov.noiseEmoji[camp.noise_level] || '❓',
+      safety: ov.safetyLabels[camp.safety_level] || '未知',
+      safetyEmoji: ov.safetyEmoji[camp.safety_level] || '❓',
+      signal: ov.signalLabels[camp.signal_level] || '未知',
+      signalEmoji: ov.signalEmoji[camp.signal_level] || '❓',
+      ground: ov.groundLabels[camp.ground_type] || '未知',
+      groundEmoji: ov.groundEmoji[camp.ground_type] || '❓',
+      source: ov.sourceLabels[camp.overnight_data_source] || '未标注'
+    } : null;
+
     // 最新动态 (本地模拟)
     const newsList = this.buildNews(camp);
 
@@ -126,6 +149,8 @@ Page({
       facGroups,
       priceInfo,
       parkingText,
+      overnightInfo,
+      hasOvernightData,
       newsList,
       hasMemo: !!camp.memo
     });

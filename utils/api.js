@@ -79,7 +79,7 @@ async function fetchCampsites(filters, bounds, limit) {
   }
 
   // 只查询数据库中确定存在的字段
-  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status';
+  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status,overnight_score,overnight_status,noise_level,safety_level,signal_level,ground_type,overnight_data_source';
 
   let url = `${config.API_BASE}/camping_spots?select=${selectFields}`;
 

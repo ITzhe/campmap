@@ -30,6 +30,48 @@
       </view>
     </view>
 
+    <!-- 过夜友好度评分 -->
+    <view class="card overnight-card" wx:if="{{hasOvernightData && overnightInfo}}">
+      <view class="card-h">
+        <view class="dot"></view>过夜友好度
+        <text class="overnight-source">{{overnightInfo.source}}</text>
+      </view>
+      <!-- 综合评分 -->
+      <view class="overnight-score-row">
+        <view class="overnight-score-left">
+          <text class="overnight-score-num">{{overnightInfo.score}}</text>
+          <text class="overnight-score-unit">/5.0</text>
+        </view>
+        <view class="overnight-score-right">
+          <text class="overnight-stars">{{overnightInfo.stars}}</text>
+          <text class="overnight-status">{{overnightInfo.statusEmoji}} {{overnightInfo.status}}</text>
+        </view>
+      </view>
+      <!-- 5个维度 -->
+      <view class="overnight-dims">
+        <view class="overnight-dim">
+          <text class="ov-dim-emoji">{{overnightInfo.noiseEmoji}}</text>
+          <text class="ov-dim-label">噪音</text>
+          <text class="ov-dim-val">{{overnightInfo.noise}}</text>
+        </view>
+        <view class="overnight-dim">
+          <text class="ov-dim-emoji">{{overnightInfo.safetyEmoji}}</text>
+          <text class="ov-dim-label">安全</text>
+          <text class="ov-dim-val">{{overnightInfo.safety}}</text>
+        </view>
+        <view class="overnight-dim">
+          <text class="ov-dim-emoji">{{overnightInfo.signalEmoji}}</text>
+          <text class="ov-dim-label">信号</text>
+          <text class="ov-dim-val">{{overnightInfo.signal}}</text>
+        </view>
+        <view class="overnight-dim">
+          <text class="ov-dim-emoji">{{overnightInfo.groundEmoji}}</text>
+          <text class="ov-dim-label">地面</text>
+          <text class="ov-dim-val">{{overnightInfo.ground}}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 地理坐标 -->
     <view class="geo-line">
       <text class="geo-label">地理坐标</text>
