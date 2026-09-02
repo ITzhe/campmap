@@ -53,7 +53,25 @@ Page({
     tempNick: '',
     // 过夜友好度
     overnightInfo: null,
-    hasOvernightData: false
+    hasOvernightData: false,
+    // 打卡评价弹窗
+    showCheckinReview: false,
+    checkinRating: 0,
+    checkinOvernightStatus: 0,
+    checkinNoise: 0,
+    checkinSafety: 0,
+    checkinSignal: 0,
+    checkinGround: 0,
+    checkinText: '',
+    checkinPhotos: [],
+    submittingCheckin: false,
+    checkinTagOptions: {
+      overnight: [],
+      noise: [],
+      safety: [],
+      signal: [],
+      ground: []
+    }
   },
 
   onLoad(options) {
@@ -72,7 +90,9 @@ Page({
       // 读取本地已点赞列表
       likedCommentIds: wx.getStorageSync('liked_comment_ids') || [],
       currentUserNick: userData.nick || '',
-      currentUserOpenid: userData.openid || ''
+      currentUserOpenid: userData.openid || '',
+      // 打卡评价标签选项
+      checkinTagOptions: config.CHECKIN_TAGS
     });
 
     let camp = app.globalData.selectedCamp;
@@ -300,8 +320,8 @@ Page({
     });
   },
 
-  // ============ 营地打卡 (+5 积分) ============
-  async checkinCamp() {
+  // ============ 营地打卡 (弹出评价窗口) ============
+  checkinCamp() {
     const camp = this.data.camp;
     if (!camp) return;
     // 检查登录
@@ -309,14 +329,177 @@ Page({
       this.setData({ showNickPopup: true, tempNick: '' });
       return;
     }
-    const points = util.updatePoints(config.POINTS_RULES.camp_checkin);
-    const app = getApp();
-    app.globalData.points = points;
-    this.setData({ userPoints: points });
+    // 弹出打卡评价窗口
+    this.setData({
+      showCheckinReview: true,
+      checkinRating: 0,
+      checkinOvernightStatus: 0,
+      checkinNoise: 0,
+      checkinSafety: 0,
+      checkinSignal: 0,
+      checkinGround: 0,
+      checkinText: '',
+      checkinPhotos: [],
+      submittingCheckin: false
+    });
+  },
 
-    // 同时提交一条打卡评价到 Supabase
-    await this.addDynamics('📍 到此一游', 'checkin');
-    util.showToast('打卡成功 +5 积分');
+  // ============ 关闭打卡评价弹窗 ============
+  closeCheckinReview() {
+    if (this.data.submittingCheckin) return;
+    this.setData({ showCheckinReview: false });
+  },
+
+  // ============ 打卡评价：星级评分 ============
+  onCheckinStarTap(e) {
+    const star = Number(e.currentTarget.dataset.star);
+    this.setData({ checkinRating: star });
+  },
+
+  // ============ 打卡评价：标签选择（单选）============
+  onCheckinTagTap(e) {
+    const dim = e.currentTarget.dataset.dim; // overnight/noise/safety/signal/ground
+    const value = Number(e.currentTarget.dataset.value);
+    const key = 'checkin' + dim.charAt(0).toUpperCase() + dim.slice(1);
+    // 点击同一个则取消
+    const current = this.data[key];
+    const newValue = current === value ? 0 : value;
+    this.setData({ [key]: newValue });
+  },
+
+  // ============ 打卡评价：文字输入 ============
+  onCheckinTextInput(e) {
+    this.setData({ checkinText: e.detail.value });
+  },
+
+  // ============ 打卡评价：添加图片 ============
+  addCheckinPhoto() {
+    if (this.data.checkinPhotos.length >= 6) {
+      util.showToast('最多上传 6 张图片');
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        const photos = this.data.checkinPhotos.concat([{
+          path: tempFilePath,
+          id: 'ckp_' + Date.now()
+        }]);
+        this.setData({ checkinPhotos: photos });
+      },
+      fail: () => {}
+    });
+  },
+
+  // ============ 打卡评价：删除图片 ============
+  delCheckinPhoto(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const photos = this.data.checkinPhotos.slice();
+    photos.splice(idx, 1);
+    this.setData({ checkinPhotos: photos });
+  },
+
+  // ============ 打卡评价：提交 ============
+  async submitCheckinReview() {
+    if (this.data.submittingCheckin) return;
+    const camp = this.data.camp;
+    if (!camp) return;
+
+    const rating = this.data.checkinRating;
+    const text = (this.data.checkinText || '').trim();
+    const photos = this.data.checkinPhotos;
+
+    // 至少要有星级或文字或图片
+    if (rating === 0 && !text && photos.length === 0) {
+      util.showToast('至少打个分吧～');
+      return;
+    }
+    if (text.length > 200) {
+      util.showToast('评价不超过200字');
+      return;
+    }
+
+    const userData = util.getUserState();
+    const openid = userData.openid || '';
+
+    // 内容安全检测
+    if (text) {
+      const textSafe = await security.checkTextWithToast(text, openid);
+      if (!textSafe) return;
+    }
+
+    this.setData({ submittingCheckin: true });
+    util.showLoading('提交中...');
+
+    // 上传图片到 OSS
+    let photoUrls = [];
+    if (photos.length > 0) {
+      const paths = photos.map(p => p.path);
+      try {
+        photoUrls = await oss.uploadBatchToOSS(paths, 'checkins');
+        photoUrls = photoUrls.filter(u => u);
+        // 图片安全检测
+        const imgResult = await security.checkImages(photoUrls, openid);
+        if (!imgResult.safe) {
+          util.hideLoading();
+          this.setData({ submittingCheckin: false });
+          wx.showModal({
+            title: '图片提醒',
+            content: '您上传的图片含违规信息，请更换后重新提交。',
+            showCancel: false,
+            confirmText: '我知道了',
+            confirmColor: '#2d6a4f'
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('[checkin] 图片上传失败:', e.message);
+      }
+    }
+
+    // 构建评价数据
+    const ratingData = {
+      rating: rating,
+      noise_level: this.data.checkinNoise,
+      safety_level: this.data.checkinSafety,
+      signal_level: this.data.checkinSignal,
+      ground_type: this.data.checkinGround,
+      overnight_status: this.data.checkinOvernightStatus
+    };
+
+    // 提交评论 (type=checkin)
+    const res = await this.addDynamics(
+      text || '打卡评价',
+      'checkin',
+      photoUrls.length > 0 ? photoUrls.join(',') : '',
+      ratingData
+    );
+
+    util.hideLoading();
+    this.setData({ submittingCheckin: false });
+
+    if (res && res.success) {
+      // 给积分：基础打卡5分 + 带评价额外10分
+      const basePoints = config.POINTS_RULES.camp_checkin;
+      const extraPoints = (rating > 0 || text || photos.length > 0) ? config.POINTS_RULES.checkin_review : 0;
+      const totalPoints = basePoints + extraPoints;
+      const points = util.updatePoints(totalPoints);
+      const app = getApp();
+      app.globalData.points = points;
+      this.setData({ userPoints: points, showCheckinReview: false });
+
+      if (extraPoints > 0) {
+        util.showToast('打卡成功 +' + totalPoints + ' 积分');
+      } else {
+        util.showToast('打卡成功 +' + totalPoints + ' 积分');
+      }
+    } else {
+      util.showToast((res && res.msg) || '提交失败，请稍后重试');
+    }
   },
 
   // ============ 用户评价：输入 ============
@@ -399,7 +582,7 @@ Page({
   // ============ 提交评价到 Supabase 并刷新列表 ============
   // 供发布评价 / 营地打卡复用
   // 返回 { success: boolean, msg?: string }
-  async addDynamics(text, type, photoUrls) {
+  async addDynamics(text, type, photoUrls, rating) {
     const camp = this.data.camp;
     if (!camp) return { success: false, msg: '营地信息缺失' };
     const userData = util.getUserState();
@@ -410,7 +593,8 @@ Page({
       userData.avatarUrl || '🏕',
       text,
       type || 'comment',
-      (photoUrls || []).join(',')
+      (photoUrls || []).join ? (photoUrls || []).join(',') : (photoUrls || ''),
+      rating
     );
     // 重新加载评论列表 (无论成功失败都刷新, 确保数据同步)
     await this.loadComments(camp.spot_code);

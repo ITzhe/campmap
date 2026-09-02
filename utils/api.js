@@ -196,8 +196,16 @@ async function fetchComments(spotCode) {
 /**
  * 发布评论
  * 返回 { success: boolean, msg?: string }
+ * @param {string} spotCode - 营地编码
+ * @param {string} openid - 用户openid
+ * @param {string} nick - 昵称
+ * @param {string} avatar - 头像
+ * @param {string} content - 评论内容
+ * @param {string} type - 类型 comment/checkin
+ * @param {string} photoUrls - 图片URL逗号分隔
+ * @param {Object} rating - 过夜评价 { rating, noise_level, safety_level, signal_level, ground_type, overnight_status }
  */
-async function submitComment(spotCode, openid, nick, avatar, content, type, photoUrls) {
+async function submitComment(spotCode, openid, nick, avatar, content, type, photoUrls, rating) {
   const url = `${config.API_BASE}/camp_comments`;
   const payload = {
     spot_code: spotCode,
@@ -210,6 +218,15 @@ async function submitComment(spotCode, openid, nick, avatar, content, type, phot
   // 仅在有图片时添加 photo_urls 字段
   if (photoUrls) {
     payload.photo_urls = photoUrls;
+  }
+  // 添加过夜评价字段
+  if (rating) {
+    if (rating.rating) payload.rating = rating.rating;
+    if (rating.noise_level) payload.noise_level = rating.noise_level;
+    if (rating.safety_level) payload.safety_level = rating.safety_level;
+    if (rating.signal_level) payload.signal_level = rating.signal_level;
+    if (rating.ground_type) payload.ground_type = rating.ground_type;
+    if (rating.overnight_status) payload.overnight_status = rating.overnight_status;
   }
 
   // 添加 Prefer 头, 让 Supabase 返回插入的数据
@@ -233,6 +250,14 @@ async function submitComment(spotCode, openid, nick, avatar, content, type, phot
         content: content,
         type: type || 'comment'
       };
+      if (rating) {
+        if (rating.rating) payload2.rating = rating.rating;
+        if (rating.noise_level) payload2.noise_level = rating.noise_level;
+        if (rating.safety_level) payload2.safety_level = rating.safety_level;
+        if (rating.signal_level) payload2.signal_level = rating.signal_level;
+        if (rating.ground_type) payload2.ground_type = rating.ground_type;
+        if (rating.overnight_status) payload2.overnight_status = rating.overnight_status;
+      }
       try {
         await request(url, 'POST', JSON.stringify(payload2), headers);
         return { success: true };
