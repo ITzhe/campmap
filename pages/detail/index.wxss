@@ -1118,6 +1118,280 @@
   opacity: 0.6;
 }
 
+/* ============ 打卡评价弹窗 ============ */
+.checkin-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+}
+
+.checkin-sheet {
+  width: 100%;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.checkin-sheet .cs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 20rpx;
+  border-bottom: 2rpx solid var(--line);
+  flex-shrink: 0;
+}
+
+.checkin-sheet .cs-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.checkin-sheet .cs-close {
+  font-size: 36rpx;
+  color: var(--text-ph);
+  padding: 8rpx;
+}
+
+.checkin-body {
+  flex: 1;
+  padding: 20rpx 32rpx;
+  max-height: 65vh;
+}
+
+.checkin-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.checkin-intro-icon {
+  font-size: 32rpx;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.checkin-intro-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #2e7d32;
+  line-height: 1.6;
+}
+
+.checkin-section {
+  margin-bottom: 28rpx;
+}
+
+.checkin-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16rpx;
+}
+
+.checkin-optional {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: var(--text-ph);
+  margin-left: 6rpx;
+}
+
+/* 星级评分 */
+.checkin-stars {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.ck-star {
+  font-size: 56rpx;
+  color: #e0e0e0;
+  line-height: 1;
+  transition: transform 0.1s;
+}
+
+.ck-star.on {
+  color: #ffc107;
+  text-shadow: 0 2rpx 8rpx rgba(255, 193, 7, 0.3);
+}
+
+.ck-star-tip {
+  margin-left: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ff9800;
+}
+
+/* 标签选择 */
+.checkin-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.ck-tag {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 12rpx 22rpx;
+  border-radius: 28rpx;
+  background: #f5f5f5;
+  border: 2rpx solid transparent;
+  transition: all 0.15s;
+}
+
+.ck-tag.on {
+  background: var(--green-light);
+  border-color: var(--green-3);
+}
+
+.ck-tag-emoji {
+  font-size: 28rpx;
+}
+
+.ck-tag-label {
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+.ck-tag.on .ck-tag-label {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* 文字评价 */
+.checkin-textarea {
+  width: 100%;
+  min-height: 100rpx;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  line-height: 1.6;
+  background: #fafbfa;
+  border: 2rpx solid var(--line);
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}
+
+.checkin-word-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--text-ph);
+  margin-top: 8rpx;
+}
+
+/* 照片 */
+.checkin-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.ck-photo-thumb {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.ck-photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.ck-photo-del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 0 12rpx 0 12rpx;
+}
+
+.ck-photo-add {
+  width: 160rpx;
+  height: 160rpx;
+  border: 2rpx dashed var(--text-ph);
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.ck-add-icon {
+  font-size: 36rpx;
+}
+
+.ck-add-text {
+  font-size: 22rpx;
+  color: var(--text-ph);
+}
+
+/* 底部提交栏 */
+.checkin-footer {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 32rpx;
+  border-top: 2rpx solid var(--line);
+  flex-shrink: 0;
+}
+
+.checkin-points-tip {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.cp-icon {
+  font-size: 28rpx;
+}
+
+.cp-text {
+  font-size: 24rpx;
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.checkin-submit {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 42rpx;
+  background: var(--green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.checkin-submit.disabled {
+  opacity: 0.6;
+}
+
 /* ============ 昵称设置弹窗 ============ */
 .nick-popup {
   position: fixed;

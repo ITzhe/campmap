@@ -339,6 +339,107 @@
     </view>
   </view>
 
+  <!-- 打卡评价弹窗 -->
+  <view wx:if="{{showCheckinReview}}" class="checkin-mask" bindtap="closeCheckinReview">
+    <view class="checkin-sheet" catchtap="noop">
+      <view class="cs-header">
+        <text class="cs-title">打卡评价</text>
+        <text class="cs-close" bindtap="closeCheckinReview">✕</text>
+      </view>
+
+      <scroll-view scroll-y class="checkin-body">
+        <!-- 引导文案 -->
+        <view class="checkin-intro">
+          <text class="checkin-intro-icon">💡</text>
+          <text class="checkin-intro-text">你的真实体验会帮助其他车友找到靠谱的过夜点，感谢分享 🙏</text>
+        </view>
+
+        <!-- 星级评分 -->
+        <view class="checkin-section">
+          <view class="checkin-label">总体体验 <text class="checkin-optional">（必填）</text></view>
+          <view class="checkin-stars">
+            <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+              class="ck-star {{checkinRating >= item ? 'on' : ''}}"
+              data-star="{{item}}" bindtap="onCheckinStarTap">★</view>
+            <text class="ck-star-tip" wx:if="{{checkinRating > 0}}">{{checkinRating}}分</text>
+          </view>
+        </view>
+
+        <!-- 能否过夜 -->
+        <view class="checkin-section">
+          <view class="checkin-label">能否过夜</view>
+          <view class="checkin-tags">
+            <view wx:for="{{checkinTagOptions.overnight}}" wx:key="value"
+              class="ck-tag {{checkinOvernightStatus === item.value ? 'on' : ''}}"
+              data-dim="overnightStatus" data-value="{{item.value}}" bindtap="onCheckinTagTap">
+              <text class="ck-tag-emoji">{{item.emoji}}</text>
+              <text class="ck-tag-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 噪音 -->
+        <view class="checkin-section">
+          <view class="checkin-label">噪音程度</view>
+          <view class="checkin-tags">
+            <view wx:for="{{checkinTagOptions.noise}}" wx:key="value"
+              class="ck-tag {{checkinNoise === item.value ? 'on' : ''}}"
+              data-dim="noise" data-value="{{item.value}}" bindtap="onCheckinTagTap">
+              <text class="ck-tag-emoji">{{item.emoji}}</text>
+              <text class="ck-tag-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 安全 -->
+        <view class="checkin-section">
+          <view class="checkin-label">安全程度</view>
+          <view class="checkin-tags">
+            <view wx:for="{{checkinTagOptions.safety}}" wx:key="value"
+              class="ck-tag {{checkinSafety === item.value ? 'on' : ''}}"
+              data-dim="safety" data-value="{{item.value}}" bindtap="onCheckinTagTap">
+              <text class="ck-tag-emoji">{{item.emoji}}</text>
+              <text class="ck-tag-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 文字评价 -->
+        <view class="checkin-section">
+          <view class="checkin-label">说说你的体验 <text class="checkin-optional">（选填）</text></view>
+          <textarea class="checkin-textarea" value="{{checkinText}}" bindinput="onCheckinTextInput"
+            placeholder="比如：晚上大车多有点吵，但是有保安很安心..." maxlength="200" auto-height="true" />
+          <text class="checkin-word-count">{{checkinText.length}}/200</text>
+        </view>
+
+        <!-- 图片 -->
+        <view class="checkin-section">
+          <view class="checkin-label">上传照片 <text class="checkin-optional">（选填，最多6张）</text></view>
+          <view class="checkin-photos">
+            <view wx:for="{{checkinPhotos}}" wx:key="id" class="ck-photo-thumb">
+              <image src="{{item.path}}" mode="aspectFill" class="ck-photo-img" />
+              <view class="ck-photo-del" catchtap="delCheckinPhoto" data-idx="{{index}}">✕</view>
+            </view>
+            <view wx:if="{{checkinPhotos.length < 6}}" class="ck-photo-add" bindtap="addCheckinPhoto">
+              <text class="ck-add-icon">📷</text>
+              <text class="ck-add-text">添加</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="checkin-footer">
+        <view class="checkin-points-tip">
+          <text class="cp-icon">🎁</text>
+          <text class="cp-text">带评价打卡 +15 积分</text>
+        </view>
+        <view class="checkin-submit {{submittingCheckin ? 'disabled' : ''}}" bindtap="submitCheckinReview">
+          {{submittingCheckin ? '提交中...' : '提交打卡'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 昵称设置弹窗 (评论前需设置昵称) -->
   <view wx:if="{{showNickPopup}}" class="nick-popup">
     <view class="np-mask" bindtap="closeNickPopup"></view>

@@ -175,13 +175,33 @@ const config = {
     { v: 'accommodation_status', l: '住宿', e: '🏠' }
   ],
 
+  // 打卡评价快选标签（3个核心维度）
+  CHECKIN_TAGS: {
+    overnight: [
+      { value: 1, label: '可以过夜', emoji: '✅' },
+      { value: 3, label: '勉强能住', emoji: '⚠️' },
+      { value: 2, label: '不能过夜', emoji: '🚫' }
+    ],
+    noise: [
+      { value: 1, label: '很安静', emoji: '🤫' },
+      { value: 3, label: '一般', emoji: '🔊' },
+      { value: 5, label: '很吵', emoji: '💥' }
+    ],
+    safety: [
+      { value: 5, label: '很安全', emoji: '🛡️' },
+      { value: 3, label: '一般', emoji: '😐' },
+      { value: 1, label: '不安全', emoji: '😨' }
+    ]
+  },
+
   // 积分规则
   POINTS_RULES: {
     initial: 10,        // 新用户初始积分
     daily_checkin: 10,  // 每日签到
     view_detail: -1,    // 查看详情
     camp_submit: 100,   // 营地录入审核通过
-    camp_checkin: 5     // 营地打卡
+    camp_checkin: 5,    // 营地打卡
+    checkin_review: 10  // 打卡带评价额外积分
   }
 };
 
