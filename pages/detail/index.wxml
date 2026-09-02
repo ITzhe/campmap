@@ -44,7 +44,7 @@
         </view>
         <view class="overnight-score-right">
           <text class="overnight-stars">{{overnightInfo.stars}}</text>
-          <text class="overnight-status">{{overnightInfo.statusEmoji}} {{overnightInfo.status}}</text>
+          <text class="overnight-status" wx:if="{{overnightInfo.status}}">{{overnightInfo.statusEmoji}} {{overnightInfo.status}}</text>
         </view>
       </view>
       <!-- 5个维度 -->
@@ -202,6 +202,22 @@
         </view>
       </view>
 
+      <!-- 打卡记录 -->
+      <view class="checkin-record" wx:if="{{checkinCount > 0}}">
+        <view class="cr-icon">📍</view>
+        <view class="cr-text">
+          <text wx:if="{{checkinCount === 1}}">{{recentCheckins[0].nick}} {{recentCheckins[0].relTime}}打卡过此地</text>
+          <text wx:elif="{{checkinCount <= 5}}">
+            <text wx:for="{{recentCheckins}}" wx:key="id" wx:for-item="ci" wx:for-index="ciIdx">{{ci.nick}}{{ciIdx < recentCheckins.length - 1 ? '、' : ''}}</text>
+            <text> 等{{checkinCount}}位车友最近打卡过</text>
+          </text>
+          <text wx:else>
+            <text wx:for="{{recentCheckins}}" wx:key="id" wx:for-item="ci" wx:for-index="ciIdx">{{ci.nick}}{{ciIdx < recentCheckins.length - 1 ? '、' : ''}}</text>
+            <text> 等{{checkinCount}}位车友打卡过此地</text>
+          </text>
+        </view>
+      </view>
+
       <!-- 评价列表 -->
       <view class="dyn-list">
         <!-- 加载中 -->
@@ -263,6 +279,10 @@
       <text class="ab-icon">📤</text>
       <text class="ab-label">分享</text>
     </view>
+    <view class="ab-btn ab-primary" hover-class="ab-primary-hover" hover-stay-time="150" bindtap="checkinCamp">
+      <text class="ab-icon">📍</text>
+      <text class="ab-label">打卡</text>
+    </view>
     <view class="ab-btn" bindtap="toggleFavorite">
       <text class="ab-icon">{{isFavorited ? '❤️' : '🤍'}}</text>
       <text class="ab-label">{{isFavorited ? '已收藏' : '收藏'}}</text>
@@ -270,10 +290,6 @@
     <view class="ab-btn" bindtap="openCorrection">
       <text class="ab-icon">✏️</text>
       <text class="ab-label">纠错</text>
-    </view>
-    <view class="ab-btn ab-primary" bindtap="checkinCamp">
-      <text class="ab-icon">📍</text>
-      <text class="ab-label">打卡</text>
     </view>
   </view>
 
@@ -454,6 +470,17 @@
         <view class="np-cancel" bindtap="closeNickPopup">取消</view>
         <view class="np-save" bindtap="confirmNick">确定</view>
       </view>
+    </view>
+  </view>
+
+  <!-- 打卡成功动画 -->
+  <view class="cks-mask" wx:if="{{showCheckinSuccess}}" bindtap="hideCheckinSuccess">
+    <view class="cks-box" catchtap="noop">
+      <view class="cks-circle">
+        <view class="cks-check">✓</view>
+      </view>
+      <text class="cks-title">打卡成功</text>
+      <text class="cks-points" wx:if="{{checkinPoints > 0}}">+{{checkinPoints}} 积分</text>
     </view>
   </view>
 </view>

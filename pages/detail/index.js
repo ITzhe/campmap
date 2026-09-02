@@ -25,6 +25,9 @@ Page({
     dynamicsExpanded: false,
     // 评论加载状态
     commentsLoading: false,
+    // 打卡记录
+    checkinCount: 0,
+    recentCheckins: [],
     // 本地记录已点赞的评论 id (防重复点赞)
     likedCommentIds: [],
     // 收藏状态
@@ -67,7 +70,11 @@ Page({
       overnight: [],
       noise: [],
       safety: []
-    }
+    },
+    // 打卡成功动画
+    showCheckinSuccess: false,
+    checkinPoints: 0,
+    checkinSuccessTimer: null
   },
 
   onLoad(options) {
@@ -97,6 +104,20 @@ Page({
     } else {
       this.loadCamp(options.spot_code);
     }
+  },
+
+  onUnload() {
+    if (this.data.checkinSuccessTimer) {
+      clearTimeout(this.data.checkinSuccessTimer);
+    }
+  },
+
+  // ============ 关闭打卡成功动画 ============
+  hideCheckinSuccess() {
+    if (this.data.checkinSuccessTimer) {
+      clearTimeout(this.data.checkinSuccessTimer);
+    }
+    this.setData({ showCheckinSuccess: false });
   },
 
   async loadCamp(spotCode) {
@@ -140,12 +161,15 @@ Page({
     // 过夜友好度数据
     const ov = config.OVERNIGHT;
     const overnightScore = Number(camp.overnight_score) || 0;
-    const hasOvernightData = overnightScore > 0 || Number(camp.overnight_status) > 0;
+    const hasOvernightData = overnightScore > 0 || Number(camp.overnight_status) > 0
+      || Number(camp.noise_level) > 0 || Number(camp.safety_level) > 0;
+    const overnightStatus = Number(camp.overnight_status) || 0;
     const overnightInfo = hasOvernightData ? {
       score: overnightScore.toFixed(1),
       stars: '★'.repeat(Math.round(overnightScore)) + '☆'.repeat(5 - Math.round(overnightScore)),
-      status: ov.statusLabels[camp.overnight_status] || '待确认',
-      statusEmoji: ov.statusEmoji[camp.overnight_status] || '❓',
+      // overnight_status=0 时不显示状态标签
+      status: overnightStatus > 0 ? (ov.statusLabels[camp.overnight_status] || '') : '',
+      statusEmoji: overnightStatus > 0 ? (ov.statusEmoji[camp.overnight_status] || '') : '',
       noise: ov.noiseLabels[camp.noise_level] || '未知',
       noiseEmoji: ov.noiseEmoji[camp.noise_level] || '❓',
       safety: ov.safetyLabels[camp.safety_level] || '未知',
@@ -250,6 +274,7 @@ Page({
         avatar: avatar,
         avatarIsUrl: avatarIsUrl,
         date: this.fmtDate(c.created_at),
+        relTime: this.fmtRelTime(c.created_at),
         text: c.content,
         type: c.type || 'comment',
         likes: c.likes || 0,
@@ -258,9 +283,15 @@ Page({
         isMine: c.openid === currentOpenid
       };
     });
+    // 提取打卡记录
+    const checkins = dynamicsList.filter(c => c.type === 'checkin');
+    const checkinCount = checkins.length;
+    const recentCheckins = checkins.slice(0, 5); // 最近5条打卡
     this.setData({
       dynamicsList,
       dynamicsCount: dynamicsList.length,
+      checkinCount,
+      recentCheckins,
       commentsLoading: false
     });
   },
@@ -274,6 +305,21 @@ Page({
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+  },
+
+  // ============ 格式化相对时间（如"3天前"、"2小时前"）============
+  fmtRelTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    const diff = Date.now() - d.getTime();
+    if (diff < 0) return '刚刚';
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+    if (diff < 2592000000) return Math.floor(diff / 86400000) + '天前';
+    if (diff < 31536000000) return Math.floor(diff / 2592000000) + '个月前';
+    return Math.floor(diff / 31536000000) + '年前';
   },
 
   // ============ 展开收起简介 ============
@@ -482,13 +528,23 @@ Page({
       const points = util.updatePoints(totalPoints);
       const app = getApp();
       app.globalData.points = points;
-      this.setData({ userPoints: points, showCheckinReview: false });
 
-      if (extraPoints > 0) {
-        util.showToast('打卡成功 +' + totalPoints + ' 积分');
-      } else {
-        util.showToast('打卡成功 +' + totalPoints + ' 积分');
+      // 关闭评价弹窗，展示成功动画
+      this.setData({
+        userPoints: points,
+        showCheckinReview: false,
+        showCheckinSuccess: true,
+        checkinPoints: totalPoints
+      });
+
+      // 2秒后自动关闭动画
+      if (this.data.checkinSuccessTimer) {
+        clearTimeout(this.data.checkinSuccessTimer);
       }
+      const timer = setTimeout(() => {
+        this.setData({ showCheckinSuccess: false });
+      }, 2000);
+      this.setData({ checkinSuccessTimer: timer });
     } else {
       util.showToast((res && res.msg) || '提交失败，请稍后重试');
     }
