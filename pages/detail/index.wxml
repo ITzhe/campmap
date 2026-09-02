@@ -404,32 +404,6 @@
           </view>
         </view>
 
-        <!-- 信号 -->
-        <view class="checkin-section">
-          <view class="checkin-label">手机信号</view>
-          <view class="checkin-tags">
-            <view wx:for="{{checkinTagOptions.signal}}" wx:key="value"
-              class="ck-tag {{checkinSignal === item.value ? 'on' : ''}}"
-              data-dim="signal" data-value="{{item.value}}" bindtap="onCheckinTagTap">
-              <text class="ck-tag-emoji">{{item.emoji}}</text>
-              <text class="ck-tag-label">{{item.label}}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 地面 -->
-        <view class="checkin-section">
-          <view class="checkin-label">地面情况</view>
-          <view class="checkin-tags">
-            <view wx:for="{{checkinTagOptions.ground}}" wx:key="value"
-              class="ck-tag {{checkinGround === item.value ? 'on' : ''}}"
-              data-dim="ground" data-value="{{item.value}}" bindtap="onCheckinTagTap">
-              <text class="ck-tag-emoji">{{item.emoji}}</text>
-              <text class="ck-tag-label">{{item.label}}</text>
-            </view>
-          </view>
-        </view>
-
         <!-- 文字评价 -->
         <view class="checkin-section">
           <view class="checkin-label">说说你的体验 <text class="checkin-optional">（选填）</text></view>

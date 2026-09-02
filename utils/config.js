@@ -175,7 +175,7 @@ const config = {
     { v: 'accommodation_status', l: '住宿', e: '🏠' }
   ],
 
-  // 打卡评价快选标签
+  // 打卡评价快选标签（3个核心维度）
   CHECKIN_TAGS: {
     overnight: [
       { value: 1, label: '可以过夜', emoji: '✅' },
@@ -183,33 +183,14 @@ const config = {
       { value: 2, label: '不能过夜', emoji: '🚫' }
     ],
     noise: [
-      { value: 1, label: '非常安静', emoji: '🤫' },
-      { value: 2, label: '较安静', emoji: '🔇' },
+      { value: 1, label: '很安静', emoji: '🤫' },
       { value: 3, label: '一般', emoji: '🔊' },
-      { value: 4, label: '较吵', emoji: '📢' },
       { value: 5, label: '很吵', emoji: '💥' }
     ],
     safety: [
-      { value: 1, label: '很不安全', emoji: '😨' },
-      { value: 2, label: '不太安全', emoji: '😟' },
+      { value: 5, label: '很安全', emoji: '🛡️' },
       { value: 3, label: '一般', emoji: '😐' },
-      { value: 4, label: '较安全', emoji: '😊' },
-      { value: 5, label: '非常安全', emoji: '🛡️' }
-    ],
-    signal: [
-      { value: 1, label: '无信号', emoji: '📵' },
-      { value: 2, label: '很差', emoji: '📶' },
-      { value: 3, label: '一般', emoji: '📶' },
-      { value: 4, label: '较好', emoji: '📶' },
-      { value: 5, label: '很好', emoji: '📶' }
-    ],
-    ground: [
-      { value: 1, label: '硬化平整', emoji: '🅿️' },
-      { value: 2, label: '碎石路面', emoji: '🪨' },
-      { value: 3, label: '草地', emoji: '🌿' },
-      { value: 4, label: '泥地', emoji: '💩' },
-      { value: 5, label: '沙土', emoji: '🏜️' },
-      { value: 6, label: '不平斜坡', emoji: '📐' }
+      { value: 1, label: '不安全', emoji: '😨' }
     ]
   },
 

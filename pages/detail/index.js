@@ -60,17 +60,13 @@ Page({
     checkinOvernightStatus: 0,
     checkinNoise: 0,
     checkinSafety: 0,
-    checkinSignal: 0,
-    checkinGround: 0,
     checkinText: '',
     checkinPhotos: [],
     submittingCheckin: false,
     checkinTagOptions: {
       overnight: [],
       noise: [],
-      safety: [],
-      signal: [],
-      ground: []
+      safety: []
     }
   },
 
@@ -336,8 +332,6 @@ Page({
       checkinOvernightStatus: 0,
       checkinNoise: 0,
       checkinSafety: 0,
-      checkinSignal: 0,
-      checkinGround: 0,
       checkinText: '',
       checkinPhotos: [],
       submittingCheckin: false
@@ -466,8 +460,6 @@ Page({
       rating: rating,
       noise_level: this.data.checkinNoise,
       safety_level: this.data.checkinSafety,
-      signal_level: this.data.checkinSignal,
-      ground_type: this.data.checkinGround,
       overnight_status: this.data.checkinOvernightStatus
     };
 
