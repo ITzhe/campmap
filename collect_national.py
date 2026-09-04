@@ -52,8 +52,9 @@ import os
 import sys
 import time
 import zlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 import httpx
 
@@ -296,6 +297,41 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
         return None
 
 
+def fetch_all_details_concurrent(http: httpx.Client, spots: Dict[str, Dict],
+                                  workers: int = 5, detail_delay: float = 0.1) -> List[Tuple[str, Dict, Optional[Dict]]]:
+    """
+    并发获取多个营地详情
+    返回: [(spot_code, spot_info, detail_or_None), ...]
+    """
+    results = []
+    total = len(spots)
+    done_count = 0
+
+    def _fetch_one(code, spot):
+        detail = fetch_detail(http, code, spot["lng"], spot["lat"])
+        if detail_delay > 0:
+            time.sleep(detail_delay)
+        return code, spot, detail
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(_fetch_one, code, spot): code
+                   for code, spot in spots.items()}
+
+        for future in as_completed(futures):
+            try:
+                code, spot, detail = future.result()
+                results.append((code, spot, detail))
+                done_count += 1
+                if done_count % 20 == 0 or done_count == total:
+                    success = sum(1 for _, _, d in results if d is not None)
+                    log(f"  详情进度: {done_count}/{total} (成功: {success})")
+            except Exception as e:
+                done_count += 1
+                log(f"  [详情异常] {e}")
+
+    return results
+
+
 def import_to_db(client: httpx.Client, key: str, records: List[Dict]) -> int:
     """批量导入数据库"""
     if not records:
@@ -328,7 +364,8 @@ def import_to_db(client: httpx.Client, key: str, records: List[Dict]) -> int:
 
 
 def collect_city(http: httpx.Client, city: Dict, grid_size: float,
-                 grid_delay: float, detail_delay: float, auto_tag: bool = True) -> List[Dict]:
+                 grid_delay: float, detail_delay: float, auto_tag: bool = True,
+                 workers: int = 5) -> List[Dict]:
     """采集单个城市"""
     city_name = city["name"]
     log(f"\n[{city_name}] 开始采集")
@@ -363,15 +400,15 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
         log(f"  {city_name} 无营地数据")
         return []
 
-    log(f"  列表去重: {len(all_spots)} 个营地, 获取详情...")
+    log(f"  列表去重: {len(all_spots)} 个营地, 并发获取详情 (workers={workers})...")
 
-    # 获取详情
+    # 获取详情（并发）
+    city_label = city_name + "市" if not city_name.endswith("市") else city_name
+    detail_results = fetch_all_details_concurrent(http, all_spots, workers, detail_delay)
+
     records = []
     detail_count = 0
-    for j, (code, spot) in enumerate(all_spots.items(), 1):
-        detail = fetch_detail(http, code, spot["lng"], spot["lat"])
-        city_label = city_name + "市" if not city_name.endswith("市") else city_name
-
+    for code, spot, detail in detail_results:
         if detail:
             detail_count += 1
             records.append({
@@ -432,10 +469,6 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "city": city_label,
             })
 
-        if j % 20 == 0:
-            log(f"  详情进度: {j}/{len(all_spots)} (成功: {detail_count})")
-        time.sleep(detail_delay)
-
     log(f"  {city_name} 采集完成: {len(records)} 条, 详情 {detail_count}")
 
     # 标注过夜属性 + 同步列表字段
@@ -463,6 +496,7 @@ def main():
     parser.add_argument("--grid-delay", type=float, default=0.6, help="网格请求间隔秒数 (默认0.6)")
     parser.add_argument("--detail-delay", type=float, default=0.35, help="详情请求间隔秒数 (默认0.35)")
     parser.add_argument("--grid-size", type=float, default=0.5, help="网格大小 (默认0.5度)")
+    parser.add_argument("--workers", type=int, default=5, help="并发详情请求线程数 (默认5)")
     parser.add_argument("--no-import", action="store_true", help="不导入数据库, 仅导出JSON")
     parser.add_argument("--resume", action="store_true", help="断点续采, 跳过已完成的城市")
     parser.add_argument("--start-index", type=int, default=0, help="从第N个城市开始 (0-based)")
@@ -578,6 +612,7 @@ def main():
     log(f"营图 - 数据采集工具 v7.0")
     log(f"待采集城市: {len(targets)} 个 (全国共 {len(CITIES)} 个)")
     log(f"城市间间隔: {args.city_delay}秒")
+    log(f"并发线程数: {args.workers}")
     if args.no_tag:
         log(f"过夜标注: 已跳过 (--no-tag)")
     else:
@@ -604,7 +639,9 @@ def main():
         log(f"进度: {ci + 1}/{len(targets)} - {city_name} ({city['province']})")
 
         try:
-            records = collect_city(http, city, args.grid_size, args.grid_delay, args.detail_delay, auto_tag=not args.no_tag)
+            records = collect_city(http, city, args.grid_size, args.grid_delay,
+                                   args.detail_delay, auto_tag=not args.no_tag,
+                                   workers=args.workers)
 
             if records:
                 total_spots += len(records)
