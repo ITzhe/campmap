@@ -124,6 +124,7 @@ def enrich_record(record: Dict) -> Dict:
 SUPABASE_URL = "https://drktdyfwawpfughuzqvs.supabase.co"
 LIST_API = "https://zhuche.anying.wang/api/Marker/getmarkers"
 DETAIL_API = "https://zhuche.anying.wang/api/Marker/view"
+ANYING_COMMENTS_TABLE = "anying_comments"
 
 PROGRESS_FILE = "collect_progress.json"
 
@@ -268,6 +269,9 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
         water_info = parse_info_memo(d.get("jiashui_info", ""))
         power_info = parse_info_memo(d.get("jiedian_info", ""))
 
+        # 提取评论 actionlists
+        actionlists = d.get("actionlists") or []
+
         return {
             "name": d.get("name", ""),
             "longitude": float(d.get("longitude", 0)),
@@ -292,6 +296,7 @@ def fetch_detail(http: httpx.Client, spot_code: str, lng: float, lat: float) -> 
             "toilet_info": toilet_info,
             "water_info": water_info,
             "power_info": power_info,
+            "actionlists": actionlists,
         }
     except:
         return None
@@ -363,9 +368,86 @@ def import_to_db(client: httpx.Client, key: str, records: List[Dict]) -> int:
     return imported
 
 
+def extract_anying_comments(spot_code: str, camp_name: str,
+                            actionlists: list) -> List[Dict]:
+    """从安营 actionlists 提取评论，用户名 '安营' 前缀替换为 '营图'"""
+    if not actionlists:
+        return []
+
+    comments = []
+    for idx, item in enumerate(actionlists):
+        raw_name = str(item.get("cname") or "安营车友")
+        # "安营Xg7pLG" -> "营图Xg7pLG", "安营车友" -> "营图车友"
+        nick = raw_name.replace("安营", "营图") if raw_name.startswith("安营") else raw_name
+
+        content = str(item.get("content") or "").strip()
+        if not content:
+            continue  # 跳过空评论
+
+        # 时间格式 "26-09-03 15:43" -> "2026-09-03 15:43:00"
+        raw_time = str(item.get("ctime") or "")
+        comment_time = None
+        if raw_time:
+            try:
+                # 补全年份前缀: "26-" -> "2026-"
+                if raw_time[2:3] == "-":
+                    raw_time = "20" + raw_time
+                if len(raw_time) == 16:  # "2026-09-03 15:43"
+                    raw_time += ":00"
+                comment_time = raw_time
+            except Exception:
+                comment_time = raw_time
+
+        # 生成唯一 ID: spot_code + 序号
+        comment_id = int(f"{hash(spot_code) % 100000}{idx:04d}")
+
+        comments.append({
+            "id": comment_id,
+            "spot_code": spot_code,
+            "camp_name": camp_name,
+            "user_nickname": nick,
+            "content": content,
+            "comment_time": comment_time,
+            "act_type": int(item.get("act_type", 0)),
+            "source": "anying"
+        })
+
+    return comments
+
+
+def import_comments_to_db(client: httpx.Client, key: str, comments: List[Dict]) -> int:
+    """导入安营评论到数据库"""
+    if not comments:
+        return 0
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept-Profile": "map",
+        "Content-Profile": "map",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    batch_size = 50
+    imported = 0
+    endpoint = f"{SUPABASE_URL}/rest/v1/{ANYING_COMMENTS_TABLE}?on_conflict=id"
+
+    for i in range(0, len(comments), batch_size):
+        batch = comments[i:i + batch_size]
+        try:
+            r = client.post(endpoint, json=batch, headers=headers, timeout=30)
+            if r.status_code in (200, 201):
+                imported += len(batch)
+            else:
+                log(f"  [评论导入失败] {r.status_code}: {r.text[:150]}")
+        except Exception as e:
+            log(f"  [评论导入异常] {e}")
+        time.sleep(0.2)
+    return imported
+
+
 def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                  grid_delay: float, detail_delay: float, auto_tag: bool = True,
-                 workers: int = 5) -> List[Dict]:
+                 workers: int = 5) -> Tuple[List[Dict], List[Dict]]:
     """采集单个城市"""
     city_name = city["name"]
     log(f"\n[{city_name}] 开始采集")
@@ -398,7 +480,7 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
 
     if not all_spots:
         log(f"  {city_name} 无营地数据")
-        return []
+        return [], []
 
     log(f"  列表去重: {len(all_spots)} 个营地, 并发获取详情 (workers={workers})...")
 
@@ -407,13 +489,15 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
     detail_results = fetch_all_details_concurrent(http, all_spots, workers, detail_delay)
 
     records = []
+    comment_records = []
     detail_count = 0
     for code, spot, detail in detail_results:
         if detail:
             detail_count += 1
+            camp_name = detail["name"] or spot["name"]
             records.append({
                 "spot_code": code,
-                "name": detail["name"] or spot["name"],
+                "name": camp_name,
                 "longitude": detail["longitude"] or spot["lng"],
                 "latitude": detail["latitude"] or spot["lat"],
                 "address": detail["address"],
@@ -439,6 +523,11 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "province": city["province"],
                 "city": city_label,
             })
+            # 提取评论
+            actionlists = detail.get("actionlists") or []
+            if actionlists:
+                comments = extract_anying_comments(code, camp_name, actionlists)
+                comment_records.extend(comments)
         else:
             records.append({
                 "spot_code": code,
@@ -469,7 +558,7 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 "city": city_label,
             })
 
-    log(f"  {city_name} 采集完成: {len(records)} 条, 详情 {detail_count}")
+    log(f"  {city_name} 采集完成: {len(records)} 条营地, {len(comment_records)} 条评论, 详情 {detail_count}")
 
     # 标注过夜属性 + 同步列表字段
     if auto_tag and records:
@@ -482,7 +571,7 @@ def collect_city(http: httpx.Client, city: Dict, grid_size: float,
                 log(f"  [标注失败] {record.get('name', '?')} - {e}")
         log(f"  过夜标注: {tagged}/{len(records)} 条")
 
-    return records
+    return records, comment_records
 
 
 # ======================== 主函数 ========================
@@ -630,6 +719,8 @@ def main():
 
     total_imported = 0
     total_spots = 0
+    total_comments = 0
+    total_comments_imported = 0
     success_count = 0
     fail_count = 0
 
@@ -639,23 +730,35 @@ def main():
         log(f"进度: {ci + 1}/{len(targets)} - {city_name} ({city['province']})")
 
         try:
-            records = collect_city(http, city, args.grid_size, args.grid_delay,
+            records, comment_records = collect_city(http, city, args.grid_size, args.grid_delay,
                                    args.detail_delay, auto_tag=not args.no_tag,
                                    workers=args.workers)
 
             if records:
                 total_spots += len(records)
+                total_comments += len(comment_records)
 
                 if not args.no_import:
                     imported = import_to_db(db_client, key, records)
                     total_imported += imported
-                    log(f"  导入数据库: {imported} 条")
+                    log(f"  营地导入: {imported} 条")
+
+                    if comment_records:
+                        cmt_imported = import_comments_to_db(db_client, key, comment_records)
+                        total_comments_imported += cmt_imported
+                        log(f"  评论导入: {cmt_imported}/{len(comment_records)} 条")
                 else:
                     # 导出 JSON
                     filename = f"camps_{city_name}.json"
                     with open(filename, "w", encoding="utf-8") as f:
                         json.dump(records, f, ensure_ascii=False, indent=2)
-                    log(f"  导出: {filename}")
+                    if comment_records:
+                        cmt_filename = f"comments_{city_name}.json"
+                        with open(cmt_filename, "w", encoding="utf-8") as f:
+                            json.dump(comment_records, f, ensure_ascii=False, indent=2)
+                        log(f"  导出: {filename} + {cmt_filename}")
+                    else:
+                        log(f"  导出: {filename}")
 
                 mark_completed(progress, city_name, len(records))
                 success_count += 1
@@ -684,8 +787,10 @@ def main():
     log(f"采集任务完成!")
     log(f"  采集城市: {success_count} 成功, {fail_count} 失败")
     log(f"  总营地数: {total_spots}")
+    log(f"  总评论数: {total_comments}")
     if not args.no_import:
-        log(f"  总导入数: {total_imported}")
+        log(f"  营地导入数: {total_imported}")
+        log(f"  评论导入数: {total_comments_imported}")
     if not args.no_tag:
         log(f"  过夜标注: 已随采集自动完成")
     log(f"  进度文件: {PROGRESS_FILE}")
