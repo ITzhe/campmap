@@ -264,15 +264,15 @@ def calculate_score(spot: Dict) -> Dict:
 
 # ======================== 数据库操作 ========================
 def get_total_count(client: httpx.Client, key: str) -> int:
-    """获取总记录数（通过 HEAD 请求读取 content-range）"""
+    """获取总记录数（通过 GET 请求 limit=1 读取 content-range）"""
     h = {
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Accept-Profile": "map",
         "Prefer": "count=exact",
     }
-    r = client.head(
-        f"{SUPABASE_URL}/rest/v1/{TABLE}?select=id",
+    r = client.get(
+        f"{SUPABASE_URL}/rest/v1/{TABLE}?select=id&limit=1",
         headers=h,
         timeout=30,
     )
