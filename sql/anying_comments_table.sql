@@ -23,6 +23,11 @@ CREATE INDEX IF NOT EXISTS idx_anying_comments_time
 -- RLS 策略
 ALTER TABLE map.anying_comments ENABLE ROW LEVEL SECURITY;
 
+-- 先删旧策略再建（PostgreSQL 不支持 CREATE POLICY IF NOT EXISTS）
+DROP POLICY IF EXISTS "anying_comments_read" ON map.anying_comments;
+DROP POLICY IF EXISTS "anying_comments_write" ON map.anying_comments;
+DROP POLICY IF EXISTS "anying_comments_update" ON map.anying_comments;
+
 -- 匿名用户可读
 CREATE POLICY "anying_comments_read" ON map.anying_comments
     FOR SELECT USING (true);

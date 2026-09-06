@@ -124,6 +124,256 @@ async function fetchCampDetail(spotCode) {
   }
 }
 
+// ======================== 懂营地数据 (dongyingdi_spots) ========================
+
+/**
+ * 懂营地数据字段映射到标准营地格式
+ * dongyingdi_spots 字段名与 camping_spots 有差异，统一映射
+ */
+function normalizeDydCamp(camp) {
+  if (!camp) return null;
+  const normalized = Object.assign({}, camp, {
+    spot_code: 'dyd_' + camp.id,       // 前缀 id 作为 spot_code
+    source: 'dyd',
+    parking_status: camp.is_fee != null ? camp.is_fee : 0,  // is_fee → parking_status
+    cooking_status: camp.cook_friendly || 0,               // cook_friendly → cooking_status
+  });
+  // 补全 camping_spots 有但 dongyingdi_spots 没有的字段
+  return normalizeCamp(normalized);
+}
+
+/**
+ * 获取懂营地列表 (带地理范围过滤)
+ * @param {Object} bounds - {minLat, maxLat, minLng, maxLng}
+ * @param {number} limit - 返回数量限制
+ */
+async function fetchDydCampsites(bounds, limit) {
+  if (!bounds) return [];
+
+  const selectFields = 'id,name,longitude,latitude,address,is_fee,toilet_status,' +
+    'water_status,power_status,tent_friendly,trailer_friendly,cook_friendly,' +
+    'dining_status,shower_status,fishing_status,overnight_score,overnight_status,' +
+    'dim_noise,dim_safety,score_source';
+
+  let url = `${config.API_BASE}/dongyingdi_spots?select=${selectFields}`;
+  url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
+  url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
+  url += `&limit=${Math.min(limit || 100, 100)}`;
+
+  try {
+    const data = await request(url, 'GET');
+    if (!Array.isArray(data) || data.length === 0) return [];
+    return data.map(normalizeDydCamp).filter(Boolean);
+  } catch (e) {
+    console.error('[Supabase] 懂营地数据获取失败:', e.message);
+    return [];
+  }
+}
+
+/**
+ * 获取懂营地单个详情
+ * @param {string|number} id - dongyingdi_spots.id
+ */
+async function fetchDydCampDetail(id) {
+  const url = `${config.API_BASE}/dongyingdi_spots?id=eq.${id}&select=*`;
+  try {
+    const data = await request(url, 'GET');
+    if (Array.isArray(data) && data.length > 0) {
+      return normalizeDydCamp(data[0]);
+    }
+    return null;
+  } catch (e) {
+    console.error('[Supabase] 懂营地详情获取失败:', e.message);
+    return null;
+  }
+}
+
+/**
+ * 搜索懂营地
+ * @param {string} keyword - 搜索关键词
+ */
+async function searchDydCamps(keyword) {
+  const selectFields = 'id,name,longitude,latitude,address,is_fee,toilet_status,' +
+    'water_status,power_status,tent_friendly,trailer_friendly,cook_friendly,' +
+    'dining_status,overnight_score,overnight_status';
+  const url = `${config.API_BASE}/dongyingdi_spots?select=${selectFields}` +
+    `&or=(name.ilike.*${encodeURIComponent(keyword)}*,address.ilike.*${encodeURIComponent(keyword)}*)&limit=50`;
+  try {
+    const data = await request(url, 'GET');
+    if (!Array.isArray(data)) return [];
+    return data.map(normalizeDydCamp).filter(Boolean);
+  } catch (e) {
+    console.error('[Supabase] 懂营地搜索失败:', e.message);
+    return [];
+  }
+}
+
+// ======================== 双数据源去重合并 ========================
+
+/**
+ * 设施字段列表（用于合并时取并集）
+ */
+var FAC_FIELDS = [
+  'toilet_status', 'water_status', 'power_status', 'charging_status',
+  'rv_friendly', 'trailer_friendly', 'tent_friendly', 'shower_status',
+  'fishing_status', 'cooking_status', 'fire_status', 'repair_status',
+  'grocery_status', 'dining_status', 'accommodation_status'
+];
+
+/**
+ * 计算两点间距离（米）
+ */
+function distMeters(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var toR = function(d) { return d * Math.PI / 180; };
+  var dLat = toR(lat2 - lat1);
+  var dLng = toR(lng2 - lng1);
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toR(lat1)) * Math.cos(toR(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+/**
+ * 名称相似度（基于 Jaccard 字符集）
+ * 设计文稿要求 > 80% 作为辅助验证
+ */
+function nameSimilarity(a, b) {
+  if (!a || !b) return 0;
+  // 去除常见后缀后比较
+  var clean = function(s) {
+    return (s || '').replace(/[停车场停车区服务区驿站景区]/g, '');
+  };
+  var ca = clean(a), cb = clean(b);
+  if (!ca || !cb) return 0;
+  if (ca.indexOf(cb) > -1 || cb.indexOf(ca) > -1) return 1;
+  // Jaccard 字符集相似度
+  var setA = new Set(ca.split(''));
+  var setB = new Set(cb.split(''));
+  var intersection = 0;
+  setA.forEach(function(c) { if (setB.has(c)) intersection++; });
+  var union = setA.size + setB.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+/**
+ * 合并两个重复营地
+ * primary 已有更完整数据，secondary 补充缺失字段
+ */
+function mergeTwoCamps(primary, secondary) {
+  var merged = Object.assign({}, primary);
+
+  // 设施字段取并集（任一来源有则标记为有）
+  for (var i = 0; i < FAC_FIELDS.length; i++) {
+    var f = FAC_FIELDS[i];
+    if (Number(secondary[f]) > 0 && !Number(merged[f])) {
+      merged[f] = secondary[f];
+    }
+  }
+
+  // 如果主记录没有过夜评分，用副记录的
+  if (!Number(merged.overnight_score) && Number(secondary.overnight_score)) {
+    merged.overnight_score = secondary.overnight_score;
+    merged.overnight_status = secondary.overnight_status;
+    merged.dim_noise = secondary.dim_noise || '';
+    merged.dim_safety = secondary.dim_safety || '';
+    merged.score_source = secondary.score_source || '';
+    // 评分来自副记录，详情页应查副记录的表
+    merged.spot_code = secondary.spot_code;
+    merged.source = secondary.source;
+  }
+
+  // 名称取更完整的
+  if (secondary.name && (!merged.name || secondary.name.length > merged.name.length)) {
+    merged.name = secondary.name;
+  }
+  // 地址取更完整的
+  if (secondary.address && (!merged.address || secondary.address.length > merged.address.length)) {
+    merged.address = secondary.address;
+  }
+  // 简介/备注/价格取非空的
+  if (secondary.intro && !merged.intro) merged.intro = secondary.intro;
+  if (secondary.memo && !merged.memo) merged.memo = secondary.memo;
+  if (secondary.price_info && !merged.price_info) merged.price_info = secondary.price_info;
+
+  return merged;
+}
+
+/**
+ * 双数据源营地去重
+ * 根据 GPS 距离判断是否为同一地点，合并重复项
+ * @param {Array} camps - 安营 + 懂营地混合列表
+ * @returns {Array} 去重合并后的列表
+ */
+function deduplicateCamps(camps) {
+  var MERGE_RADIUS = 200; // 200 米内视为同一地点
+  var NAME_SIM_THRESHOLD = 0.3; // 名称相似度低于此值时不合并
+  if (!Array.isArray(camps) || camps.length === 0) return camps;
+
+  // 按过夜评分降序排（有评分的优先作为主记录）
+  var sorted = camps.slice().sort(function(a, b) {
+    return (Number(b.overnight_score) || 0) - (Number(a.overnight_score) || 0);
+  });
+
+  var merged = [];
+  for (var i = 0; i < sorted.length; i++) {
+    var camp = sorted[i];
+    var foundDup = false;
+    for (var j = 0; j < merged.length; j++) {
+      var d = distMeters(
+        camp.latitude, camp.longitude,
+        merged[j].latitude, merged[j].longitude
+      );
+      if (d <= MERGE_RADIUS) {
+        // 辅助验证：名称相似度（设计文稿要求 > 80%）
+        // 如果两个营地都有名称但完全不相似（< 30%），可能是相邻的不同营地
+        var sim = nameSimilarity(camp.name, merged[j].name);
+        if (sim < NAME_SIM_THRESHOLD && camp.name && merged[j].name
+            && camp.name.length >= 4 && merged[j].name.length >= 4) {
+          // 名称差异太大，跳过合并
+          continue;
+        }
+        merged[j] = mergeTwoCamps(merged[j], camp);
+        foundDup = true;
+        break;
+      }
+    }
+    if (!foundDup) {
+      merged.push(camp);
+    }
+  }
+
+  if (merged.length < sorted.length) {
+    console.log('[dedup] 去重:', sorted.length, '→', merged.length, '（合并', sorted.length - merged.length, '条重复）');
+  }
+
+  return merged;
+}
+
+/**
+ * 实时重算营地过夜评分（用户打卡后调用）
+ * 调用 Supabase RPC 函数，按设计文稿第二阶段公式重算
+ * @param {string} spotCode - 营地编码
+ * @returns {Object} 重算结果 { success, final_score, status, ... }
+ */
+async function recalculateScore(spotCode) {
+  if (!spotCode) return { success: false, msg: 'spotCode 缺失' };
+  const url = `${config.API_BASE}/rpc/recalculate_overnight_score`;
+  try {
+    const result = await request(url, 'POST', JSON.stringify({
+      p_spot_code: spotCode
+    }));
+    if (result && result.success) {
+      console.log('[recalculate] 重算成功:', spotCode,
+        '→', result.final_score, '(', result.review_count, '条评价)');
+    }
+    return result || { success: false };
+  } catch (e) {
+    console.warn('[recalculate] 重算失败:', e.message);
+    return { success: false, msg: e.message };
+  }
+}
+
 /**
  * 获取用户积分
  */
@@ -384,12 +634,18 @@ async function deleteCampPhoto(photoId, openid) {
 module.exports = {
   request,
   fetchCampsites,
+  fetchDydCampsites,
   fetchCampDetail,
+  fetchDydCampDetail,
+  searchDydCamps,
+  deduplicateCamps,
+  recalculateScore,
   getPoints,
   dailyCheckinApi,
   deductPointApi,
   submitCampsite,
   normalizeCamp,
+  normalizeDydCamp,
   fetchComments,
   submitComment,
   likeComment,

@@ -256,7 +256,7 @@ Page({
     };
   },
 
-  // ============ 加载营地数据 (仅数据库) ============
+  // ============ 加载营地数据 (安营 + 懂营地双数据源) ============
   async loadCamps() {
     // 如果正在加载, 标记需要重新加载
     if (this.data.loadingCamps) {
@@ -271,15 +271,21 @@ Page({
     util.showLoading('加载营地...');
 
     try {
-      const dbCamps = await api.fetchCampsites(this.data.filters, bounds, 5000);
+      // 并行查询安营(camping_spots)和懂营地(dongyingdi_spots)
+      const [anyingCamps, dydCamps] = await Promise.all([
+        api.fetchCampsites(this.data.filters, bounds, 5000),
+        api.fetchDydCampsites(bounds, 5000)
+      ]);
+      // 双数据源去重合并（150米内视为同一地点）
+      const allCamps = api.deduplicateCamps([...anyingCamps, ...dydCamps]);
 
       this.setData({
-        camps: dbCamps,
-        campCount: dbCamps.length
+        camps: allCamps,
+        campCount: allCamps.length
       });
-      this.buildMarkers(dbCamps);
+      this.buildMarkers(allCamps);
 
-      if (dbCamps.length === 0) {
+      if (allCamps.length === 0) {
         util.showToast('当前区域暂无营地数据');
       }
     } catch (e) {
@@ -447,9 +453,10 @@ Page({
     const app = getApp();
     app.globalData.selectedCamp = camp;
 
-    // 跳转详情页
+    // 传递 source 参数，详情页据此选择查询哪个表
+    const source = camp.source || 'anying';
     wx.navigateTo({
-      url: `/pages/detail/index?spot_code=${camp.spot_code}`
+      url: `/pages/detail/index?spot_code=${camp.spot_code}&source=${source}`
     });
   },
 
@@ -649,28 +656,44 @@ Page({
     this.setData({ searchHistory: h, searchSearching: true, searchSearched: true, searchResults: [] });
     try { wx.setStorageSync('camp_search_history', h); } catch (e) {}
 
-    // 搜索
-    const url = `${config.API_BASE}/camping_spots?select=spot_code,name,longitude,latitude,address,parking_status,toilet_status,water_status,power_status,charging_status,rv_friendly,trailer_friendly,tent_friendly&or=(name.ilike.*${encodeURIComponent(kw)}*,address.ilike.*${encodeURIComponent(kw)}*)&limit=50`;
+    // 并行搜索安营 + 懂营地
+    const anyingUrl = `${config.API_BASE}/camping_spots?select=spot_code,name,longitude,latitude,address,parking_status,toilet_status,water_status,power_status,charging_status,rv_friendly,trailer_friendly,tent_friendly&or=(name.ilike.*${encodeURIComponent(kw)}*,address.ilike.*${encodeURIComponent(kw)}*)&limit=50`;
 
-    wx.request({
-      url: url,
-      method: 'GET',
-      header: config.getHeaders(),
-      timeout: 8000,
-      success: (res) => {
-        if (res.statusCode === 200 && Array.isArray(res.data)) {
-          const results = res.data.map(c => ({
-            ...c,
-            isFree: c.parking_status === 0,
-            tags: this._buildSearchTags(c)
-          }));
-          this.setData({ searchResults: results });
-        } else {
-          util.showToast('搜索失败');
-        }
-      },
-      fail: () => { util.showToast('网络错误'); },
-      complete: () => { this.setData({ searchSearching: false }); }
+    Promise.all([
+      new Promise((resolve) => {
+        wx.request({
+          url: anyingUrl,
+          method: 'GET',
+          header: config.getHeaders(),
+          timeout: 8000,
+          success: (res) => {
+            if (res.statusCode === 200 && Array.isArray(res.data)) {
+              resolve(res.data.map(c => ({
+                ...c,
+                source: 'anying',
+                isFree: c.parking_status === 0,
+                tags: this._buildSearchTags(c)
+              })));
+            } else {
+              resolve([]);
+            }
+          },
+          fail: () => { resolve([]); }
+        });
+      }),
+      api.searchDydCamps(kw).then(results => results.map(c => ({
+        ...c,
+        isFree: c.parking_status === 0,
+        tags: this._buildSearchTags(c)
+      })))
+    ]).then(([anyingResults, dydResults]) => {
+      // 搜索结果去重合并
+      const allResults = api.deduplicateCamps([...anyingResults, ...dydResults]);
+      this.setData({ searchResults: allResults });
+    }).catch(() => {
+      util.showToast('搜索失败');
+    }).then(() => {
+      this.setData({ searchSearching: false });
     });
   },
 
@@ -713,9 +736,10 @@ Page({
       scale: 15
     });
     this.loadCamps();
-    // 跳转详情
+    // 跳转详情，传递 source 参数
+    const source = spot.source || 'anying';
     setTimeout(() => {
-      wx.navigateTo({ url: '/pages/detail/index?spotCode=' + spot.spot_code });
+      wx.navigateTo({ url: '/pages/detail/index?spot_code=' + spot.spot_code + '&source=' + source });
     }, 300);
   },
 

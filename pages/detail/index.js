@@ -80,10 +80,12 @@ Page({
   onLoad(options) {
     const sys = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()) || {};
     const statusBarHeight = sys.statusBarHeight || 20;
+    // 兼容 spot_code 和 spotCode 两种参数名
+    const code = options.spot_code || options.spotCode || '';
     this.setData({
       statusBarHeight,
       navHeight: statusBarHeight + 44,
-      spotCode: options.spot_code || ''
+      spotCode: code
     });
 
     const app = getApp();
@@ -99,10 +101,10 @@ Page({
     });
 
     let camp = app.globalData.selectedCamp;
-    if (camp && camp.spot_code === options.spot_code) {
+    if (camp && camp.spot_code === code) {
       this.renderCamp(camp);
     } else {
-      this.loadCamp(options.spot_code);
+      this.loadCamp(code, options.source);
     }
   },
 
@@ -120,14 +122,21 @@ Page({
     this.setData({ showCheckinSuccess: false });
   },
 
-  async loadCamp(spotCode) {
+  async loadCamp(spotCode, source) {
     if (!spotCode) {
       util.showToast('营地信息不存在');
       return;
     }
     util.showLoading('加载中...');
     try {
-      const camp = await api.fetchCampDetail(spotCode);
+      // 根据 source 选择查询哪个表
+      let camp;
+      if (source === 'dyd' || spotCode.startsWith('dyd_')) {
+        const id = spotCode.replace('dyd_', '');
+        camp = await api.fetchDydCampDetail(id);
+      } else {
+        camp = await api.fetchCampDetail(spotCode);
+      }
       if (camp) {
         this.renderCamp(camp);
       } else {
@@ -158,28 +167,142 @@ Page({
     const priceInfo = camp.price_info || '';
     const parkingText = Number(camp.parking_status) === 1 ? '收费' : '免费';
 
-    // 过夜友好度数据
+    // 过夜友好度数据（兼容安营 camping_spots 和懂营地 dongyingdi_spots 两种格式）
     const ov = config.OVERNIGHT;
     const overnightScore = Number(camp.overnight_score) || 0;
-    const hasOvernightData = overnightScore > 0 || Number(camp.overnight_status) > 0
-      || Number(camp.noise_level) > 0 || Number(camp.safety_level) > 0;
-    const overnightStatus = Number(camp.overnight_status) || 0;
-    const overnightInfo = hasOvernightData ? {
-      score: overnightScore.toFixed(1),
-      stars: '★'.repeat(Math.round(overnightScore)) + '☆'.repeat(5 - Math.round(overnightScore)),
-      // overnight_status=0 时不显示状态标签
-      status: overnightStatus > 0 ? (ov.statusLabels[camp.overnight_status] || '') : '',
-      statusEmoji: overnightStatus > 0 ? (ov.statusEmoji[camp.overnight_status] || '') : '',
-      noise: ov.noiseLabels[camp.noise_level] || '未知',
-      noiseEmoji: ov.noiseEmoji[camp.noise_level] || '❓',
-      safety: ov.safetyLabels[camp.safety_level] || '未知',
-      safetyEmoji: ov.safetyEmoji[camp.safety_level] || '❓',
-      signal: ov.signalLabels[camp.signal_level] || '未知',
-      signalEmoji: ov.signalEmoji[camp.signal_level] || '❓',
-      ground: ov.groundLabels[camp.ground_type] || '未知',
-      groundEmoji: ov.groundEmoji[camp.ground_type] || '❓',
-      source: ov.sourceLabels[camp.overnight_data_source] || '未标注'
-    } : null;
+
+    // 判断是否有过夜数据
+    let hasOvernightData = false;
+    let overnightInfo = null;
+
+    // 懂营地图格式：dim_noise / dim_safety 是字符串，score_source 是字符串
+    const isDydFormat = typeof camp.dim_noise === 'string' && camp.dim_noise !== ''
+      || typeof camp.dim_safety === 'string' && camp.dim_safety !== '';
+
+    if (overnightScore > 0 || isDydFormat || Number(camp.overnight_status) > 0) {
+      hasOvernightData = true;
+
+      // 过夜状态
+      let status = '';
+      let statusEmoji = '';
+      const ovStatus = Number(camp.overnight_status) || 0;
+      if (ovStatus > 0) {
+        // 懂营地状态映射：1=可以过夜 2=勉强能住 3=不建议过夜
+        if (isDydFormat) {
+          const dydStatusMap = { 1: '可以过夜', 2: '勉强能住', 3: '不建议过夜' };
+          const dydEmojiMap = { 1: '✅', 2: '😐', 3: '⚠️' };
+          status = dydStatusMap[ovStatus] || '';
+          statusEmoji = dydEmojiMap[ovStatus] || '';
+        } else {
+          status = ov.statusLabels[camp.overnight_status] || '';
+          statusEmoji = ov.statusEmoji[camp.overnight_status] || '';
+        }
+      }
+
+      // 维度数据（2~4 个）
+      const dims = [];
+
+      if (isDydFormat) {
+        // 懂营地：噪音、安全（字符串值）
+        if (camp.dim_noise) {
+          dims.push({
+            emoji: camp.dim_noise === '较安静' ? '🔇' : camp.dim_noise === '较吵' ? '📢' : '🔊',
+            label: '噪音',
+            value: camp.dim_noise
+          });
+        }
+        if (camp.dim_safety) {
+          dims.push({
+            emoji: camp.dim_safety === '很安全' ? '🛡️' : camp.dim_safety === '需注意' ? '⚠️' : '😐',
+            label: '安全',
+            value: camp.dim_safety
+          });
+        }
+      } else {
+        // 安营格式：噪音、安全、信号、地面（数值等级）
+        if (Number(camp.noise_level) > 0) {
+          dims.push({
+            emoji: ov.noiseEmoji[camp.noise_level] || '❓',
+            label: '噪音',
+            value: ov.noiseLabels[camp.noise_level] || '未知'
+          });
+        }
+        if (Number(camp.safety_level) > 0) {
+          dims.push({
+            emoji: ov.safetyEmoji[camp.safety_level] || '❓',
+            label: '安全',
+            value: ov.safetyLabels[camp.safety_level] || '未知'
+          });
+        }
+        if (Number(camp.signal_level) > 0) {
+          dims.push({
+            emoji: ov.signalEmoji[camp.signal_level] || '❓',
+            label: '信号',
+            value: ov.signalLabels[camp.signal_level] || '未知'
+          });
+        }
+        if (Number(camp.ground_type) > 0) {
+          dims.push({
+            emoji: ov.groundEmoji[camp.ground_type] || '❓',
+            label: '地面',
+            value: ov.groundLabels[camp.ground_type] || '未知'
+          });
+        }
+      }
+
+      // 数据来源
+      let source = '未标注';
+      if (camp.score_source && camp.score_source !== '') {
+        const sourceMap = {
+          'facility_calculated': '设施计算',
+          'user_rated': '用户评价',
+          'anying_imported': '安营导入',
+          'manual': '人工复核'
+        };
+        source = sourceMap[camp.score_source] || camp.score_source;
+      } else if (camp.overnight_data_source && camp.overnight_data_source !== '') {
+        source = ov.sourceLabels[camp.overnight_data_source] || camp.overnight_data_source;
+      }
+
+      // 环形进度百分比（0~100）
+      const percent = Math.round(Math.min(Math.max(overnightScore / 5, 0), 1) * 100);
+
+      // 评分主题色：根据状态变色
+      // 1=可以过夜→绿, 2=勉强能住→橙, 3=不建议过夜→灰
+      let scoreTheme = 'green';
+      let ringColor = '#2d6a4f';
+      let ringTrackColor = 'rgba(45, 106, 79, 0.1)';
+      let cardGradFrom = '#e8f5e9';
+      let cardGradTo = '#d8f3dc';
+      if (ovStatus === 2) {
+        scoreTheme = 'orange';
+        ringColor = '#f4a261';
+        ringTrackColor = 'rgba(244, 162, 97, 0.15)';
+        cardGradFrom = '#fff3e0';
+        cardGradTo = '#ffe0b2';
+      }
+      if (ovStatus === 3) {
+        scoreTheme = 'gray';
+        ringColor = '#9e9e9e';
+        ringTrackColor = 'rgba(158, 158, 158, 0.15)';
+        cardGradFrom = '#f5f5f5';
+        cardGradTo = '#eeeeee';
+      }
+
+      overnightInfo = {
+        score: overnightScore.toFixed(1),
+        status,
+        statusEmoji,
+        dims,
+        source,
+        scoreTheme,
+        ringPercent: percent,
+        ringColor,
+        ringTrackColor,
+        cardGradFrom,
+        cardGradTo
+      };
+    }
 
     // 最新动态 (本地模拟)
     const newsList = this.buildNews(camp);
@@ -545,8 +668,82 @@ Page({
         this.setData({ showCheckinSuccess: false });
       }, 2000);
       this.setData({ checkinSuccessTimer: timer });
+
+      // 异步重算过夜评分（不阻塞用户体验）
+      this.refreshOvernightScore();
     } else {
       util.showToast((res && res.msg) || '提交失败，请稍后重试');
+    }
+  },
+
+  // ============ 异步重算过夜评分（打卡后调用）============
+  async refreshOvernightScore() {
+    const camp = this.data.camp;
+    if (!camp || !this.data.hasOvernightData) return;
+    try {
+      const result = await api.recalculateScore(camp.spot_code);
+      if (!result || !result.success || result.final_score === undefined) return;
+
+      // 更新 camp 数据
+      camp.overnight_score = result.final_score;
+      camp.overnight_status = result.status;
+      if (result.noise) camp.dim_noise = result.noise;
+      if (result.safety) camp.dim_safety = result.safety;
+      camp.score_source = 'user_rated';
+
+      // 更新 overnightInfo 显示
+      const ov = this.data.overnightInfo;
+      if (!ov) return;
+
+      ov.score = Number(result.final_score).toFixed(1);
+      ov.ringPercent = Math.round(Math.min(Math.max(result.final_score / 5, 0), 1) * 100);
+
+      // 状态映射
+      const statusMap = { 1: '可以过夜', 2: '勉强能住', 3: '不建议过夜' };
+      const emojiMap = { 1: '✅', 2: '😐', 3: '⚠️' };
+      ov.status = statusMap[result.status] || ov.status;
+      ov.statusEmoji = emojiMap[result.status] || ov.statusEmoji;
+
+      // 主题色
+      if (result.status === 1) {
+        ov.scoreTheme = 'green';
+        ov.ringColor = '#2d6a4f';
+        ov.ringTrackColor = 'rgba(45, 106, 79, 0.1)';
+        ov.cardGradFrom = '#e8f5e9';
+        ov.cardGradTo = '#d8f3dc';
+      } else if (result.status === 2) {
+        ov.scoreTheme = 'orange';
+        ov.ringColor = '#f4a261';
+        ov.ringTrackColor = 'rgba(244, 162, 97, 0.15)';
+        ov.cardGradFrom = '#fff3e0';
+        ov.cardGradTo = '#ffe0b2';
+      } else {
+        ov.scoreTheme = 'gray';
+        ov.ringColor = '#9e9e9e';
+        ov.ringTrackColor = 'rgba(158, 158, 158, 0.15)';
+        ov.cardGradFrom = '#f5f5f5';
+        ov.cardGradTo = '#eeeeee';
+      }
+
+      // 更新维度值
+      if (ov.dims && ov.dims.length > 0) {
+        ov.dims = ov.dims.map(function(d) {
+          if (d.label === '噪音' && result.noise) {
+            return Object.assign({}, d, { value: result.noise });
+          }
+          if (d.label === '安全' && result.safety) {
+            return Object.assign({}, d, { value: result.safety });
+          }
+          return d;
+        });
+      }
+
+      // 数据来源
+      ov.source = '用户评价';
+
+      this.setData({ camp, overnightInfo: ov });
+    } catch (e) {
+      console.warn('[detail] 评分重算失败:', e.message);
     }
   },
 
