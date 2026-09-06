@@ -276,7 +276,8 @@ Page({
         api.fetchCampsites(this.data.filters, bounds, 5000),
         api.fetchDydCampsites(bounds, 5000)
       ]);
-      const allCamps = [...anyingCamps, ...dydCamps];
+      // 双数据源去重合并（150米内视为同一地点）
+      const allCamps = api.deduplicateCamps([...anyingCamps, ...dydCamps]);
 
       this.setData({
         camps: allCamps,
@@ -686,7 +687,8 @@ Page({
         tags: this._buildSearchTags(c)
       })))
     ]).then(([anyingResults, dydResults]) => {
-      const allResults = [...anyingResults, ...dydResults];
+      // 搜索结果去重合并
+      const allResults = api.deduplicateCamps([...anyingResults, ...dydResults]);
       this.setData({ searchResults: allResults });
     }).catch(() => {
       util.showToast('搜索失败');
