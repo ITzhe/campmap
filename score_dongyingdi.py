@@ -29,6 +29,10 @@
   python score_dongyingdi.py --dry-run     # 试运行，只统计结果不写入
   python score_dongyingdi.py --apply       # 正式运行，写入数据库
   python score_dongyingdi.py --apply --batch 200  # 指定批次大小
+
+注意:
+  首次运行前需要先在 Supabase 执行 SQL 创建 RPC 函数：
+  sql/batch_update_dyd_score.sql
 """
 
 import argparse
@@ -301,20 +305,18 @@ def fetch_batch(client: httpx.Client, key: str, offset: int, limit: int) -> List
 
 
 def update_batch(client: httpx.Client, key: str, records: List[Dict]) -> int:
-    """批量更新评分"""
+    """批量更新评分（通过 RPC 函数，避免 UPSERT 的 NOT NULL 问题）"""
     h = {
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Accept-Profile": "map",
         "Content-Profile": "map",
-        "Prefer": "return=minimal,resolution=merge-duplicates",
         "Content-Type": "application/json",
     }
     # 只保留需要写入的字段
     now_utc = datetime.now().isoformat() + "Z"
-    payload = []
-    for r in records:
-        payload.append({
+    payload = [
+        {
             "id": r["id"],
             "overnight_score": r["overnight_score"],
             "overnight_status": r["overnight_status"],
@@ -322,12 +324,19 @@ def update_batch(client: httpx.Client, key: str, records: List[Dict]) -> int:
             "dim_safety": r["dim_safety"],
             "score_source": r["score_source"],
             "score_updated_at": now_utc,
-        })
+        }
+        for r in records
+    ]
 
-    endpoint = f"{SUPABASE_URL}/rest/v1/{TABLE}?on_conflict=id"
-    r = client.post(endpoint, json=payload, headers=h, timeout=60)
+    # 调用 RPC 函数批量更新
+    endpoint = f"{SUPABASE_URL}/rest/v1/rpc/batch_update_dyd_score"
+    r = client.post(endpoint, json={"p_scores": payload}, headers=h, timeout=60)
     if r.status_code in (200, 201, 204):
-        return len(payload)
+        try:
+            result = r.json()
+            return int(result) if result else len(payload)
+        except (ValueError, TypeError):
+            return len(payload)
     else:
         log(f"  写入失败: {r.status_code} {r.text[:300]}")
         return 0
