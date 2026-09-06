@@ -306,10 +306,12 @@ def update_batch(client: httpx.Client, key: str, records: List[Dict]) -> int:
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Accept-Profile": "map",
+        "Content-Profile": "map",
         "Prefer": "return=minimal,resolution=merge-duplicates",
         "Content-Type": "application/json",
     }
     # 只保留需要写入的字段
+    now_utc = datetime.now().isoformat() + "Z"
     payload = []
     for r in records:
         payload.append({
@@ -319,7 +321,7 @@ def update_batch(client: httpx.Client, key: str, records: List[Dict]) -> int:
             "dim_noise": r["dim_noise"],
             "dim_safety": r["dim_safety"],
             "score_source": r["score_source"],
-            "score_updated_at": datetime.utcnow().isoformat() + "Z",
+            "score_updated_at": now_utc,
         })
 
     endpoint = f"{SUPABASE_URL}/rest/v1/{TABLE}?on_conflict=id"
