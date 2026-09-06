@@ -147,81 +147,193 @@
   line-height: 1.5;
 }
 
-/* ============ 过夜友好度卡片 ============ */
+/* ============ 过夜友好度 · 环形评分卡 ============ */
 .overnight-card {
-  padding: 24rpx 28rpx;
+  padding: 28rpx 24rpx 24rpx;
+  border-radius: 24rpx;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4rpx 20rpx rgba(45, 106, 79, 0.08);
 }
 
-.overnight-source {
-  margin-left: auto;
-  font-size: 20rpx;
-  color: var(--green);
-  background: #e8f5e9;
-  padding: 4rpx 14rpx;
-  border-radius: 16rpx;
-  white-space: nowrap;
+.overnight-card::before {
+  content: '';
+  position: absolute;
+  top: -40rpx;
+  right: -20rpx;
+  width: 160rpx;
+  height: 160rpx;
+  background: rgba(82, 183, 136, 0.12);
+  border-radius: 50%;
 }
 
-.overnight-score-row {
+.overnight-card.overnight-card-orange {
+  box-shadow: 0 4rpx 20rpx rgba(244, 162, 97, 0.12);
+}
+
+.overnight-card.overnight-card-orange::before {
+  background: rgba(244, 162, 97, 0.15);
+}
+
+.overnight-card.overnight-card-gray {
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.overnight-card.overnight-card-gray::before {
+  background: rgba(158, 158, 158, 0.12);
+}
+
+/* 顶部：环形 + 信息 */
+.ov-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12rpx 0 20rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-  margin-bottom: 20rpx;
+  gap: 24rpx;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 24rpx;
 }
 
-.overnight-score-left {
-  display: flex;
-  align-items: baseline;
-  gap: 4rpx;
+/* 环形进度 */
+.ov-ring {
+  width: 140rpx;
+  height: 140rpx;
+  position: relative;
+  flex-shrink: 0;
 }
 
-.overnight-score-num {
-  font-size: 56rpx;
-  font-weight: 700;
-  color: var(--green);
-  line-height: 1;
+.ov-ring-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
-.overnight-score-unit {
-  font-size: 24rpx;
-  color: #bbb;
-}
-
-.overnight-score-right {
+.ov-ring-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #fff;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 6rpx;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
 
-.overnight-stars {
-  font-size: 28rpx;
-  color: #ffc107;
-  letter-spacing: 2rpx;
+.ov-ring-score {
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
-.overnight-status {
-  font-size: 22rpx;
+.ov-ring-score.text-green {
+  color: var(--green);
+}
+
+.ov-ring-score.text-orange {
+  color: var(--orange);
+}
+
+.ov-ring-score.text-gray {
+  color: #757575;
+}
+
+.ov-ring-unit {
+  font-size: 18rpx;
+  color: #aaa;
+  margin-top: 2rpx;
+}
+
+/* 右侧信息 */
+.ov-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ov-status {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+
+.ov-status-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 6rpx rgba(82, 183, 136, 0.25);
+  flex-shrink: 0;
+}
+
+.ov-status-dot.dot-orange {
+  background: var(--orange);
+  box-shadow: 0 0 0 6rpx rgba(244, 162, 97, 0.25);
+}
+
+.ov-status-dot.dot-gray {
+  background: #9e9e9e;
+  box-shadow: 0 0 0 6rpx rgba(158, 158, 158, 0.2);
+}
+
+.ov-status-text {
+  font-size: 30rpx;
+  font-weight: 700;
   color: var(--text);
 }
 
-.overnight-dims {
-  display: flex;
-  justify-content: space-between;
-  gap: 12rpx;
+.ov-desc {
+  font-size: 24rpx;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 12rpx;
 }
 
-.overnight-dim {
+.ov-source-tag {
+  font-size: 20rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 16rpx;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.ov-source-tag.tag-green {
+  color: var(--green-2);
+}
+
+.ov-source-tag.tag-orange {
+  color: #e65100;
+}
+
+.ov-source-tag.tag-gray {
+  color: #616161;
+}
+
+/* 底部维度格 */
+.ov-dims {
+  display: flex;
+  gap: 16rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.ov-dim-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6rpx;
-  padding: 16rpx 8rpx;
-  background: #f8f9fa;
+  padding: 18rpx 8rpx;
+  background: rgba(255, 255, 255, 0.75);
   border-radius: 16rpx;
+  backdrop-filter: blur(10px);
 }
 
 .ov-dim-emoji {
@@ -231,11 +343,12 @@
 
 .ov-dim-label {
   font-size: 20rpx;
-  color: #999;
+  color: var(--text-2);
 }
 
-.ov-dim-val {
-  font-size: 22rpx;
+.ov-dim-value {
+  font-size: 24rpx;
+  font-weight: 600;
   color: var(--text);
   text-align: center;
   line-height: 1.3;

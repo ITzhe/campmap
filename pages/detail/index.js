@@ -78,55 +78,34 @@ Page({
   },
 
   onLoad(options) {
-    const sys = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()) || {};
-    const statusBarHeight = sys.statusBarHeight || 20;
+    // 获取状态栏高度
+    const sysInfo = wx.getSystemInfoSync();
     this.setData({
-      statusBarHeight,
-      navHeight: statusBarHeight + 44,
-      spotCode: options.spot_code || ''
+      statusBarHeight: sysInfo.statusBarHeight || 20,
+      navHeight: (sysInfo.statusBarHeight || 20) + 44
     });
 
-    const app = getApp();
-    const userData = util.getUserState();
-    this.setData({
-      userPoints: userData.points,
-      // 读取本地已点赞列表
-      likedCommentIds: wx.getStorageSync('liked_comment_ids') || [],
-      currentUserNick: userData.nick || '',
-      currentUserOpenid: userData.openid || '',
-      // 打卡评价标签选项
-      checkinTagOptions: config.CHECKIN_TAGS
-    });
-
-    let camp = app.globalData.selectedCamp;
-    if (camp && camp.spot_code === options.spot_code) {
-      this.renderCamp(camp);
-    } else {
-      this.loadCamp(options.spot_code);
-    }
-  },
-
-  onUnload() {
-    if (this.data.checkinSuccessTimer) {
-      clearTimeout(this.data.checkinSuccessTimer);
-    }
-  },
-
-  // ============ 关闭打卡成功动画 ============
-  hideCheckinSuccess() {
-    if (this.data.checkinSuccessTimer) {
-      clearTimeout(this.data.checkinSuccessTimer);
-    }
-    this.setData({ showCheckinSuccess: false });
-  },
-
-  async loadCamp(spotCode) {
+    const spotCode = options.id || options.code || options.spot_code || '';
     if (!spotCode) {
-      util.showToast('营地信息不存在');
+      util.showToast('参数错误');
+      wx.navigateBack();
       return;
     }
-    util.showLoading('加载中...');
+    this.setData({ spotCode });
+    this.loadCampDetail(spotCode);
+
+    // 加载用户信息
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    this.setData({
+      currentUserNick: userInfo.nick || '',
+      currentUserOpenid: userInfo.openid || ''
+    });
+  },
+
+  // ============ 加载营地详情 ============
+  async loadCampDetail(spotCode) {
     try {
+      util.showLoading('加载中...');
       const camp = await api.fetchCampDetail(spotCode);
       if (camp) {
         this.renderCamp(camp);
@@ -158,28 +137,142 @@ Page({
     const priceInfo = camp.price_info || '';
     const parkingText = Number(camp.parking_status) === 1 ? '收费' : '免费';
 
-    // 过夜友好度数据
+    // 过夜友好度数据（兼容安营 camping_spots 和懂营地 dongyingdi_spots 两种格式）
     const ov = config.OVERNIGHT;
     const overnightScore = Number(camp.overnight_score) || 0;
-    const hasOvernightData = overnightScore > 0 || Number(camp.overnight_status) > 0
-      || Number(camp.noise_level) > 0 || Number(camp.safety_level) > 0;
-    const overnightStatus = Number(camp.overnight_status) || 0;
-    const overnightInfo = hasOvernightData ? {
-      score: overnightScore.toFixed(1),
-      stars: '★'.repeat(Math.round(overnightScore)) + '☆'.repeat(5 - Math.round(overnightScore)),
-      // overnight_status=0 时不显示状态标签
-      status: overnightStatus > 0 ? (ov.statusLabels[camp.overnight_status] || '') : '',
-      statusEmoji: overnightStatus > 0 ? (ov.statusEmoji[camp.overnight_status] || '') : '',
-      noise: ov.noiseLabels[camp.noise_level] || '未知',
-      noiseEmoji: ov.noiseEmoji[camp.noise_level] || '❓',
-      safety: ov.safetyLabels[camp.safety_level] || '未知',
-      safetyEmoji: ov.safetyEmoji[camp.safety_level] || '❓',
-      signal: ov.signalLabels[camp.signal_level] || '未知',
-      signalEmoji: ov.signalEmoji[camp.signal_level] || '❓',
-      ground: ov.groundLabels[camp.ground_type] || '未知',
-      groundEmoji: ov.groundEmoji[camp.ground_type] || '❓',
-      source: ov.sourceLabels[camp.overnight_data_source] || '未标注'
-    } : null;
+
+    // 判断是否有过夜数据
+    let hasOvernightData = false;
+    let overnightInfo = null;
+
+    // 懂营地图格式：dim_noise / dim_safety 是字符串，score_source 是字符串
+    const isDydFormat = typeof camp.dim_noise === 'string' && camp.dim_noise !== ''
+      || typeof camp.dim_safety === 'string' && camp.dim_safety !== '';
+
+    if (overnightScore > 0 || isDydFormat || Number(camp.overnight_status) > 0) {
+      hasOvernightData = true;
+
+      // 过夜状态
+      let status = '';
+      let statusEmoji = '';
+      const ovStatus = Number(camp.overnight_status) || 0;
+      if (ovStatus > 0) {
+        // 懂营地状态映射：1=可以过夜 2=勉强能住 3=不建议过夜
+        if (isDydFormat) {
+          const dydStatusMap = { 1: '可以过夜', 2: '勉强能住', 3: '不建议过夜' };
+          const dydEmojiMap = { 1: '✅', 2: '😐', 3: '⚠️' };
+          status = dydStatusMap[ovStatus] || '';
+          statusEmoji = dydEmojiMap[ovStatus] || '';
+        } else {
+          status = ov.statusLabels[camp.overnight_status] || '';
+          statusEmoji = ov.statusEmoji[camp.overnight_status] || '';
+        }
+      }
+
+      // 维度数据（2~4 个）
+      const dims = [];
+
+      if (isDydFormat) {
+        // 懂营地：噪音、安全（字符串值）
+        if (camp.dim_noise) {
+          dims.push({
+            emoji: camp.dim_noise === '较安静' ? '🔇' : camp.dim_noise === '较吵' ? '📢' : '🔊',
+            label: '噪音',
+            value: camp.dim_noise
+          });
+        }
+        if (camp.dim_safety) {
+          dims.push({
+            emoji: camp.dim_safety === '很安全' ? '🛡️' : camp.dim_safety === '需注意' ? '⚠️' : '😐',
+            label: '安全',
+            value: camp.dim_safety
+          });
+        }
+      } else {
+        // 安营格式：噪音、安全、信号、地面（数值等级）
+        if (Number(camp.noise_level) > 0) {
+          dims.push({
+            emoji: ov.noiseEmoji[camp.noise_level] || '❓',
+            label: '噪音',
+            value: ov.noiseLabels[camp.noise_level] || '未知'
+          });
+        }
+        if (Number(camp.safety_level) > 0) {
+          dims.push({
+            emoji: ov.safetyEmoji[camp.safety_level] || '❓',
+            label: '安全',
+            value: ov.safetyLabels[camp.safety_level] || '未知'
+          });
+        }
+        if (Number(camp.signal_level) > 0) {
+          dims.push({
+            emoji: ov.signalEmoji[camp.signal_level] || '❓',
+            label: '信号',
+            value: ov.signalLabels[camp.signal_level] || '未知'
+          });
+        }
+        if (Number(camp.ground_type) > 0) {
+          dims.push({
+            emoji: ov.groundEmoji[camp.ground_type] || '❓',
+            label: '地面',
+            value: ov.groundLabels[camp.ground_type] || '未知'
+          });
+        }
+      }
+
+      // 数据来源
+      let source = '未标注';
+      if (camp.score_source && camp.score_source !== '') {
+        const sourceMap = {
+          'facility_calculated': '设施计算',
+          'user_rated': '用户评价',
+          'anying_imported': '安营导入',
+          'manual': '人工复核'
+        };
+        source = sourceMap[camp.score_source] || camp.score_source;
+      } else if (camp.overnight_data_source && camp.overnight_data_source !== '') {
+        source = ov.sourceLabels[camp.overnight_data_source] || camp.overnight_data_source;
+      }
+
+      // 环形进度百分比（0~100）
+      const percent = Math.round(Math.min(Math.max(overnightScore / 5, 0), 1) * 100);
+
+      // 评分主题色：根据状态变色
+      // 1=可以过夜→绿, 2=勉强能住→橙, 3=不建议过夜→灰
+      let scoreTheme = 'green';
+      let ringColor = '#2d6a4f';
+      let ringTrackColor = 'rgba(45, 106, 79, 0.1)';
+      let cardGradFrom = '#e8f5e9';
+      let cardGradTo = '#d8f3dc';
+      if (ovStatus === 2) {
+        scoreTheme = 'orange';
+        ringColor = '#f4a261';
+        ringTrackColor = 'rgba(244, 162, 97, 0.15)';
+        cardGradFrom = '#fff3e0';
+        cardGradTo = '#ffe0b2';
+      }
+      if (ovStatus === 3) {
+        scoreTheme = 'gray';
+        ringColor = '#9e9e9e';
+        ringTrackColor = 'rgba(158, 158, 158, 0.15)';
+        cardGradFrom = '#f5f5f5';
+        cardGradTo = '#eeeeee';
+      }
+
+      overnightInfo = {
+        score: overnightScore.toFixed(1),
+        status,
+        statusEmoji,
+        dims,
+        source,
+        scoreTheme,
+        ringPercent: percent,
+        ringColor,
+        ringTrackColor,
+        cardGradFrom,
+        cardGradTo
+      };
+    }
 
     // 最新动态 (本地模拟)
     const newsList = this.buildNews(camp);
@@ -207,955 +300,662 @@ Page({
 
   // ============ 检查是否已收藏 ============
   checkFavorite(spotCode) {
-    let favs = [];
-    try { favs = wx.getStorageSync('camp_favorites') || []; } catch (e) {}
-    const isFav = favs.some(f => f.spot_code === spotCode);
+    const favorites = wx.getStorageSync('favorites') || [];
+    const isFav = favorites.some(f => f.spot_code === spotCode);
     this.setData({ isFavorited: isFav });
   },
 
-  // ============ 收藏 / 取消收藏 ============
+  // ============ 切换收藏 ============
   toggleFavorite() {
-    const camp = this.data.camp;
+    const { camp, isFavorited } = this.data;
     if (!camp) return;
 
-    let favs = [];
-    try { favs = wx.getStorageSync('camp_favorites') || []; } catch (e) {}
-
-    if (this.data.isFavorited) {
-      // 取消收藏
-      favs = favs.filter(f => f.spot_code !== camp.spot_code);
-      try { wx.setStorageSync('camp_favorites', favs); } catch (e) {}
-      this.setData({ isFavorited: false });
+    let favorites = wx.getStorageSync('favorites') || [];
+    if (isFavorited) {
+      favorites = favorites.filter(f => f.spot_code !== camp.spot_code);
       util.showToast('已取消收藏');
     } else {
-      // 添加收藏
-      favs.unshift({
+      favorites.unshift({
         spot_code: camp.spot_code,
         name: camp.name,
-        address: camp.address || '',
-        parking_status: camp.parking_status,
-        latitude: camp.latitude,
-        longitude: camp.longitude,
-        saved_at: Date.now()
+        address: camp.address,
+        addedAt: Date.now()
       });
-      try { wx.setStorageSync('camp_favorites', favs); } catch (e) {}
-      this.setData({ isFavorited: true });
-      util.showToast('已收藏');
+      util.showToast('收藏成功');
     }
+    wx.setStorageSync('favorites', favorites);
+    this.setData({ isFavorited: !isFavorited });
   },
 
-  // ============ 生成营地动态 (本地模拟) ============
-  buildNews(camp) {
-    const list = [];
-    if (camp.charging_status == 1) {
-      list.push({ date: '2026-08-02', text: '营地已配备新能源充电桩，支持快充服务' });
-    } else {
-      list.push({ date: '2026-08-02', text: '营地设施例行巡检完成，各项运行正常' });
-    }
-    list.push({ date: '2026-07-26', text: '周末及节假日开放时间延长至22:00' });
-    list.push({ date: '2026-07-15', text: '完成雨季排水系统升级维护' });
-    return list;
-  },
-
-  // ============ 加载用户评价 (Supabase) ============
-  async loadComments(spotCode) {
-    if (!spotCode) return;
-    this.setData({ commentsLoading: true });
-    const comments = await api.fetchComments(spotCode);
-    const likedIds = this.data.likedCommentIds || [];
-    const currentOpenid = this.data.currentUserOpenid;
-    // 映射为前端展示结构 (保留 dynamicsList 字段名以兼容 WXML)
-    const dynamicsList = (comments || []).map(c => {
-      const avatar = c.avatar || '🏕';
-      const avatarIsUrl = avatar.startsWith('http');
-      return {
-        id: c.id,
-        nick: c.nick || '微信用户',
-        avatar: avatar,
-        avatarIsUrl: avatarIsUrl,
-        date: this.fmtDate(c.created_at),
-        relTime: this.fmtRelTime(c.created_at),
-        text: c.content,
-        type: c.type || 'comment',
-        likes: c.likes || 0,
-        liked: likedIds.indexOf(c.id) > -1,
-        photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
-        isMine: c.openid === currentOpenid
-      };
-    });
-    // 提取打卡记录
-    const checkins = dynamicsList.filter(c => c.type === 'checkin');
-    const checkinCount = checkins.length;
-    const recentCheckins = checkins.slice(0, 5); // 最近5条打卡
-    this.setData({
-      dynamicsList,
-      dynamicsCount: dynamicsList.length,
-      checkinCount,
-      recentCheckins,
-      commentsLoading: false
-    });
-  },
-
-  // ============ 格式化日期 YYYY-MM-DD ============
-  fmtDate(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    if (isNaN(d.getTime())) return String(ts).slice(0, 10);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  },
-
-  // ============ 格式化相对时间（如"3天前"、"2小时前"）============
-  fmtRelTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    if (isNaN(d.getTime())) return '';
-    const diff = Date.now() - d.getTime();
-    if (diff < 0) return '刚刚';
-    if (diff < 60000) return '刚刚';
-    if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-    if (diff < 2592000000) return Math.floor(diff / 86400000) + '天前';
-    if (diff < 31536000000) return Math.floor(diff / 2592000000) + '个月前';
-    return Math.floor(diff / 31536000000) + '年前';
-  },
-
-  // ============ 展开收起简介 ============
+  // ============ 展开/收起简介 ============
   toggleIntro() {
     this.setData({ introExpanded: !this.data.introExpanded });
   },
 
+  // ============ 构建动态列表 ============
+  buildNews(camp) {
+    const items = [];
+    if (camp.latest_checkin_time) {
+      const rel = util.formatRelative(camp.latest_checkin_time);
+      items.push({
+        date: rel,
+        text: `有车友${rel}打卡过此地`
+      });
+    }
+    if (camp.latest_comment_time) {
+      const rel = util.formatRelative(camp.latest_comment_time);
+      items.push({
+        date: rel,
+        text: `有车友${rel}留下了评价`
+      });
+    }
+    if (items.length === 0) {
+      items.push({
+        date: '欢迎',
+        text: '还没有动态，快来发布第一条吧～'
+      });
+    }
+    return items;
+  },
+
   // ============ 返回 ============
   goBack() {
-    const pages = getCurrentPages();
-    if (pages.length > 1) {
-      wx.navigateBack({ delta: 1 });
-    } else {
-      wx.switchTab({ url: '/pages/map/index' });
-    }
+    wx.navigateBack();
   },
 
-  // ============ 导航 (打开地图导航) ============
+  // ============ 导航 ============
   navigateCamp() {
-    const camp = this.data.camp;
+    const { camp } = this.data;
     if (!camp) return;
-    wx.openLocation({
-      latitude: Number(camp.latitude),
-      longitude: Number(camp.longitude),
-      name: camp.name || '营地',
-      address: camp.address || '',
-      scale: 14
-    });
-  },
-
-  // ============ 分享营地 ============
-  shareCamp() {
-    const camp = this.data.camp;
-    if (!camp) return;
-    wx.setClipboardData({
-      data: `${camp.name}\n地址：${camp.address || '暂无'}\n坐标：${camp.latitude},${camp.longitude}`,
-      success: () => {
-        util.showToast('营地信息已复制，可粘贴分享');
-      }
-    });
-  },
-
-  // ============ 营地打卡 (弹出评价窗口) ============
-  checkinCamp() {
-    const camp = this.data.camp;
-    if (!camp) return;
-    // 检查登录
-    if (!util.isLoggedIn()) {
-      this.setData({ showNickPopup: true, tempNick: '' });
+    const lat = Number(camp.latitude);
+    const lng = Number(camp.longitude);
+    if (!lat || !lng) {
+      util.showToast('坐标信息不完整');
       return;
     }
-    // 弹出打卡评价窗口
-    this.setData({
-      showCheckinReview: true,
-      checkinRating: 0,
-      checkinOvernightStatus: 0,
-      checkinNoise: 0,
-      checkinSafety: 0,
-      checkinText: '',
-      checkinPhotos: [],
-      submittingCheckin: false
+    wx.openLocation({
+      latitude: lat,
+      longitude: lng,
+      name: camp.name || '营地',
+      address: camp.address || '',
+      scale: 16
     });
   },
 
-  // ============ 关闭打卡评价弹窗 ============
+  // ============ 分享 ============
+  shareCamp() {
+    const { camp } = this.data;
+    if (!camp) return;
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
+    // 微信会自动调用 onShareAppMessage
+  },
+
+  onShareAppMessage() {
+    const { camp } = this.data;
+    return {
+      title: camp ? camp.name : '营地详情',
+      path: `/pages/detail/index?id=${this.data.spotCode}`,
+      imageUrl: ''
+    };
+  },
+
+  // ============ 打卡 ============
+  checkinCamp() {
+    const { currentUserNick } = this.data;
+    if (!currentUserNick) {
+      this.setData({ showNickPopup: true });
+      return;
+    }
+    this.setData({ showCheckinReview: true });
+  },
+
+  // ============ 打卡评价弹窗 ============
   closeCheckinReview() {
-    if (this.data.submittingCheckin) return;
     this.setData({ showCheckinReview: false });
   },
 
-  // ============ 打卡评价：星级评分 ============
   onCheckinStarTap(e) {
     const star = Number(e.currentTarget.dataset.star);
     this.setData({ checkinRating: star });
   },
 
-  // ============ 打卡评价：标签选择（单选）============
   onCheckinTagTap(e) {
-    const dim = e.currentTarget.dataset.dim; // overnight/noise/safety/signal/ground
+    const dim = e.currentTarget.dataset.dim;
     const value = Number(e.currentTarget.dataset.value);
     const key = 'checkin' + dim.charAt(0).toUpperCase() + dim.slice(1);
-    // 点击同一个则取消
-    const current = this.data[key];
-    const newValue = current === value ? 0 : value;
-    this.setData({ [key]: newValue });
+    this.setData({ [key]: this.data[key] === value ? 0 : value });
   },
 
-  // ============ 打卡评价：文字输入 ============
   onCheckinTextInput(e) {
     this.setData({ checkinText: e.detail.value });
   },
 
-  // ============ 打卡评价：添加图片 ============
   addCheckinPhoto() {
-    if (this.data.checkinPhotos.length >= 6) {
-      util.showToast('最多上传 6 张图片');
+    const { checkinPhotos } = this.data;
+    if (checkinPhotos.length >= 6) {
+      util.showToast('最多6张照片');
       return;
     }
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
+    wx.chooseImage({
+      count: 6 - checkinPhotos.length,
       sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
       success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        const photos = this.data.checkinPhotos.concat([{
-          path: tempFilePath,
-          id: 'ckp_' + Date.now()
-        }]);
-        this.setData({ checkinPhotos: photos });
-      },
-      fail: () => {}
+        const newPhotos = res.tempFilePaths.map((p, i) => ({
+          id: Date.now() + '_' + i,
+          path: p
+        }));
+        this.setData({ checkinPhotos: checkinPhotos.concat(newPhotos) });
+      }
     });
   },
 
-  // ============ 打卡评价：删除图片 ============
   delCheckinPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const photos = this.data.checkinPhotos.slice();
-    photos.splice(idx, 1);
+    const idx = Number(e.currentTarget.dataset.idx);
+    const photos = this.data.checkinPhotos.filter((_, i) => i !== idx);
     this.setData({ checkinPhotos: photos });
   },
 
-  // ============ 打卡评价：提交 ============
+  // ============ 提交打卡评价 ============
   async submitCheckinReview() {
-    if (this.data.submittingCheckin) return;
-    const camp = this.data.camp;
-    if (!camp) return;
-
-    const rating = this.data.checkinRating;
-    const text = (this.data.checkinText || '').trim();
-    const photos = this.data.checkinPhotos;
-
-    // 至少要有星级或文字或图片
-    if (rating === 0 && !text && photos.length === 0) {
-      util.showToast('至少打个分吧～');
+    const { checkinRating, camp, currentUserNick, currentUserOpenid, checkinText, checkinPhotos, submittingCheckin } = this.data;
+    if (submittingCheckin) return;
+    if (checkinRating === 0) {
+      util.showToast('请先评分');
       return;
-    }
-    if (text.length > 200) {
-      util.showToast('评价不超过200字');
-      return;
-    }
-
-    const userData = util.getUserState();
-    const openid = userData.openid || '';
-
-    // 内容安全检测
-    if (text) {
-      const textSafe = await security.checkTextWithToast(text, openid);
-      if (!textSafe) return;
     }
 
     this.setData({ submittingCheckin: true });
-    util.showLoading('提交中...');
-
-    // 上传图片到 OSS
-    let photoUrls = [];
-    if (photos.length > 0) {
-      const paths = photos.map(p => p.path);
-      try {
-        photoUrls = await oss.uploadBatchToOSS(paths, 'checkins');
-        photoUrls = photoUrls.filter(u => u);
-        // 图片安全检测
-        const imgResult = await security.checkImages(photoUrls, openid);
-        if (!imgResult.safe) {
-          util.hideLoading();
-          this.setData({ submittingCheckin: false });
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的图片含违规信息，请更换后重新提交。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn('[checkin] 图片上传失败:', e.message);
+    try {
+      // 上传图片
+      let photoUrls = [];
+      if (checkinPhotos.length > 0) {
+        util.showLoading('上传图片中...');
+        const uploadPromises = checkinPhotos.map(p => oss.uploadImage(p.path, 'checkin'));
+        photoUrls = await Promise.all(uploadPromises);
+        util.hideLoading();
       }
-    }
 
-    // 构建评价数据
-    const ratingData = {
-      rating: rating,
-      noise_level: this.data.checkinNoise,
-      safety_level: this.data.checkinSafety,
-      overnight_status: this.data.checkinOvernightStatus
-    };
-
-    // 提交评论 (type=checkin)
-    const res = await this.addDynamics(
-      text || '打卡评价',
-      'checkin',
-      photoUrls.length > 0 ? photoUrls.join(',') : '',
-      ratingData
-    );
-
-    util.hideLoading();
-    this.setData({ submittingCheckin: false });
-
-    if (res && res.success) {
-      // 给积分：基础打卡5分 + 带评价额外10分
-      const basePoints = config.POINTS_RULES.camp_checkin;
-      const extraPoints = (rating > 0 || text || photos.length > 0) ? config.POINTS_RULES.checkin_review : 0;
-      const totalPoints = basePoints + extraPoints;
-      const points = util.updatePoints(totalPoints);
-      const app = getApp();
-      app.globalData.points = points;
-
-      // 关闭评价弹窗，展示成功动画
-      this.setData({
-        userPoints: points,
-        showCheckinReview: false,
-        showCheckinSuccess: true,
-        checkinPoints: totalPoints
+      const result = await api.submitCheckin({
+        spot_code: camp.spot_code,
+        openid: currentUserOpenid,
+        nick: currentUserNick,
+        rating: checkinRating,
+        overnight_status: this.data.checkinOvernightStatus,
+        noise_level: this.data.checkinNoise,
+        safety_level: this.data.checkinSafety,
+        text: checkinText,
+        photo_urls: photoUrls
       });
 
-      // 2秒后自动关闭动画
-      if (this.data.checkinSuccessTimer) {
-        clearTimeout(this.data.checkinSuccessTimer);
-      }
+      // 关闭弹窗
+      this.setData({
+        showCheckinReview: false,
+        checkinRating: 0,
+        checkinOvernightStatus: 0,
+        checkinNoise: 0,
+        checkinSafety: 0,
+        checkinText: '',
+        checkinPhotos: [],
+        submittingCheckin: false
+      });
+
+      // 显示成功动画
+      const points = result.points || 15;
+      this.setData({
+        showCheckinSuccess: true,
+        checkinPoints: points
+      });
+
+      // 3秒后自动关闭
       const timer = setTimeout(() => {
-        this.setData({ showCheckinSuccess: false });
-      }, 2000);
+        this.hideCheckinSuccess();
+      }, 2500);
       this.setData({ checkinSuccessTimer: timer });
-    } else {
-      util.showToast((res && res.msg) || '提交失败，请稍后重试');
+
+      // 刷新评论列表
+      this.loadComments(camp.spot_code);
+    } catch (e) {
+      util.showToast('提交失败');
+      this.setData({ submittingCheckin: false });
     }
   },
 
-  // ============ 用户评价：输入 ============
-  onDynamicsInput(e) {
-    this.setData({ dynamicsInput: e.detail.value });
+  // ============ 打卡成功动画 ============
+  hideCheckinSuccess() {
+    if (this.data.checkinSuccessTimer) {
+      clearTimeout(this.data.checkinSuccessTimer);
+    }
+    this.setData({ showCheckinSuccess: false, checkinSuccessTimer: null });
   },
 
-  // ============ 用户评价：发布 ============
-  async submitDynamics() {
-    if (this.data.submittingDynamics) return;
+  // ============ 加载评论 ============
+  async loadComments(spotCode) {
+    this.setData({ commentsLoading: true });
+    try {
+      const comments = await api.fetchComments(spotCode);
+      const list = comments.map(c => ({
+        id: c.id,
+        nick: c.nick || '匿名车友',
+        avatar: c.avatar_emoji || '🏕️',
+        avatarIsUrl: false,
+        text: c.content || c.text || '',
+        date: c.created_at ? util.formatRelative(c.created_at) : '',
+        likes: c.likes || 0,
+        liked: false,
+        isMine: c.openid === this.data.currentUserOpenid,
+        type: c.type || 'comment',
+        photo_urls: c.photo_urls || (c.photos ? JSON.parse(c.photos) : [])
+      }));
 
-    // 检查登录状态
-    if (!util.isLoggedIn()) {
-      this.setData({ showNickPopup: true, tempNick: '' });
-      return;
-    }
+      // 统计打卡记录
+      const checkins = list.filter(c => c.type === 'checkin');
+      const checkinCount = checkins.length;
+      const recentCheckins = checkins.slice(0, 3).map(c => ({
+        id: c.id,
+        nick: c.nick,
+        relTime: c.date
+      }));
 
-    const text = (this.data.dynamicsInput || '').trim();
-    const photos = this.data.dynamicsPhotos;
-    if (!text && photos.length === 0) {
-      util.showToast('请输入内容或添加图片');
-      return;
-    }
-    if (text.length > 200) {
-      util.showToast('内容不超过200字');
-      return;
-    }
-    const camp = this.data.camp;
-    if (!camp) return;
-
-    // 内容安全检测: 评论文本
-    const userData = util.getUserState();
-    const openid = userData.openid || '';
-    if (text) {
-      const textSafe = await security.checkTextWithToast(text, openid);
-      if (!textSafe) return;
-    }
-
-    this.setData({ submittingDynamics: true });
-    util.showLoading('发布中...');
-
-    // 上传图片到 OSS
-    let photoUrls = [];
-    if (photos.length > 0) {
-      const paths = photos.map(p => p.path);
-      try {
-        photoUrls = await oss.uploadBatchToOSS(paths, 'comments');
-        photoUrls = photoUrls.filter(u => u);
-        // 图片内容安全检测
-        const imgResult = await security.checkImages(photoUrls, openid);
-        if (!imgResult.safe) {
-          util.hideLoading();
-          this.setData({ submittingDynamics: false });
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的图片含违规信息，请更换后重新提交。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn('[comment] 图片上传失败:', e.message);
-      }
-    }
-
-    const res = await this.addDynamics(text, 'comment', photoUrls);
-    util.hideLoading();
-    this.setData({ submittingDynamics: false });
-    if (res && res.success) {
-      // 清空内容并收起评论框
-      this.setData({ dynamicsInput: '', dynamicsPhotos: [], showPublishBox: false });
-      util.showToast('发布成功');
-    } else {
-      util.showToast((res && res.msg) || '发布失败，请稍后重试');
+      this.setData({
+        dynamicsList: list,
+        dynamicsCount: list.length,
+        commentsLoading: false,
+        checkinCount,
+        recentCheckins
+      });
+    } catch (e) {
+      this.setData({ commentsLoading: false });
     }
   },
 
-  // ============ 提交评价到 Supabase 并刷新列表 ============
-  // 供发布评价 / 营地打卡复用
-  // 返回 { success: boolean, msg?: string }
-  async addDynamics(text, type, photoUrls, rating) {
-    const camp = this.data.camp;
-    if (!camp) return { success: false, msg: '营地信息缺失' };
-    const userData = util.getUserState();
-    const res = await api.submitComment(
-      camp.spot_code,
-      userData.openid,
-      userData.nick || '微信用户',
-      userData.avatarUrl || '🏕',
-      text,
-      type || 'comment',
-      (photoUrls || []).join ? (photoUrls || []).join(',') : (photoUrls || ''),
-      rating
-    );
-    // 重新加载评论列表 (无论成功失败都刷新, 确保数据同步)
-    await this.loadComments(camp.spot_code);
-    return res;
-  },
-
-  // ============ 点赞评价 ============
-  async likeDynamics(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const list = this.data.dynamicsList;
-    if (!list[idx]) return;
-
-    // 本地已点过赞, 防止重复点赞
-    if (list[idx].liked) {
-      util.showToast('已经点过赞了');
-      return;
-    }
-
-    const userData = util.getUserState();
-    const res = await api.likeComment(list[idx].id, userData.openid);
-    if (res && res.success) {
-      list[idx].liked = true;
-      list[idx].likes = (list[idx].likes || 0) + 1;
-      this.setData({ dynamicsList: list });
-      this.saveLikedId(list[idx].id);
-    } else {
-      // 后端返回已点赞, 同步本地状态
-      if (res && res.msg === '已经点过赞了') {
-        list[idx].liked = true;
-        this.setData({ dynamicsList: list });
-        this.saveLikedId(list[idx].id);
-      }
-      util.showToast((res && res.msg) || '点赞失败');
-    }
-  },
-
-  // ============ 持久化已点赞 id ============
-  saveLikedId(commentId) {
-    const likedIds = this.data.likedCommentIds || [];
-    if (likedIds.indexOf(commentId) > -1) return;
-    likedIds.push(commentId);
-    wx.setStorageSync('liked_comment_ids', likedIds);
-    this.setData({ likedCommentIds: likedIds });
-  },
-
-  // ============ 展开/收起评价列表 ============
+  // ============ 展开/收起评价 ============
   toggleDynamics() {
     this.setData({ dynamicsExpanded: !this.data.dynamicsExpanded });
   },
 
-  // ============ 展开/收起评论框 ============
-  togglePublishBox() {
-    if (this.data.showPublishBox) {
-      this.setData({ showPublishBox: false });
+  // ============ 点赞评论 ============
+  async likeDynamics(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const list = this.data.dynamicsList;
+    if (!list[idx]) return;
+    if (list[idx].liked) return; // 已点赞过
+
+    const { currentUserOpenid } = this.data;
+    if (!currentUserOpenid) {
+      util.showToast('请先登录');
       return;
     }
-    // 展开前检查登录 — 未设置昵称则弹出昵称输入
-    if (!util.isLoggedIn()) {
-      this.setData({ showNickPopup: true, tempNick: '' });
-    } else {
-      this.setData({ showPublishBox: true });
+
+    try {
+      const res = await api.likeComment(list[idx].id, currentUserOpenid);
+      list[idx].liked = true;
+      list[idx].likes = (list[idx].likes || 0) + 1;
+      this.setData({ dynamicsList: list });
+    } catch (e) {
+      // 静默失败
+    }
+  },
+
+  // ============ 删除评论 ============
+  async deleteComment(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const list = this.data.dynamicsList;
+    if (!list[idx] || !list[idx].isMine) return;
+
+    const result = await new Promise(resolve => {
+      wx.showModal({
+        title: '提示',
+        content: '确定删除这条评论吗？',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+    if (!result) return;
+
+    try {
+      const { currentUserOpenid } = this.data;
+      const res = await api.deleteComment(list[idx].id, currentUserOpenid);
+      list.splice(idx, 1);
+      this.setData({
+        dynamicsList: list,
+        dynamicsCount: this.data.dynamicsCount - 1
+      });
+      util.showToast('已删除');
+    } catch (e) {
+      util.showToast('删除失败');
+    }
+  },
+
+  // ============ 评论输入 ============
+  onDynamicsInput(e) {
+    this.setData({ dynamicsInput: e.detail.value });
+  },
+
+  togglePublishBox() {
+    this.setData({ showPublishBox: !this.data.showPublishBox });
+  },
+
+  // ============ 发布评论 ============
+  async submitDynamics() {
+    const { dynamicsInput, camp, currentUserNick, currentUserOpenid, submittingDynamics, dynamicsPhotos } = this.data;
+    if (submittingDynamics) return;
+    if (!dynamicsInput.trim()) {
+      util.showToast('请输入评论内容');
+      return;
+    }
+    if (!currentUserNick) {
+      this.setData({ showNickPopup: true });
+      return;
+    }
+
+    this.setData({ submittingDynamics: true });
+    try {
+      // 上传图片
+      let photoUrls = [];
+      if (dynamicsPhotos.length > 0) {
+        util.showLoading('上传图片中...');
+        const uploadPromises = dynamicsPhotos.map(p => oss.uploadImage(p.path, 'comment'));
+        photoUrls = await Promise.all(uploadPromises);
+        util.hideLoading();
+      }
+
+      const res = await api.submitComment({
+        spot_code: camp.spot_code,
+        openid: currentUserOpenid,
+        nick: currentUserNick,
+        content: dynamicsInput.trim(),
+        photo_urls: photoUrls
+      });
+
+      // 清空输入
+      this.setData({
+        dynamicsInput: '',
+        dynamicsPhotos: [],
+        showPublishBox: false,
+        submittingDynamics: false
+      });
+
+      // 刷新列表
+      this.loadComments(camp.spot_code);
+      util.showToast('发布成功');
+    } catch (e) {
+      util.showToast('发布失败');
+      this.setData({ submittingDynamics: false });
+    }
+  },
+
+  addDynamicsPhoto() {
+    const { dynamicsPhotos } = this.data;
+    if (dynamicsPhotos.length >= 6) {
+      util.showToast('最多6张照片');
+      return;
+    }
+    wx.chooseImage({
+      count: 6 - dynamicsPhotos.length,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newPhotos = res.tempFilePaths.map((p, i) => ({
+          id: Date.now() + '_' + i,
+          path: p
+        }));
+        this.setData({ dynamicsPhotos: dynamicsPhotos.concat(newPhotos) });
+      }
+    });
+  },
+
+  delDynamicsPhoto(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const photos = this.data.dynamicsPhotos.filter((_, i) => i !== idx);
+    this.setData({ dynamicsPhotos: photos });
+  },
+
+  previewCommentImg(e) {
+    const urls = e.currentTarget.dataset.urls;
+    const current = e.currentTarget.dataset.current;
+    wx.previewImage({
+      current: current,
+      urls: urls
+    });
+  },
+
+  // ============ 加载营地照片 ============
+  async loadCampPhotos(spotCode) {
+    try {
+      const photos = await api.fetchCampPhotos(spotCode);
+      this.setData({ campPhotos: photos || [] });
+    } catch (e) {
+      // 静默失败
+    }
+  },
+
+  selectCampPhoto() {
+    const { pendingPhotos, uploadingPhoto } = this.data;
+    if (uploadingPhoto) return;
+    wx.chooseImage({
+      count: 6 - pendingPhotos.length,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newPhotos = res.tempFilePaths.map((p, i) => ({
+          id: Date.now() + '_' + i,
+          path: p
+        }));
+        this.setData({ pendingPhotos: pendingPhotos.concat(newPhotos) });
+      }
+    });
+  },
+
+  removePendingPhoto(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const photos = this.data.pendingPhotos.filter((_, i) => i !== idx);
+    this.setData({ pendingPhotos: photos });
+  },
+
+  previewCampPhoto(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const urls = this.data.campPhotos.map(p => p.url);
+    wx.previewImage({
+      current: urls[idx],
+      urls: urls
+    });
+  },
+
+  async submitCampPhotos() {
+    const { pendingPhotos, camp, currentUserOpenid, uploadingPhoto } = this.data;
+    if (uploadingPhoto || pendingPhotos.length === 0) return;
+    this.setData({ uploadingPhoto: true });
+    try {
+      util.showLoading('上传中...');
+      const uploadPromises = pendingPhotos.map(p => oss.uploadImage(p.path, 'camp'));
+      const urls = await Promise.all(uploadPromises);
+      const result = await api.submitCampPhoto(camp.spot_code, currentUserOpenid, urls);
+      util.hideLoading();
+
+      this.setData({
+        pendingPhotos: [],
+        uploadingPhoto: false
+      });
+
+      // 刷新相册
+      this.loadCampPhotos(camp.spot_code);
+      util.showToast('上传成功');
+    } catch (e) {
+      util.hideLoading();
+      util.showToast('上传失败');
+      this.setData({ uploadingPhoto: false });
+    }
+  },
+
+  async deleteCampPhoto(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const list = this.data.campPhotos;
+    if (!list[idx] || !list[idx].isMine) return;
+
+    const result = await new Promise(resolve => {
+      wx.showModal({
+        title: '提示',
+        content: '确定删除这张照片吗？',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+    if (!result) return;
+
+    try {
+      const { currentUserOpenid } = this.data;
+      const res = await api.deleteCampPhoto(list[idx].id, currentUserOpenid);
+      list.splice(idx, 1);
+      this.setData({ campPhotos: list });
+      util.showToast('已删除');
+    } catch (e) {
+      util.showToast('删除失败');
+    }
+  },
+
+  // ============ 纠错弹窗 ============
+  openCorrection() {
+    const { camp } = this.data;
+    if (!camp) return;
+
+    const facItems = config.FAC_GROUPS.flatMap(g => g.keys.map(k => ({
+      key: k,
+      label: config.FAC_LABELS[k],
+      emoji: config.FAC_EMOJI[k],
+      on: Number(camp[k]) > 0
+    })));
+
+    this.setData({
+      showCorrection: true,
+      correctionData: {
+        name: camp.name || '',
+        address: camp.address || '',
+        intro: camp.intro || ''
+      },
+      correctionFacItems: facItems
+    });
+  },
+
+  tryCloseCorrection() {
+    this.setData({ showCorrection: false });
+  },
+
+  onCorrectionInput(e) {
+    const key = e.currentTarget.dataset.key;
+    const val = e.detail.value;
+    this.setData({ [`correctionData.${key}`]: val });
+  },
+
+  toggleCorrectionFac(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const items = this.data.correctionFacItems;
+    items[idx].on = !items[idx].on;
+    this.setData({ correctionFacItems: items });
+  },
+
+  addCorrectionPhoto() {
+    const { correctionPhotos } = this.data;
+    if (correctionPhotos.length >= 6) {
+      util.showToast('最多6张照片');
+      return;
+    }
+    wx.chooseImage({
+      count: 6 - correctionPhotos.length,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newPhotos = res.tempFilePaths.map((p, i) => ({
+          id: Date.now() + '_' + i,
+          path: p
+        }));
+        this.setData({ correctionPhotos: correctionPhotos.concat(newPhotos) });
+      }
+    });
+  },
+
+  delCorrectionPhoto(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    const photos = this.data.correctionPhotos.filter((_, i) => i !== idx);
+    this.setData({ correctionPhotos: photos });
+  },
+
+  async submitCorrection() {
+    const { correctionData, correctionFacItems, correctionPhotos, camp, submittingCorrection } = this.data;
+    if (submittingCorrection) return;
+    if (!correctionData.name.trim()) {
+      util.showToast('请输入营地名称');
+      return;
+    }
+
+    this.setData({ submittingCorrection: true });
+    try {
+      // 上传图片
+      let photoUrls = [];
+      if (correctionPhotos.length > 0) {
+        util.showLoading('上传图片中...');
+        const uploadPromises = correctionPhotos.map(p => oss.uploadImage(p.path, 'correction'));
+        photoUrls = await Promise.all(uploadPromises);
+        util.hideLoading();
+      }
+
+      const payload = {
+        spot_code: camp.spot_code,
+        name: correctionData.name.trim(),
+        address: correctionData.address.trim(),
+        intro: correctionData.intro.trim(),
+        facilities: {},
+        photo_urls: photoUrls
+      };
+      correctionFacItems.forEach(item => {
+        payload.facilities[item.key] = item.on ? 1 : 0;
+      });
+
+      await api.submitCampCorrection(payload);
+      this.setData({
+        showCorrection: false,
+        correctionPhotos: [],
+        submittingCorrection: false
+      });
+      util.showToast('提交成功，感谢反馈');
+    } catch (e) {
+      util.showToast('提交失败');
+      this.setData({ submittingCorrection: false });
     }
   },
 
   // ============ 昵称弹窗 ============
+  closeNickPopup() {
+    this.setData({ showNickPopup: false });
+  },
+
   onNickInput(e) {
     this.setData({ tempNick: e.detail.value });
   },
 
   onNickBlur(e) {
-    if (e.detail.value) {
-      this.setData({ tempNick: e.detail.value });
+    // 尝试获取微信昵称
+    const value = e.detail.value;
+    if (!value) {
+      this.setData({ tempNick: wx.getStorageSync('userInfo').nick || '' });
     }
-  },
-
-  closeNickPopup() {
-    this.setData({ showNickPopup: false });
   },
 
   confirmNick() {
-    const nick = (this.data.tempNick || '').trim();
-    if (!nick) {
+    const { tempNick } = this.data;
+    if (!tempNick.trim()) {
       util.showToast('请输入昵称');
       return;
     }
-    // 确保 openid 存在
-    util.wxLogin();
-    // 保存昵称
-    util.setUserNick(nick);
-    const u = util.getUserState();
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    userInfo.nick = tempNick.trim();
+    wx.setStorageSync('userInfo', userInfo);
     this.setData({
       showNickPopup: false,
-      currentUserNick: u.nick,
-      currentUserOpenid: u.openid,
-      showPublishBox: true
+      currentUserNick: tempNick.trim()
     });
   },
 
-  // ============ 删除评论 (仅删除自己的) ============
-  async deleteComment(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const list = this.data.dynamicsList;
-    if (!list[idx]) return;
-
-    const comment = list[idx];
-    if (!comment.isMine) {
-      util.showToast('只能删除自己的评论');
-      return;
-    }
-
-    wx.showModal({
-      title: '提示',
-      content: '确定删除这条评论吗？',
-      confirmColor: '#e63946',
-      success: async (res) => {
-        if (!res.confirm) return;
-        util.showLoading('删除中...');
-        const result = await api.deleteComment(comment.id, this.data.currentUserOpenid);
-        util.hideLoading();
-        if (result.success) {
-          util.showToast('已删除');
-          this.loadComments(this.data.camp.spot_code);
-        } else {
-          util.showToast(result.msg || '删除失败');
-        }
-      }
-    });
-  },
-
-  // ============ 评价图片 ============
-  addDynamicsPhoto() {
-    if (this.data.dynamicsPhotos.length >= 6) {
-      util.showToast('最多上传 6 张图片');
-      return;
-    }
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        const photos = this.data.dynamicsPhotos.concat([{
-          path: tempFilePath,
-          id: 'dp_' + Date.now()
-        }]);
-        this.setData({ dynamicsPhotos: photos });
-      },
-      fail: () => {}
-    });
-  },
-
-  delDynamicsPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const photos = this.data.dynamicsPhotos.slice();
-    photos.splice(idx, 1);
-    this.setData({ dynamicsPhotos: photos });
-  },
-
-  previewCommentImg(e) {
-    const urls = e.currentTarget.dataset.urls || [];
-    const current = e.currentTarget.dataset.current;
-    if (urls.length === 0) return;
-    wx.previewImage({ current, urls });
-  },
-
-  // ============ 营地相册 ============
-
-  // 加载营地照片
-  async loadCampPhotos(spotCode) {
-    if (!spotCode) return;
-    const photos = await api.fetchCampPhotos(spotCode);
-    const currentOpenid = this.data.currentUserOpenid;
-    const campPhotos = (photos || []).map(p => ({
-      id: p.id,
-      url: p.photo_url,
-      isMine: p.openid === currentOpenid && !!p.openid
-    }));
-    this.setData({ campPhotos });
-  },
-
-  // 选择营地照片 (第一步: 选择, 不立即上传)
-  selectCampPhoto() {
-    if (this.data.uploadingPhoto) return;
-    const maxAdd = 9 - this.data.pendingPhotos.length;
-    if (maxAdd <= 0) {
-      util.showToast('最多选择9张照片');
-      return;
-    }
-    wx.chooseMedia({
-      count: maxAdd,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        const newPhotos = res.tempFiles.map(f => ({
-          path: f.tempFilePath,
-          id: 'cp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
-        }));
-        const pendingPhotos = this.data.pendingPhotos.concat(newPhotos);
-        this.setData({ pendingPhotos });
-      },
-      fail: () => {}
-    });
-  },
-
-  // 移除待上传照片
-  removePendingPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const pendingPhotos = this.data.pendingPhotos.slice();
-    pendingPhotos.splice(idx, 1);
-    this.setData({ pendingPhotos });
-  },
-
-  // 提交营地照片 (第二步: 上传到 OSS + 保存到数据库)
-  async submitCampPhotos() {
-    if (this.data.uploadingPhoto) return;
-    const camp = this.data.camp;
-    if (!camp) return;
-    const pendingPhotos = this.data.pendingPhotos;
-    if (pendingPhotos.length === 0) {
-      util.showToast('请先选择照片');
-      return;
-    }
-
-    this.setData({ uploadingPhoto: true });
-    util.showLoading('提交中...');
-
-    let successCount = 0;
-    let failCount = 0;
-    const userData = util.getUserState();
-
-    for (const photo of pendingPhotos) {
-      try {
-        // 上传到 OSS
-        const url = await oss.uploadToOSS(photo.path, 'camps', 'jpg');
-        // 图片内容安全检测
-        const imgSafe = await security.checkImage(url, userData.openid);
-        if (!imgSafe.safe) {
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的图片含违规信息，已跳过该图片。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          failCount++;
-          continue;
-        }
-        // 保存到数据库
-        const result = await api.submitCampPhoto(camp.spot_code, userData.openid, url);
-        if (result.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      } catch (e) {
-        console.warn('[camp-photo] upload failed:', e.message);
-        failCount++;
-      }
-    }
-
-    util.hideLoading();
-    this.setData({ uploadingPhoto: false, pendingPhotos: [] });
-
-    if (successCount > 0) {
-      util.showToast('成功上传' + successCount + '张照片');
-      this.loadCampPhotos(camp.spot_code);
-    } else {
-      util.showToast('上传失败，请重试');
-    }
-  },
-
-  // 预览营地照片
-  previewCampPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const photos = this.data.campPhotos;
-    if (!photos[idx]) return;
-    const urls = photos.map(p => p.url);
-    wx.previewImage({ current: urls[idx], urls });
-  },
-
-  // 删除营地照片 (仅删除自己的)
-  deleteCampPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const photos = this.data.campPhotos;
-    if (!photos[idx]) return;
-
-    const photo = photos[idx];
-    if (!photo.isMine) {
-      util.showToast('只能删除自己上传的照片');
-      return;
-    }
-
-    wx.showModal({
-      title: '提示',
-      content: '确定删除这张照片吗？',
-      confirmColor: '#e63946',
-      success: async (res) => {
-        if (!res.confirm) return;
-        util.showLoading('删除中...');
-        const result = await api.deleteCampPhoto(photo.id, this.data.currentUserOpenid);
-        util.hideLoading();
-        if (result.success) {
-          util.showToast('已删除');
-          this.loadCampPhotos(this.data.camp.spot_code);
-        } else {
-          util.showToast(result.msg || '删除失败');
-        }
-      }
-    });
-  },
-
-  // ============ 纠错功能 ============
-
-  // 阻止事件冒泡
-  noop() {},
-
-  // 检测纠错内容是否有修改
-  hasCorrectionChanges() {
-    const camp = this.data.camp;
-    if (!camp) return false;
-    const data = this.data.correctionData || {};
-    if ((data.name || '') !== (camp.name || '')) return true;
-    if ((data.address || '') !== (camp.address || '')) return true;
-    if ((data.intro || '') !== (camp.intro || '')) return true;
-    // 检查设施变化
-    for (const item of this.data.correctionFacItems) {
-      const original = Number(camp[item.key]) > 0;
-      if (item.on !== original) return true;
-    }
-    // 检查照片
-    if (this.data.correctionPhotos.length > 0) return true;
-    return false;
-  },
-
-  // 尝试关闭纠错弹窗（有修改时提示保存）
-  tryCloseCorrection() {
-    if (this.hasCorrectionChanges()) {
-      wx.showModal({
-        title: '提示',
-        content: '您的修改尚未提交，是否保存？',
-        confirmText: '保存',
-        cancelText: '不保存',
-        confirmColor: '#2d6a4f',
-        success: (res) => {
-          if (res.confirm) {
-            // 用户选择保存，提交纠错
-            this.submitCorrection();
-          } else {
-            // 不保存，直接关闭
-            this.setData({ showCorrection: false });
-          }
-        }
-      });
-    } else {
-      this.setData({ showCorrection: false });
-    }
-  },
-
-  // 打开纠错弹窗
-  openCorrection() {
-    const camp = this.data.camp;
-    if (!camp) return;
-
-    // 构建设施列表 (所有设施, 带当前状态)
-    const facKeys = Object.keys(config.FAC_LABELS);
-    const correctionFacItems = facKeys.map(k => ({
-      key: k,
-      label: config.FAC_LABELS[k],
-      emoji: config.FAC_EMOJI[k],
-      on: Number(camp[k]) > 0
-    }));
-
-    // 拷贝营地数据用于编辑
-    const correctionData = {
-      name: camp.name || '',
-      address: camp.address || '',
-      intro: camp.intro || ''
-    };
-
-    this.setData({
-      showCorrection: true,
-      correctionData,
-      correctionFacItems,
-      correctionPhotos: []
-    });
-  },
-
-  // 关闭纠错弹窗
-  closeCorrection() {
-    this.setData({ showCorrection: false });
-  },
-
-  // 纠错输入
-  onCorrectionInput(e) {
-    const key = e.currentTarget.dataset.key;
-    const data = this.data.correctionData;
-    data[key] = e.detail.value;
-    this.setData({ correctionData: data });
-  },
-
-  // 纠错设施切换
-  toggleCorrectionFac(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const items = this.data.correctionFacItems.slice();
-    items[idx].on = !items[idx].on;
-    this.setData({ correctionFacItems: items });
-  },
-
-  // 纠错照片
-  addCorrectionPhoto() {
-    if (this.data.correctionPhotos.length >= 6) {
-      util.showToast('最多上传 6 张照片');
-      return;
-    }
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        const photos = this.data.correctionPhotos.concat([{
-          path: tempFilePath,
-          id: 'cp_' + Date.now()
-        }]);
-        this.setData({ correctionPhotos: photos });
-      },
-      fail: () => {}
-    });
-  },
-
-  delCorrectionPhoto(e) {
-    const idx = e.currentTarget.dataset.idx;
-    const photos = this.data.correctionPhotos.slice();
-    photos.splice(idx, 1);
-    this.setData({ correctionPhotos: photos });
-  },
-
-  // 提交纠错
-  async submitCorrection() {
-    if (this.data.submittingCorrection) return;
-    const camp = this.data.camp;
-    if (!camp) return;
-
-    const data = this.data.correctionData;
-    if (!data.name || !data.name.trim()) {
-      util.showToast('请填写营地名称');
-      return;
-    }
-
-    // 内容安全检测: 纠错文本
-    const userData = util.getUserState();
-    const openid = userData.openid || '';
-    const allText = (data.name || '') + ' ' + (data.address || '') + ' ' + (data.intro || '');
-    const textSafe = await security.checkTextWithToast(allText, openid);
-    if (!textSafe) return;
-
-    this.setData({ submittingCorrection: true });
-    util.showLoading('提交纠错...');
-
-    // 上传照片到 OSS
-    let photoUrls = [];
-    if (this.data.correctionPhotos.length > 0) {
-      const paths = this.data.correctionPhotos.map(p => p.path);
-      try {
-        photoUrls = await oss.uploadBatchToOSS(paths, 'corrections');
-        // 图片内容安全检测
-        const imgResult = await security.checkImages(photoUrls.filter(u => u), openid);
-        if (!imgResult.safe) {
-          util.hideLoading();
-          this.setData({ submittingCorrection: false });
-          wx.showModal({
-            title: '图片提醒',
-            content: '您上传的图片含违规信息，请更换后重新提交。',
-            showCancel: false,
-            confirmText: '我知道了',
-            confirmColor: '#2d6a4f'
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn('[correction] 照片上传失败:', e.message);
-      }
-    }
-
-    // 构建纠错数据
-    const facFlags = {};
-    this.data.correctionFacItems.forEach(item => {
-      facFlags[item.key] = item.on ? 1 : 0;
-    });
-
-    const payload = {
-      spot_code: camp.spot_code,
-      openid: util.getUserState().openid,
-      name: data.name.trim(),
-      address: (data.address || '').trim(),
-      intro: (data.intro || '').trim(),
-      photo_urls: photoUrls.filter(u => u).join(','),
-      status: 'pending',
-      ...facFlags
-    };
-
-    try {
-      await api.submitCampCorrection(payload);
-      util.hideLoading();
-      util.showToast('纠错已提交，感谢您的贡献');
-      this.setData({ showCorrection: false, submittingCorrection: false });
-    } catch (e) {
-      util.hideLoading();
-      util.showToast('提交失败，请稍后重试');
-      this.setData({ submittingCorrection: false });
-    }
-  }
+  noop() {}
 });

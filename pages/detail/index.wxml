@@ -31,43 +31,36 @@
     </view>
 
     <!-- 过夜友好度评分 -->
-    <view class="card overnight-card" wx:if="{{hasOvernightData && overnightInfo}}">
-      <view class="card-h">
-        <view class="dot"></view>过夜友好度
-        <text class="overnight-source">{{overnightInfo.source}}</text>
+    <view class="card overnight-card overnight-card-{{overnightInfo.scoreTheme}}"
+      style="background: linear-gradient(135deg, {{overnightInfo.cardGradFrom}} 0%, {{overnightInfo.cardGradTo}} 100%);"
+      wx:if="{{hasOvernightData && overnightInfo}}">
+      <view class="ov-top">
+        <view class="ov-ring">
+          <view class="ov-ring-progress"
+            style="background: conic-gradient({{overnightInfo.ringColor}} {{overnightInfo.ringPercent}}%, {{overnightInfo.ringTrackColor}} 0);"></view>
+          <view class="ov-ring-inner">
+            <text class="ov-ring-score text-{{overnightInfo.scoreTheme}}">{{overnightInfo.score}}</text>
+            <text class="ov-ring-unit">/5.0</text>
+          </view>
+        </view>
+        <view class="ov-info">
+          <view class="ov-status">
+            <text class="ov-status-dot dot-{{overnightInfo.scoreTheme}}"></text>
+            <text class="ov-status-text">{{overnightInfo.statusEmoji}} {{overnightInfo.status}}</text>
+          </view>
+          <view class="ov-desc" wx:if="{{overnightInfo.scoreTheme === 'green'}}">设施齐全，适合过夜露营</view>
+          <view class="ov-desc" wx:elif="{{overnightInfo.scoreTheme === 'orange'}}">设施基本可用，短途过夜可考虑</view>
+          <view class="ov-desc" wx:else>设施较简陋，不建议过夜</view>
+          <view class="ov-source">
+            <text class="ov-source-tag tag-{{overnightInfo.scoreTheme}}">数据来源：{{overnightInfo.source}}</text>
+          </view>
+        </view>
       </view>
-      <!-- 综合评分 -->
-      <view class="overnight-score-row">
-        <view class="overnight-score-left">
-          <text class="overnight-score-num">{{overnightInfo.score}}</text>
-          <text class="overnight-score-unit">/5.0</text>
-        </view>
-        <view class="overnight-score-right">
-          <text class="overnight-stars">{{overnightInfo.stars}}</text>
-          <text class="overnight-status" wx:if="{{overnightInfo.status}}">{{overnightInfo.statusEmoji}} {{overnightInfo.status}}</text>
-        </view>
-      </view>
-      <!-- 5个维度 -->
-      <view class="overnight-dims">
-        <view class="overnight-dim">
-          <text class="ov-dim-emoji">{{overnightInfo.noiseEmoji}}</text>
-          <text class="ov-dim-label">噪音</text>
-          <text class="ov-dim-val">{{overnightInfo.noise}}</text>
-        </view>
-        <view class="overnight-dim">
-          <text class="ov-dim-emoji">{{overnightInfo.safetyEmoji}}</text>
-          <text class="ov-dim-label">安全</text>
-          <text class="ov-dim-val">{{overnightInfo.safety}}</text>
-        </view>
-        <view class="overnight-dim">
-          <text class="ov-dim-emoji">{{overnightInfo.signalEmoji}}</text>
-          <text class="ov-dim-label">信号</text>
-          <text class="ov-dim-val">{{overnightInfo.signal}}</text>
-        </view>
-        <view class="overnight-dim">
-          <text class="ov-dim-emoji">{{overnightInfo.groundEmoji}}</text>
-          <text class="ov-dim-label">地面</text>
-          <text class="ov-dim-val">{{overnightInfo.ground}}</text>
+      <view class="ov-dims">
+        <view class="ov-dim-item" wx:for="{{overnightInfo.dims}}" wx:key="label">
+          <text class="ov-dim-emoji">{{item.emoji}}</text>
+          <text class="ov-dim-label">{{item.label}}</text>
+          <text class="ov-dim-value">{{item.value}}</text>
         </view>
       </view>
     </view>
