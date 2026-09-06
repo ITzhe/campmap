@@ -124,6 +124,90 @@ async function fetchCampDetail(spotCode) {
   }
 }
 
+// ======================== 懂营地数据 (dongyingdi_spots) ========================
+
+/**
+ * 懂营地数据字段映射到标准营地格式
+ * dongyingdi_spots 字段名与 camping_spots 有差异，统一映射
+ */
+function normalizeDydCamp(camp) {
+  if (!camp) return null;
+  const normalized = Object.assign({}, camp, {
+    spot_code: 'dyd_' + camp.id,       // 前缀 id 作为 spot_code
+    source: 'dyd',
+    parking_status: camp.is_fee != null ? camp.is_fee : 0,  // is_fee → parking_status
+    cooking_status: camp.cook_friendly || 0,               // cook_friendly → cooking_status
+  });
+  // 补全 camping_spots 有但 dongyingdi_spots 没有的字段
+  return normalizeCamp(normalized);
+}
+
+/**
+ * 获取懂营地列表 (带地理范围过滤)
+ * @param {Object} bounds - {minLat, maxLat, minLng, maxLng}
+ * @param {number} limit - 返回数量限制
+ */
+async function fetchDydCampsites(bounds, limit) {
+  if (!bounds) return [];
+
+  const selectFields = 'id,name,longitude,latitude,address,is_fee,toilet_status,' +
+    'water_status,power_status,tent_friendly,trailer_friendly,cook_friendly,' +
+    'dining_status,shower_status,fishing_status,overnight_score,overnight_status,' +
+    'dim_noise,dim_safety,score_source';
+
+  let url = `${config.API_BASE}/dongyingdi_spots?select=${selectFields}`;
+  url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
+  url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
+  url += `&limit=${Math.min(limit || 100, 100)}`;
+
+  try {
+    const data = await request(url, 'GET');
+    if (!Array.isArray(data) || data.length === 0) return [];
+    return data.map(normalizeDydCamp).filter(Boolean);
+  } catch (e) {
+    console.error('[Supabase] 懂营地数据获取失败:', e.message);
+    return [];
+  }
+}
+
+/**
+ * 获取懂营地单个详情
+ * @param {string|number} id - dongyingdi_spots.id
+ */
+async function fetchDydCampDetail(id) {
+  const url = `${config.API_BASE}/dongyingdi_spots?id=eq.${id}&select=*`;
+  try {
+    const data = await request(url, 'GET');
+    if (Array.isArray(data) && data.length > 0) {
+      return normalizeDydCamp(data[0]);
+    }
+    return null;
+  } catch (e) {
+    console.error('[Supabase] 懂营地详情获取失败:', e.message);
+    return null;
+  }
+}
+
+/**
+ * 搜索懂营地
+ * @param {string} keyword - 搜索关键词
+ */
+async function searchDydCamps(keyword) {
+  const selectFields = 'id,name,longitude,latitude,address,is_fee,toilet_status,' +
+    'water_status,power_status,tent_friendly,trailer_friendly,cook_friendly,' +
+    'dining_status,overnight_score,overnight_status';
+  const url = `${config.API_BASE}/dongyingdi_spots?select=${selectFields}` +
+    `&or=(name.ilike.*${encodeURIComponent(keyword)}*,address.ilike.*${encodeURIComponent(keyword)}*)&limit=50`;
+  try {
+    const data = await request(url, 'GET');
+    if (!Array.isArray(data)) return [];
+    return data.map(normalizeDydCamp).filter(Boolean);
+  } catch (e) {
+    console.error('[Supabase] 懂营地搜索失败:', e.message);
+    return [];
+  }
+}
+
 /**
  * 获取用户积分
  */
@@ -384,12 +468,16 @@ async function deleteCampPhoto(photoId, openid) {
 module.exports = {
   request,
   fetchCampsites,
+  fetchDydCampsites,
   fetchCampDetail,
+  fetchDydCampDetail,
+  searchDydCamps,
   getPoints,
   dailyCheckinApi,
   deductPointApi,
   submitCampsite,
   normalizeCamp,
+  normalizeDydCamp,
   fetchComments,
   submitComment,
   likeComment,
