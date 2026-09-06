@@ -1,38 +1,29 @@
 """
 懂营地过夜友好度评分计算脚本
 ================================
-基于设施字段 + 营地类型，为 dongyingdi_spots 表批量计算过夜友好度评分。
+基于设施字段，为 dongyingdi_spots 表批量计算过夜友好度评分。
 
 评分公式（第一阶段，设施基础分）：
-  综合评分 = 基础设施分 × 类型系数 + 额外加分
+  综合评分 = 基础设施分 + 额外加分
 
   基础设施分（满分 4.0）：
     厕所 0.8 + 水 0.7 + 电 0.6 + 淋浴 0.5 + 做饭 0.5 + 帐篷 0.5 + 餐饮 0.4
 
-  类型系数：
-    专业营地（露营地/房车营地/自驾车营地等）× 1.2
-    公园/服务区/景区停车场 × 1.0
-    路边/观景台/临时停靠 × 0.8
-
   额外加分（最高 1.0）：
     可停拖挂 + 0.3
     可钓鱼 + 0.2
-    有水 + 有厕所 + 可做饭 → 基础过夜三件套 + 0.3
-    有电 + 0.2
+
+  注：不做营地类型区分（用户决策），类型系数统一为 1.0
 
   三个维度：
-    能否过夜：根据综合评分映射到 3 档
-    噪音：基于营地类型粗估（第一阶段）
-    安全：基于设施 + 类型粗估（第一阶段）
+    能否过夜：根据综合评分映射到 3 档（可以过夜/勉强能住/不建议过夜）
+    噪音：基于名称关键词粗估（第一阶段）
+    安全：基于设施粗估（第一阶段）
 
 用法:
   python score_dongyingdi.py --dry-run     # 试运行，只统计结果不写入
   python score_dongyingdi.py --apply       # 正式运行，写入数据库
   python score_dongyingdi.py --apply --batch 200  # 指定批次大小
-
-注意:
-  首次运行前需要先在 Supabase 执行 SQL 创建 RPC 函数：
-  sql/batch_update_dyd_score.sql
 """
 
 import argparse
@@ -55,48 +46,8 @@ FACILITY_WEIGHTS = {
     "power_status":  0.6,    # 电
     "shower_status": 0.5,    # 淋浴
     "cook_friendly": 0.5,    # 做饭
-    "tent_friendly": 0.5,    # 帐篷
-    "dining_status": 0.4,    # 餐饮
-}
-
-# 营地类型关键词 → 类型等级
-# level 2 = 专业营地 (×1.2) — 真正有管理的营地
-# level 1 = 公园/服务区/普通驻车地 (×1.0) — 中性，设施分说了算
-# level 0 = 路边/临时 (×0.8) — 明显不适合过夜的类型
-#
-# 注意："露营地(驻车地)"是懂营地的默认分类，范围很宽，不能当作专业营地
-TYPE_KEYWORDS = {
-    2: [
-        "房车营地", "自驾车营地", "自驾营地", "汽车营地",
-        "露营地",  # 纯"露营地"（不含"驻车地"后缀的才算专业营地）
-        "度假村", "度假营", "农庄", "庄园", "露营公园",
-        "星空营地", "帐篷营地", "温泉营地",
-    ],
-    1: [
-        "服务区", "服务点", "驿站", "公园", "停车场",
-        "景区", "景点", "广场", "游客中心",
-        "水库", "湖边", "江边", "河边", "海边", "湿地",
-        "体育馆", "体育中心", "文化中心",
-    ],
-    0: [
-        "路边", "路旁", "观景台", "观景点", "临时停靠",
-        "加油站", "公路旁", "国道旁", "省道旁",
-    ],
-}
-
-# level 2 的关键词必须命中（不能包含"驻车地"）
-PROFESSIONAL_EXCLUDE = ["驻车地"]
-
-TYPE_COEFFICIENT = {
-    2: 1.2,
-    1: 1.0,
-    0: 0.8,
-}
-
-TYPE_LABEL = {
-    2: "专业营地",
-    1: "公园/服务区",
-    0: "路边/临时",
+    "tent_friendly": 0.5,   # 帐篷
+    "dining_status": 0.4,   # 餐饮
 }
 
 
@@ -106,61 +57,27 @@ def log(msg: str):
 
 
 # ======================== 评分计算 ========================
-def classify_camp_type(cate: str, name: str) -> int:
-    """根据类型字段和名称判断营地等级"""
-    text = f"{cate} {name}"
-
-    # 先检查是否是专业营地（需要命中关键词且不含排除词）
-    is_professional = False
-    for kw in TYPE_KEYWORDS[2]:
-        if kw in text:
-            # 检查排除词：如果 cate 或 name 包含"驻车地"，不算专业营地
-            if any(excl in cate for excl in PROFESSIONAL_EXCLUDE):
-                break
-            is_professional = True
-            break
-    if is_professional:
-        return 2
-
-    # 检查是否是路边/临时类型（最差档）
-    for kw in TYPE_KEYWORDS[0]:
-        if kw in text:
-            return 0
-
-    # 默认归为 1（公园/服务区/普通驻车地）
-    return 1
-
-
-def estimate_noise(camp_type: int, name: str) -> str:
-    """估算噪音程度（第一阶段：基于类型和名称关键词）"""
-    # 关键词检测
-    name_lower = name
-    if any(kw in name_lower for kw in ["高速", "国道", "省道", "路边", "路旁", "大路边", "马路边"]):
+def estimate_noise(name: str) -> str:
+    """估算噪音程度（第一阶段：基于名称关键词）"""
+    if any(kw in name for kw in ["高速", "国道", "省道", "路边", "路旁", "大路边", "马路边", "加油站"]):
         return "较吵"
-    if any(kw in name_lower for kw in ["公园", "森林", "山林", "湖边", "水库", "江边", "海边", "湿地"]):
+    if any(kw in name for kw in ["公园", "森林", "山林", "湖边", "水库", "江边", "河边", "海边", "湿地", "山"]):
         return "较安静"
-
-    # 按类型
-    if camp_type == 2:
-        return "一般"
-    elif camp_type == 1:
-        return "一般"
-    else:
-        return "较吵"
+    return "一般"
 
 
-def estimate_safety(spot: Dict, camp_type: int) -> str:
-    """估算安全程度（第一阶段：基于设施和类型）
+def estimate_safety(spot: Dict) -> str:
+    """估算安全程度（第一阶段：基于设施）
 
     评分标准：
     - 有厕所 → 有人管理 +1
     - 有餐饮 → 有人活动 +1
-    - 有电 → 有基础设施 +1
-    - 专业营地 → 有管理 +1
+    - 有电 → 有基础设施 +0.5
+    - 有水 → 基础保障 +0.5
     - 收费 → 通常有管理 +0.5
 
     阈值：
-    - ≥3.0 → 很安全
+    - ≥2.5 → 很安全
     - ≥1.5 → 一般
     - <1.5 → 需注意
     """
@@ -170,13 +87,13 @@ def estimate_safety(spot: Dict, camp_type: int) -> str:
     if spot.get("dining_status") == 1:
         score += 1
     if spot.get("power_status") == 1:
-        score += 1
-    if camp_type == 2:
-        score += 1
+        score += 0.5
+    if spot.get("water_status") == 1:
+        score += 0.5
     if spot.get("is_fee") == 1:
         score += 0.5
 
-    if score >= 3.0:
+    if score >= 2.5:
         return "很安全"
     elif score >= 1.5:
         return "一般"
@@ -201,17 +118,13 @@ def calc_overnight_status(score: float) -> Tuple[int, str]:
 
 def calculate_score(spot: Dict) -> Dict:
     """计算单个营地的过夜友好度评分"""
-    # 1. 基础设施分
+    # 1. 基础设施分（满分 4.0）
     base_score = 0.0
     for field, weight in FACILITY_WEIGHTS.items():
         if spot.get(field) == 1:
             base_score += weight
 
-    # 2. 营地类型系数
-    camp_type = classify_camp_type(spot.get("cate", ""), spot.get("name", ""))
-    type_coeff = TYPE_COEFFICIENT[camp_type]
-
-    # 3. 额外加分
+    # 2. 额外加分（最高 1.0）
     bonus = 0.0
     # 拖挂友好
     if spot.get("trailer_friendly") == 1:
@@ -219,34 +132,26 @@ def calculate_score(spot: Dict) -> Dict:
     # 可钓鱼
     if spot.get("fishing_status") == 1:
         bonus += 0.2
-    # 过夜三件套（水+厕所+做饭）
-    if (spot.get("water_status") == 1
-            and spot.get("toilet_status") == 1
-            and spot.get("cook_friendly") == 1):
-        bonus += 0.3
-    # 有电
-    if spot.get("power_status") == 1:
-        bonus += 0.2
 
     # 额外加分封顶 1.0
     bonus = min(bonus, 1.0)
 
-    # 4. 综合评分
-    total_score = base_score * type_coeff + bonus
+    # 3. 综合评分（不做类型区分，系数统一 1.0）
+    total_score = base_score + bonus
 
     # 封顶 5.0
     total_score = min(total_score, 5.0)
     # 保留 1 位小数
     total_score = round(total_score, 1)
 
-    # 5. 过夜状态
+    # 4. 过夜状态
     status, status_label = calc_overnight_status(total_score)
 
-    # 6. 噪音估算
-    noise = estimate_noise(camp_type, spot.get("name", ""))
+    # 5. 噪音估算（基于名称关键词）
+    noise = estimate_noise(spot.get("name", ""))
 
-    # 7. 安全估算
-    safety = estimate_safety(spot, camp_type)
+    # 6. 安全估算（基于设施）
+    safety = estimate_safety(spot)
 
     return {
         "overnight_score": total_score,
@@ -255,9 +160,7 @@ def calculate_score(spot: Dict) -> Dict:
         "dim_noise": noise,
         "dim_safety": safety,
         "score_source": "facility_calculated",
-        "camp_type_level": camp_type,
         "base_score": round(base_score, 2),
-        "type_coeff": type_coeff,
         "bonus": round(bonus, 2),
     }
 
@@ -290,9 +193,9 @@ def fetch_batch(client: httpx.Client, key: str, offset: int, limit: int) -> List
         "Authorization": f"Bearer {key}",
         "Accept-Profile": "map",
     }
-    fields = "id,name,cate,water_status,power_status,toilet_status,shower_status," \
+    fields = "id,name,water_status,power_status,toilet_status,shower_status," \
              "tent_friendly,cook_friendly,fishing_status,dining_status," \
-             "trailer_friendly,is_fee,stay_status"
+             "trailer_friendly,is_fee"
     r = client.get(
         f"{SUPABASE_URL}/rest/v1/{TABLE}?select={fields}&limit={limit}&offset={offset}&order=id",
         headers=h,
@@ -383,18 +286,6 @@ def print_statistics(results: List[Dict]):
         pct = count / total * 100
         label = status_labels.get(s, f"status={s}")
         print(f"    {label:10s}: {count:6d} ({pct:5.1f}%)")
-
-    # 营地类型分布
-    type_counts = {}
-    for r in results:
-        t = r["camp_type_level"]
-        type_counts[t] = type_counts.get(t, 0) + 1
-    print(f"\n  营地类型分布:")
-    for t in sorted(type_counts.keys()):
-        count = type_counts[t]
-        pct = count / total * 100
-        label = TYPE_LABEL.get(t, f"level={t}")
-        print(f"    {label:12s}: {count:6d} ({pct:5.1f}%)")
 
     # 噪音分布
     noise_counts = {}

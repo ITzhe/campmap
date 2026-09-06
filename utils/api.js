@@ -235,6 +235,28 @@ function distMeters(lat1, lng1, lat2, lng2) {
 }
 
 /**
+ * 名称相似度（基于 Jaccard 字符集）
+ * 设计文稿要求 > 80% 作为辅助验证
+ */
+function nameSimilarity(a, b) {
+  if (!a || !b) return 0;
+  // 去除常见后缀后比较
+  var clean = function(s) {
+    return (s || '').replace(/[停车场停车区服务区驿站景区]/g, '');
+  };
+  var ca = clean(a), cb = clean(b);
+  if (!ca || !cb) return 0;
+  if (ca.indexOf(cb) > -1 || cb.indexOf(ca) > -1) return 1;
+  // Jaccard 字符集相似度
+  var setA = new Set(ca.split(''));
+  var setB = new Set(cb.split(''));
+  var intersection = 0;
+  setA.forEach(function(c) { if (setB.has(c)) intersection++; });
+  var union = setA.size + setB.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+/**
  * 合并两个重复营地
  * primary 已有更完整数据，secondary 补充缺失字段
  */
@@ -284,7 +306,8 @@ function mergeTwoCamps(primary, secondary) {
  * @returns {Array} 去重合并后的列表
  */
 function deduplicateCamps(camps) {
-  var MERGE_RADIUS = 150; // 150 米内视为同一地点
+  var MERGE_RADIUS = 200; // 200 米内视为同一地点
+  var NAME_SIM_THRESHOLD = 0.3; // 名称相似度低于此值时不合并
   if (!Array.isArray(camps) || camps.length === 0) return camps;
 
   // 按过夜评分降序排（有评分的优先作为主记录）
@@ -302,6 +325,14 @@ function deduplicateCamps(camps) {
         merged[j].latitude, merged[j].longitude
       );
       if (d <= MERGE_RADIUS) {
+        // 辅助验证：名称相似度（设计文稿要求 > 80%）
+        // 如果两个营地都有名称但完全不相似（< 30%），可能是相邻的不同营地
+        var sim = nameSimilarity(camp.name, merged[j].name);
+        if (sim < NAME_SIM_THRESHOLD && camp.name && merged[j].name
+            && camp.name.length >= 4 && merged[j].name.length >= 4) {
+          // 名称差异太大，跳过合并
+          continue;
+        }
         merged[j] = mergeTwoCamps(merged[j], camp);
         foundDup = true;
         break;
@@ -317,6 +348,30 @@ function deduplicateCamps(camps) {
   }
 
   return merged;
+}
+
+/**
+ * 实时重算营地过夜评分（用户打卡后调用）
+ * 调用 Supabase RPC 函数，按设计文稿第二阶段公式重算
+ * @param {string} spotCode - 营地编码
+ * @returns {Object} 重算结果 { success, final_score, status, ... }
+ */
+async function recalculateScore(spotCode) {
+  if (!spotCode) return { success: false, msg: 'spotCode 缺失' };
+  const url = `${config.API_BASE}/rpc/recalculate_overnight_score`;
+  try {
+    const result = await request(url, 'POST', JSON.stringify({
+      p_spot_code: spotCode
+    }));
+    if (result && result.success) {
+      console.log('[recalculate] 重算成功:', spotCode,
+        '→', result.final_score, '(', result.review_count, '条评价)');
+    }
+    return result || { success: false };
+  } catch (e) {
+    console.warn('[recalculate] 重算失败:', e.message);
+    return { success: false, msg: e.message };
+  }
 }
 
 /**
@@ -584,6 +639,7 @@ module.exports = {
   fetchDydCampDetail,
   searchDydCamps,
   deduplicateCamps,
+  recalculateScore,
   getPoints,
   dailyCheckinApi,
   deductPointApi,

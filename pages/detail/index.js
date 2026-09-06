@@ -668,8 +668,82 @@ Page({
         this.setData({ showCheckinSuccess: false });
       }, 2000);
       this.setData({ checkinSuccessTimer: timer });
+
+      // 异步重算过夜评分（不阻塞用户体验）
+      this.refreshOvernightScore();
     } else {
       util.showToast((res && res.msg) || '提交失败，请稍后重试');
+    }
+  },
+
+  // ============ 异步重算过夜评分（打卡后调用）============
+  async refreshOvernightScore() {
+    const camp = this.data.camp;
+    if (!camp || !this.data.hasOvernightData) return;
+    try {
+      const result = await api.recalculateScore(camp.spot_code);
+      if (!result || !result.success || result.final_score === undefined) return;
+
+      // 更新 camp 数据
+      camp.overnight_score = result.final_score;
+      camp.overnight_status = result.status;
+      if (result.noise) camp.dim_noise = result.noise;
+      if (result.safety) camp.dim_safety = result.safety;
+      camp.score_source = 'user_rated';
+
+      // 更新 overnightInfo 显示
+      const ov = this.data.overnightInfo;
+      if (!ov) return;
+
+      ov.score = Number(result.final_score).toFixed(1);
+      ov.ringPercent = Math.round(Math.min(Math.max(result.final_score / 5, 0), 1) * 100);
+
+      // 状态映射
+      const statusMap = { 1: '可以过夜', 2: '勉强能住', 3: '不建议过夜' };
+      const emojiMap = { 1: '✅', 2: '😐', 3: '⚠️' };
+      ov.status = statusMap[result.status] || ov.status;
+      ov.statusEmoji = emojiMap[result.status] || ov.statusEmoji;
+
+      // 主题色
+      if (result.status === 1) {
+        ov.scoreTheme = 'green';
+        ov.ringColor = '#2d6a4f';
+        ov.ringTrackColor = 'rgba(45, 106, 79, 0.1)';
+        ov.cardGradFrom = '#e8f5e9';
+        ov.cardGradTo = '#d8f3dc';
+      } else if (result.status === 2) {
+        ov.scoreTheme = 'orange';
+        ov.ringColor = '#f4a261';
+        ov.ringTrackColor = 'rgba(244, 162, 97, 0.15)';
+        ov.cardGradFrom = '#fff3e0';
+        ov.cardGradTo = '#ffe0b2';
+      } else {
+        ov.scoreTheme = 'gray';
+        ov.ringColor = '#9e9e9e';
+        ov.ringTrackColor = 'rgba(158, 158, 158, 0.15)';
+        ov.cardGradFrom = '#f5f5f5';
+        ov.cardGradTo = '#eeeeee';
+      }
+
+      // 更新维度值
+      if (ov.dims && ov.dims.length > 0) {
+        ov.dims = ov.dims.map(function(d) {
+          if (d.label === '噪音' && result.noise) {
+            return Object.assign({}, d, { value: result.noise });
+          }
+          if (d.label === '安全' && result.safety) {
+            return Object.assign({}, d, { value: result.safety });
+          }
+          return d;
+        });
+      }
+
+      // 数据来源
+      ov.source = '用户评价';
+
+      this.setData({ camp, overnightInfo: ov });
+    } catch (e) {
+      console.warn('[detail] 评分重算失败:', e.message);
     }
   },
 
