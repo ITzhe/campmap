@@ -151,7 +151,10 @@ const config = {
       'keyword': '关键词提取',
       'type+keyword': '智能标注',
       'manual': '人工复核',
-      'user': '用户贡献'
+      'user': '用户贡献',
+      'facility_calculated': '设施评估',
+      'user_rated': '用户评价',
+      'anying_imported': '安营导入'
     }
   },
 

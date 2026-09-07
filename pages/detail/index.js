@@ -254,7 +254,7 @@ Page({
       let source = '未标注';
       if (camp.score_source && camp.score_source !== '') {
         const sourceMap = {
-          'facility_calculated': '设施计算',
+          'facility_calculated': '设施评估',
           'user_rated': '用户评价',
           'anying_imported': '安营导入',
           'manual': '人工复核'
@@ -290,7 +290,7 @@ Page({
       }
 
       overnightInfo = {
-        score: overnightScore.toFixed(1),
+        score: overnightScore > 0 ? overnightScore.toFixed(1) : '暂无',
         status,
         statusEmoji,
         dims,
