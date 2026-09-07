@@ -40,7 +40,7 @@
             style="background: conic-gradient({{overnightInfo.ringColor}} {{overnightInfo.ringPercent}}%, {{overnightInfo.ringTrackColor}} 0);"></view>
           <view class="ov-ring-inner">
             <text class="ov-ring-score text-{{overnightInfo.scoreTheme}}">{{overnightInfo.score}}</text>
-            <text class="ov-ring-unit">/5.0</text>
+            <text class="ov-ring-unit" wx:if="{{overnightInfo.score !== '暂无'}}">/5.0</text>
           </view>
         </view>
         <view class="ov-info">
