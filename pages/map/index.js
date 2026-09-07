@@ -276,7 +276,7 @@ Page({
         api.fetchCampsites(this.data.filters, bounds, 5000),
         api.fetchDydCampsites(bounds, 5000)
       ]);
-      // 双数据源去重合并（150米内视为同一地点）
+      // 双数据源去重合并（200米内视为同一地点）
       const allCamps = api.deduplicateCamps([...anyingCamps, ...dydCamps]);
 
       this.setData({
