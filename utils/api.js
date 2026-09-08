@@ -90,8 +90,8 @@ async function fetchCampsites(filters, bounds, limit) {
   if (filters && filters.fee && filters.fee !== 'all') {
     url += `&parking_status=eq.${filters.fee}`;
   }
-  // 最大返回100条, 防止一次性拉取大量数据
-  url += `&limit=${Math.min(limit || 100, 100)}`;
+  // 按调用方指定的 limit 返回，已通过 bounds 限制范围
+  url += `&limit=${limit || 5000}`;
 
   try {
     const data = await request(url, 'GET');
@@ -158,7 +158,7 @@ async function fetchDydCampsites(bounds, limit) {
   let url = `${config.API_BASE}/dongyingdi_spots?select=${selectFields}`;
   url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
   url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
-  url += `&limit=${Math.min(limit || 100, 100)}`;
+  url += `&limit=${limit || 5000}`;
 
   try {
     const data = await request(url, 'GET');
