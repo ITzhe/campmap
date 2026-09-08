@@ -278,6 +278,11 @@ function mergeTwoCamps(primary, secondary) {
     merged.dim_noise = secondary.dim_noise || '';
     merged.dim_safety = secondary.dim_safety || '';
     merged.score_source = secondary.score_source || '';
+    merged.overnight_data_source = secondary.overnight_data_source || '';
+    merged.noise_level = secondary.noise_level || 0;
+    merged.safety_level = secondary.safety_level || 0;
+    merged.signal_level = secondary.signal_level || 0;
+    merged.ground_type = secondary.ground_type || 0;
     // 评分来自副记录，详情页应查副记录的表
     merged.spot_code = secondary.spot_code;
     merged.source = secondary.source;
