@@ -226,9 +226,10 @@
           <view class="dyn-content">
             <view class="dyn-head">
               <text class="dyn-nick">{{item.nick}}</text>
-              <text class="dyn-type-tag" wx:if="{{item.type === 'checkin'}}">打卡</text>
+              <text class="dyn-type-tag" wx:if="{{item.type === 'checkin'}}">📍 打卡</text>
             </view>
-            <view class="dyn-text">{{item.text}}</view>
+            <view class="dyn-text" wx:if="{{item.type === 'checkin'}}">{{item.relTime}}打卡过此地</view>
+            <view class="dyn-text" wx:else>{{item.text}}</view>
             <!-- 评论图片 -->
             <view class="dyn-imgs" wx:if="{{item.photo_urls}}">
               <image wx:for="{{item.photo_urls}}" wx:for-item="img" wx:key="*this"

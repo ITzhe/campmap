@@ -391,14 +391,16 @@ Page({
     const dynamicsList = (comments || []).map(c => {
       const avatar = c.avatar || '🏕';
       const avatarIsUrl = avatar.startsWith('http');
+      const relTime = this.fmtRelTime(c.created_at);
+      const isCheckin = (c.type || 'comment') === 'checkin';
       return {
         id: c.id,
         nick: c.nick || '微信用户',
         avatar: avatar,
         avatarIsUrl: avatarIsUrl,
         date: this.fmtDate(c.created_at),
-        relTime: this.fmtRelTime(c.created_at),
-        text: c.content,
+        relTime: relTime,
+        text: isCheckin ? (c.nick || '微信用户') + ' ' + relTime + '打卡过' : c.content,
         type: c.type || 'comment',
         likes: c.likes || 0,
         liked: likedIds.indexOf(c.id) > -1,
