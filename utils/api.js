@@ -108,6 +108,23 @@ async function fetchCampsites(filters, bounds, limit) {
 }
 
 /**
+ * 获取懂营地导入的评论
+ * 从 dongyingdi_comments 表读取（采集脚本从懂营地API导入的评论）
+ * @param {number} campId - dongyingdi_spots.id
+ */
+async function fetchDydComments(campId) {
+  if (!campId) return [];
+  const url = `${config.API_BASE}/dongyingdi_comments?camp_id=eq.${campId}&order=comment_time.desc&limit=50`;
+  try {
+    const data = await request(url, 'GET');
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('[Supabase] 懂营地评论获取失败:', e.message);
+    return [];
+  }
+}
+
+/**
  * 获取单个营地详情
  */
 async function fetchCampDetail(spotCode) {
@@ -652,6 +669,7 @@ module.exports = {
   normalizeCamp,
   normalizeDydCamp,
   fetchComments,
+  fetchDydComments,
   submitComment,
   likeComment,
   deleteComment,

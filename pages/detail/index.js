@@ -384,30 +384,73 @@ Page({
   async loadComments(spotCode) {
     if (!spotCode) return;
     this.setData({ commentsLoading: true });
-    const comments = await api.fetchComments(spotCode);
     const likedIds = this.data.likedCommentIds || [];
     const currentOpenid = this.data.currentUserOpenid;
-    // 映射为前端展示结构 (保留 dynamicsList 字段名以兼容 WXML)
-    const dynamicsList = (comments || []).map(c => {
+
+    // 并行加载：本站评论 + 懂营地导入评论
+    const camp = this.data.camp;
+    const isDyd = camp && camp.source === 'dyd';
+    const dydId = isDyd ? String(camp.spot_code || '').replace('dyd_', '') : '';
+
+    const [ownComments, dydComments] = await Promise.all([
+      api.fetchComments(spotCode),
+      isDyd && dydId ? api.fetchDydComments(dydId) : Promise.resolve([])
+    ]);
+
+    // 映射本站评论
+    const ownList = (ownComments || []).map(c => {
       const avatar = c.avatar || '🏕';
       const avatarIsUrl = avatar.startsWith('http');
       const relTime = this.fmtRelTime(c.created_at);
       const isCheckin = (c.type || 'comment') === 'checkin';
       return {
-        id: c.id,
+        id: 'own_' + c.id,
         nick: c.nick || '微信用户',
         avatar: avatar,
         avatarIsUrl: avatarIsUrl,
         date: this.fmtDate(c.created_at),
         relTime: relTime,
-        text: isCheckin ? (c.nick || '微信用户') + ' ' + relTime + '打卡过' : c.content,
+        text: isCheckin ? '打卡过此地' : (c.content || ''),
         type: c.type || 'comment',
         likes: c.likes || 0,
         liked: likedIds.indexOf(c.id) > -1,
         photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
-        isMine: c.openid === currentOpenid
+        isMine: c.openid === currentOpenid,
+        source: '本站'
       };
     });
+
+    // 映射懂营地导入评论
+    const dydList = (dydComments || []).map(c => {
+      const nick = c.user_nickname || '车友';
+      const avatar = '🚐';
+      const content = c.content || '现场打卡';
+      const isCheckin = content === '现场打卡';
+      const ts = c.comment_time;
+      return {
+        id: 'dyd_' + c.id,
+        nick: nick,
+        avatar: avatar,
+        avatarIsUrl: false,
+        date: this.fmtDate(ts),
+        relTime: this.fmtRelTime(ts),
+        text: isCheckin ? '打卡过此地' : content,
+        type: isCheckin ? 'checkin' : 'comment',
+        likes: c.likes || 0,
+        liked: false,
+        photo_urls: [],
+        isMine: false,
+        source: '懂营地',
+        userScore: c.user_score || 0
+      };
+    });
+
+    // 合并并按时间降序排序
+    const dynamicsList = [...ownList, ...dydList].sort((a, b) => {
+      // 用 date 字段比较（YYYY-MM-DD 格式可直接比较字符串）
+      return (b.date || '').localeCompare(a.date || '');
+    });
+
     // 提取打卡记录
     const checkins = dynamicsList.filter(c => c.type === 'checkin');
     const checkinCount = checkins.length;
@@ -860,19 +903,26 @@ Page({
       return;
     }
 
+    // 懂营地导入的评论不支持点赞（只读）
+    if (list[idx].source === '懂营地') {
+      util.showToast('该评论来自懂营地，暂不支持点赞');
+      return;
+    }
+
     const userData = util.getUserState();
-    const res = await api.likeComment(list[idx].id, userData.openid);
+    const realId = String(list[idx].id || '').replace('own_', '');
+    const res = await api.likeComment(realId, userData.openid);
     if (res && res.success) {
       list[idx].liked = true;
       list[idx].likes = (list[idx].likes || 0) + 1;
       this.setData({ dynamicsList: list });
-      this.saveLikedId(list[idx].id);
+      this.saveLikedId(realId);
     } else {
       // 后端返回已点赞, 同步本地状态
       if (res && res.msg === '已经点过赞了') {
         list[idx].liked = true;
         this.setData({ dynamicsList: list });
-        this.saveLikedId(list[idx].id);
+        this.saveLikedId(realId);
       }
       util.showToast((res && res.msg) || '点赞失败');
     }
@@ -959,7 +1009,7 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         util.showLoading('删除中...');
-        const result = await api.deleteComment(comment.id, this.data.currentUserOpenid);
+        const result = await api.deleteComment(String(comment.id).replace('own_', ''), this.data.currentUserOpenid);
         util.hideLoading();
         if (result.success) {
           util.showToast('已删除');
