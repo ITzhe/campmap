@@ -390,11 +390,15 @@ Page({
     // 并行加载：本站评论 + 懂营地导入评论
     const camp = this.data.camp;
     const isDyd = camp && camp.source === 'dyd';
-    const dydId = isDyd ? String(camp.spot_code || '').replace('dyd_', '') : '';
+    // dydId: 如果营地是 dyd 来源，从 spot_code 提取；
+    // 如果是去重合并后的安营营地，从 dyd_id 字段提取（合并时保留的）
+    const dydId = isDyd
+      ? String(camp.spot_code || '').replace('dyd_', '')
+      : (camp && camp.dyd_id ? String(camp.dyd_id) : '');
 
     const [ownComments, dydComments] = await Promise.all([
       api.fetchComments(spotCode),
-      isDyd && dydId ? api.fetchDydComments(dydId) : Promise.resolve([])
+      dydId ? api.fetchDydComments(dydId) : Promise.resolve([])
     ]);
 
     // 映射本站评论
@@ -424,8 +428,9 @@ Page({
     const dydList = (dydComments || []).map(c => {
       const nick = c.user_nickname || '车友';
       const avatar = '🚐';
-      const content = c.content || '现场打卡';
-      const isCheckin = content === '现场打卡';
+      const content = c.content || '';
+      // 懂营地评论中 "打卡"/"现场打卡" 均视为打卡行为
+      const isCheckin = content === '现场打卡' || content === '打卡' || content === '';
       const ts = c.comment_time;
       return {
         id: 'dyd_' + c.id,
