@@ -305,6 +305,19 @@ function mergeTwoCamps(primary, secondary) {
     merged.source = secondary.source;
   }
 
+  // 保留懂营地副记录的原始 ID，用于评论查询
+  // 当主记录是安营营地时，合并后仍可通过 dyd_id 查询懂营地导入的评论
+  if (secondary.source === 'dyd' && secondary.spot_code) {
+    var secDydId = String(secondary.spot_code).replace('dyd_', '');
+    if (!merged.dyd_id) {
+      merged.dyd_id = secDydId;
+    }
+  }
+  // 同理，如果主记录是 dyd 来源，也保留其 ID
+  if (primary.source === 'dyd' && primary.spot_code && !merged.dyd_id) {
+    merged.dyd_id = String(primary.spot_code).replace('dyd_', '');
+  }
+
   // 名称取更完整的
   if (secondary.name && (!merged.name || secondary.name.length > merged.name.length)) {
     merged.name = secondary.name;
