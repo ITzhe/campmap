@@ -227,6 +227,7 @@
             <view class="dyn-head">
               <text class="dyn-nick">{{item.nick}}</text>
               <text class="dyn-type-tag" wx:if="{{item.type === 'checkin'}}">📍 打卡</text>
+              <text class="dyn-source-tag" wx:if="{{item.source === '懂营地'}}">懂营地</text>
             </view>
             <view class="dyn-text" wx:if="{{item.type === 'checkin'}}">{{item.relTime}}打卡过此地</view>
             <view class="dyn-text" wx:else>{{item.text}}</view>
