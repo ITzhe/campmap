@@ -104,7 +104,7 @@ Page({
     if (camp && camp.spot_code === code) {
       this.renderCamp(camp);
     } else {
-      this.loadCamp(code);
+      this.loadCamp(code, options.source);
     }
   },
 
@@ -122,15 +122,21 @@ Page({
     this.setData({ showCheckinSuccess: false });
   },
 
-  async loadCamp(spotCode) {
+  async loadCamp(spotCode, source) {
     if (!spotCode) {
       util.showToast('营地信息不存在');
       return;
     }
     util.showLoading('加载中...');
     try {
-      // 从 unified_spots 单表查询
-      const camp = await api.fetchCampDetail(spotCode);
+      // 根据 source 选择查询哪个表
+      let camp;
+      if (source === 'dyd' || spotCode.startsWith('dyd_')) {
+        const id = spotCode.replace('dyd_', '');
+        camp = await api.fetchDydCampDetail(id);
+      } else {
+        camp = await api.fetchCampDetail(spotCode);
+      }
       if (camp) {
         this.renderCamp(camp);
       } else {
@@ -383,8 +389,12 @@ Page({
 
     // 并行加载：本站评论 + 懂营地导入评论
     const camp = this.data.camp;
-    // unified_spots 表中有 dyd_id 字段，直接用于查询懂营地评论
-    const dydId = camp && camp.dyd_id ? String(camp.dyd_id) : '';
+    const isDyd = camp && camp.source === 'dyd';
+    // dydId: 如果营地是 dyd 来源，从 spot_code 提取；
+    // 如果是去重合并后的安营营地，从 dyd_id 字段提取（合并时保留的）
+    const dydId = isDyd
+      ? String(camp.spot_code || '').replace('dyd_', '')
+      : (camp && camp.dyd_id ? String(camp.dyd_id) : '');
 
     const [ownComments, dydComments] = await Promise.all([
       api.fetchComments(spotCode),
@@ -409,11 +419,12 @@ Page({
         likes: c.likes || 0,
         liked: likedIds.indexOf(c.id) > -1,
         photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
-        isMine: c.openid === currentOpenid
+        isMine: c.openid === currentOpenid,
+        source: '本站'
       };
     });
 
-    // 映射懂营地导入评论（不显示来源标签）
+    // 映射懂营地导入评论
     const dydList = (dydComments || []).map(c => {
       const nick = c.user_nickname || '车友';
       const avatar = '🚐';
@@ -434,6 +445,7 @@ Page({
         liked: false,
         photo_urls: [],
         isMine: false,
+        source: '懂营地',
         userScore: c.user_score || 0
       };
     });
@@ -897,8 +909,8 @@ Page({
     }
 
     // 懂营地导入的评论不支持点赞（只读）
-    if (String(list[idx].id || '').startsWith('dyd_')) {
-      util.showToast('该评论暂不支持点赞');
+    if (list[idx].source === '懂营地') {
+      util.showToast('该评论来自懂营地，暂不支持点赞');
       return;
     }
 
