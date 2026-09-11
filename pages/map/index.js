@@ -256,7 +256,7 @@ Page({
     };
   },
 
-  // ============ 加载营地数据 (安营 + 懂营地双数据源) ============
+  // ============ 加载营地数据 (unified_spots 单表) ============
   async loadCamps() {
     // 如果正在加载, 标记需要重新加载
     if (this.data.loadingCamps) {
@@ -271,13 +271,8 @@ Page({
     util.showLoading('加载营地...');
 
     try {
-      // 并行查询安营(camping_spots)和懂营地(dongyingdi_spots)
-      const [anyingCamps, dydCamps] = await Promise.all([
-        api.fetchCampsites(this.data.filters, bounds, 5000),
-        api.fetchDydCampsites(bounds, 5000)
-      ]);
-      // 双数据源去重合并（200米内视为同一地点）
-      const allCamps = api.deduplicateCamps([...anyingCamps, ...dydCamps]);
+      // 从 unified_spots 单表查询（数据已由 Python 脚本预合并）
+      const allCamps = await api.fetchCampsites(this.data.filters, bounds, 5000);
 
       this.setData({
         camps: allCamps,
@@ -656,39 +651,13 @@ Page({
     this.setData({ searchHistory: h, searchSearching: true, searchSearched: true, searchResults: [] });
     try { wx.setStorageSync('camp_search_history', h); } catch (e) {}
 
-    // 并行搜索安营 + 懂营地
-    const anyingUrl = `${config.API_BASE}/camping_spots?select=spot_code,name,longitude,latitude,address,parking_status,toilet_status,water_status,power_status,charging_status,rv_friendly,trailer_friendly,tent_friendly&or=(name.ilike.*${encodeURIComponent(kw)}*,address.ilike.*${encodeURIComponent(kw)}*)&limit=50`;
-
-    Promise.all([
-      new Promise((resolve) => {
-        wx.request({
-          url: anyingUrl,
-          method: 'GET',
-          header: config.getHeaders(),
-          timeout: 8000,
-          success: (res) => {
-            if (res.statusCode === 200 && Array.isArray(res.data)) {
-              resolve(res.data.map(c => ({
-                ...c,
-                source: 'anying',
-                isFree: c.parking_status === 0,
-                tags: this._buildSearchTags(c)
-              })));
-            } else {
-              resolve([]);
-            }
-          },
-          fail: () => { resolve([]); }
-        });
-      }),
-      api.searchDydCamps(kw).then(results => results.map(c => ({
+    // 从 unified_spots 单表搜索
+    api.searchCamps(kw).then(results => {
+      const allResults = results.map(c => ({
         ...c,
         isFree: c.parking_status === 0,
         tags: this._buildSearchTags(c)
-      })))
-    ]).then(([anyingResults, dydResults]) => {
-      // 搜索结果去重合并
-      const allResults = api.deduplicateCamps([...anyingResults, ...dydResults]);
+      }));
       this.setData({ searchResults: allResults });
     }).catch(() => {
       util.showToast('搜索失败');

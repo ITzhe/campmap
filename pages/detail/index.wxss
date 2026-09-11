@@ -790,14 +790,6 @@
   border-radius: 6rpx;
 }
 
-.dyn-source-tag {
-  font-size: 18rpx;
-  color: #1971c2;
-  background: #e7f5ff;
-  padding: 2rpx 10rpx;
-  border-radius: 6rpx;
-}
-
 .dyn-text {
   font-size: 26rpx;
   color: var(--text);
