@@ -287,29 +287,71 @@ def merge_two(primary: Dict, secondary: Dict) -> Dict:
 
 
 def deduplicate(camps: List[Dict]) -> List[Dict]:
-    """GPS 距离 + 名称相似度去重"""
+    """GPS 距离 + 名称相似度去重（网格分桶优化）
+
+    算法:
+    1. 按过夜评分降序排（有评分的优先作为主记录）
+    2. 将营地按经纬度分到网格中（网格大小 = 去重半径）
+    3. 每个营地只需与所在网格及相邻 8 个网格内的已有记录比较
+    4. 大幅减少比较次数，从 O(n²) 降到接近 O(n)
+    """
+    if not camps:
+        return []
+
     # 按过夜评分降序排（有评分的优先作为主记录）
     sorted_camps = sorted(camps, key=lambda c: float(c.get("overnight_score", 0) or 0), reverse=True)
 
-    merged_list = []
-    for camp in sorted_camps:
+    # 网格大小（度）：200 米 ≈ 0.0018 度纬度
+    # 经度方向随纬度变化，但保守估计 0.002 度足够
+    GRID_SIZE = 0.002
+
+    # 网格字典: (grid_lat, grid_lng) -> list of indices into merged_list
+    grid: Dict[Tuple[int, int], List[int]] = {}
+    merged_list: List[Dict] = []
+
+    def grid_key(lat: float, lng: float) -> Tuple[int, int]:
+        return (int(lat / GRID_SIZE), int(lng / GRID_SIZE))
+
+    for i, camp in enumerate(sorted_camps):
+        glat, glng = grid_key(camp["latitude"], camp["longitude"])
         found_dup = False
-        for i, existing in enumerate(merged_list):
-            dist = haversine_meters(
-                camp["latitude"], camp["longitude"],
-                existing["latitude"], existing["longitude"]
-            )
-            if dist <= MERGE_RADIUS:
-                # 名称相似度辅助验证
-                sim = name_similarity(camp.get("name", ""), existing.get("name", ""))
-                if sim < NAME_SIM_THRESHOLD and camp.get("name") and existing.get("name") \
-                        and len(camp["name"]) >= 4 and len(existing["name"]) >= 4:
-                    continue
-                merged_list[i] = merge_two(existing, camp)
-                found_dup = True
+
+        # 进度输出（每 5000 条）
+        if (i + 1) % 5000 == 0:
+            log(f"  去重进度: {i + 1}/{len(sorted_camps)} (已合并 {len(merged_list)} 条)...")
+
+        # 检查 3x3 网格范围内的已有记录
+        for dlat in (-1, 0, 1):
+            if found_dup:
                 break
+            for dlng in (-1, 0, 1):
+                key = (glat + dlat, glng + dlng)
+                if key not in grid:
+                    continue
+                for idx in grid[key]:
+                    existing = merged_list[idx]
+                    dist = haversine_meters(
+                        camp["latitude"], camp["longitude"],
+                        existing["latitude"], existing["longitude"]
+                    )
+                    if dist <= MERGE_RADIUS:
+                        # 名称相似度辅助验证
+                        sim = name_similarity(camp.get("name", ""), existing.get("name", ""))
+                        if sim < NAME_SIM_THRESHOLD and camp.get("name") and existing.get("name") \
+                                and len(camp["name"]) >= 4 and len(existing["name"]) >= 4:
+                            continue
+                        merged_list[idx] = merge_two(existing, camp)
+                        # 合并后主记录位置可能变化，更新网格（简化处理：不移动）
+                        found_dup = True
+                        break
+
         if not found_dup:
+            idx = len(merged_list)
             merged_list.append(camp)
+            key = (glat, glng)
+            if key not in grid:
+                grid[key] = []
+            grid[key].append(idx)
 
     return merged_list
 
@@ -317,9 +359,11 @@ def deduplicate(camps: List[Dict]) -> List[Dict]:
 # ======================== 写入数据库 ========================
 def truncate_unified(client: httpx.Client) -> bool:
     """清空 unified_spots 表"""
-    h = get_headers()
+    h = get_write_headers()
+    # Supabase REST API DELETE 需要用 !inner 来绕过 NOT NULL 限制
+    # 用不可能匹配的条件来删除所有记录
     r = client.delete(
-        f"{SUPABASE_URL}/rest/v1/unified_spots?spot_code=neq.__dummy__",
+        f"{SUPABASE_URL}/rest/v1/unified_spots?spot_code=neq.__nonexistent__",
         headers=h,
         timeout=120,
     )
@@ -410,7 +454,7 @@ def main():
         "grocery_status,dining_status,accommodation_status,"
         "toilet_info,water_info,power_info,"
         "overnight_score,overnight_status,noise_level,safety_level,"
-        "signal_level,ground_type,overnight_data_source,score_source"
+        "signal_level,ground_type,overnight_data_source"
     )
     anying_raw = fetch_all(client, "camping_spots", anying_fields)
     anying_normalized = [normalize_anying(s) for s in anying_raw if s.get("spot_code")]
