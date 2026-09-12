@@ -358,13 +358,12 @@ def deduplicate(camps: List[Dict]) -> List[Dict]:
 
 # ======================== 写入数据库 ========================
 def truncate_unified(client: httpx.Client) -> bool:
-    """清空 unified_spots 表"""
+    """清空 unified_spots 表（通过 RPC 函数执行 TRUNCATE，避免 DELETE 超时）"""
     h = get_write_headers()
-    # Supabase REST API DELETE 需要用 !inner 来绕过 NOT NULL 限制
-    # 用不可能匹配的条件来删除所有记录
-    r = client.delete(
-        f"{SUPABASE_URL}/rest/v1/unified_spots?spot_code=neq.__nonexistent__",
+    r = client.post(
+        f"{SUPABASE_URL}/rest/v1/rpc/truncate_unified_spots",
         headers=h,
+        json={},
         timeout=120,
     )
     if r.status_code in (200, 204):
