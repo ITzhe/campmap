@@ -104,7 +104,7 @@ Page({
     if (camp && camp.spot_code === code) {
       this.renderCamp(camp);
     } else {
-      this.loadCamp(code, options.source);
+      this.loadCamp(code);
     }
   },
 
@@ -122,21 +122,15 @@ Page({
     this.setData({ showCheckinSuccess: false });
   },
 
-  async loadCamp(spotCode, source) {
+  async loadCamp(spotCode) {
     if (!spotCode) {
       util.showToast('营地信息不存在');
       return;
     }
     util.showLoading('加载中...');
     try {
-      // 根据 source 选择查询哪个表
-      let camp;
-      if (source === 'dyd' || spotCode.startsWith('dyd_')) {
-        const id = spotCode.replace('dyd_', '');
-        camp = await api.fetchDydCampDetail(id);
-      } else {
-        camp = await api.fetchCampDetail(spotCode);
-      }
+      // 从 unified_spots 单表查询
+      const camp = await api.fetchCampDetail(spotCode);
       if (camp) {
         this.renderCamp(camp);
       } else {
@@ -388,13 +382,9 @@ Page({
     const currentOpenid = this.data.currentUserOpenid;
 
     // 并行加载：本站评论 + 懂营地导入评论
+    // unified_spots 表中有 dyd_id 字段，直接用于查询懂营地评论
     const camp = this.data.camp;
-    const isDyd = camp && camp.source === 'dyd';
-    // dydId: 如果营地是 dyd 来源，从 spot_code 提取；
-    // 如果是去重合并后的安营营地，从 dyd_id 字段提取（合并时保留的）
-    const dydId = isDyd
-      ? String(camp.spot_code || '').replace('dyd_', '')
-      : (camp && camp.dyd_id ? String(camp.dyd_id) : '');
+    const dydId = camp && camp.dyd_id ? String(camp.dyd_id) : '';
 
     const [ownComments, dydComments] = await Promise.all([
       api.fetchComments(spotCode),

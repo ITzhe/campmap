@@ -60,37 +60,36 @@ function normalizeCamp(camp) {
     price_info: '',
     toilet_info: '',
     water_info: '',
-    power_info: ''
+    power_info: '',
+    dim_noise: '',
+    dim_safety: ''
   };
   return Object.assign({}, defaults, camp);
 }
 
 /**
- * 获取营地列表 (带筛选 + 地理范围过滤)
+ * 获取营地列表 (从 unified_spots 单表查询)
  * @param {Object} filters - 筛选条件
  * @param {Object} bounds - 地理范围 {minLat, maxLat, minLng, maxLng}
- * @param {number} limit - 返回数量限制 (默认200)
+ * @param {number} limit - 返回数量限制
  */
 async function fetchCampsites(filters, bounds, limit) {
-  // 防爬虫: 必须传入地理范围, 禁止全量查询
   if (!bounds) {
     console.warn('[api] 拒绝无 bounds 的全量查询');
     return [];
   }
 
-  // 只查询数据库中确定存在的字段
-  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status,overnight_score,overnight_status,noise_level,safety_level,signal_level,ground_type,overnight_data_source';
+  let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status,overnight_score,overnight_status,noise_level,safety_level,signal_level,ground_type,overnight_data_source,score_source,dim_noise,dim_safety,dyd_id,source_type';
 
-  let url = `${config.API_BASE}/camping_spots?select=${selectFields}`;
+  let url = `${config.API_BASE}/unified_spots?select=${selectFields}`;
 
-  // 地理范围过滤：只加载可见区域内的营地
+  // 地理范围过滤
   url += `&latitude=gte.${bounds.minLat}&latitude=lte.${bounds.maxLat}`;
   url += `&longitude=gte.${bounds.minLng}&longitude=lte.${bounds.maxLng}`;
 
   if (filters && filters.fee && filters.fee !== 'all') {
     url += `&parking_status=eq.${filters.fee}`;
   }
-  // 按调用方指定的 limit 返回，已通过 bounds 限制范围
   url += `&limit=${limit || 5000}`;
 
   try {
@@ -98,11 +97,9 @@ async function fetchCampsites(filters, bounds, limit) {
     if (!Array.isArray(data) || data.length === 0) {
       return [];
     }
-    // 补充缺失字段
     return data.map(normalizeCamp);
   } catch (e) {
     console.error('[Supabase] 营地数据获取失败:', e.message);
-    // 不再降级到 Mock 数据，返回空数组让前端处理
     return [];
   }
 }
@@ -125,10 +122,11 @@ async function fetchDydComments(campId) {
 }
 
 /**
- * 获取单个营地详情
+ * 获取单个营地详情 (从 unified_spots 查询)
+ * @param {string} spotCode - 营地编码
  */
 async function fetchCampDetail(spotCode) {
-  const url = `${config.API_BASE}/camping_spots?spot_code=eq.${spotCode}&select=*`;
+  const url = `${config.API_BASE}/unified_spots?spot_code=eq.${spotCode}&select=*`;
   try {
     const data = await request(url, 'GET');
     if (Array.isArray(data) && data.length > 0) {
@@ -136,8 +134,27 @@ async function fetchCampDetail(spotCode) {
     }
     return null;
   } catch (e) {
+    console.error('[Supabase] 营地详情获取失败:', e.message);
     const mock = MOCK_CAMPS.find(c => c.spot_code === spotCode);
     return mock || null;
+  }
+}
+
+/**
+ * 搜索营地 (从 unified_spots 查询)
+ * @param {string} keyword - 搜索关键词
+ */
+async function searchCamps(keyword) {
+  const selectFields = 'spot_code,name,longitude,latitude,address,parking_status,overnight_score,overnight_status,dyd_id,source_type';
+  const url = `${config.API_BASE}/unified_spots?select=${selectFields}` +
+    `&or=(name.ilike.*${encodeURIComponent(keyword)}*,address.ilike.*${encodeURIComponent(keyword)}*)&limit=50`;
+  try {
+    const data = await request(url, 'GET');
+    if (!Array.isArray(data)) return [];
+    return data.map(normalizeCamp);
+  } catch (e) {
+    console.error('[Supabase] 营地搜索失败:', e.message);
+    return [];
   }
 }
 
@@ -669,18 +686,14 @@ async function deleteCampPhoto(photoId, openid) {
 module.exports = {
   request,
   fetchCampsites,
-  fetchDydCampsites,
   fetchCampDetail,
-  fetchDydCampDetail,
-  searchDydCamps,
-  deduplicateCamps,
+  searchCamps,
   recalculateScore,
   getPoints,
   dailyCheckinApi,
   deductPointApi,
   submitCampsite,
   normalizeCamp,
-  normalizeDydCamp,
   fetchComments,
   fetchDydComments,
   submitComment,
