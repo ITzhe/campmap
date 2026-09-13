@@ -1,13 +1,13 @@
 # 营图 - 设计文档
 
-> 最后更新: 2026-08-19
-> 当前版本: v1.0.6
+> 最后更新: 2026-09-13
+> 当前版本: v1.1.0
 
 ## 一、项目概述
 
 营图是一款面向房车、帐篷露营爱好者的营地发现工具。整合全国各地营地信息，提供精确的地图定位、设施查询、线路规划与用户评价服务。
 
-**核心数据**：全国 337 个地级行政区，25,618 个营地，包含停车、水电、设施、价格等完整信息。
+**核心数据**：全国 337 个地级行政区，66,306 个营地（安营 + 懂营地双数据源合并去重后），包含停车、水电、设施、价格、过夜友好度评分、用户评论等完整信息。
 
 ---
 
@@ -25,15 +25,22 @@
 ### 2.2 后端
 - **数据库**：Supabase (PostgreSQL)
   - Schema: `map`
-  - 主表: `camping_spots`（营地数据，1000+ 条）
-  - 评论表: `camp_comments` + `comment_likes`
+  - 统一营地表: `unified_spots`（66,306 条，安营 + 懂营地合并去重后）
+  - 源数据表: `camping_spots`（安营，25,352 条）+ `dongyingdi_spots`（懂营地，53,643 条）
+  - 评论表: `camp_comments`（用户自评）+ `anying_comments`（安营爬取）+ `dongyingdi_comments`（懂营地爬取）
+  - 评论点赞表: `comment_likes`
   - 营地纠错表: `camp_corrections`
   - 营地相册表: `camp_photos`
   - 用户积分: `user_points`
-  - RPC: `daily_checkin`, `deduct_point`, `increment_like`
+  - RPC: `daily_checkin`, `deduct_point`, `increment_like`, `truncate_unified_spots`, `batch_update_dyd_score`, `batch_update_anying_score`, `recalculate_overnight_score`
 - **API**：Supabase REST API (PostgREST)
 - **对象存储**：阿里云 OSS (`camp-map.oss-cn-beijing.aliyuncs.com`)，用于用户头像、营地纠错照片、评论图片等图片上传
-- **数据采集**：Python 脚本 `collect_national.py` 采集安营 API 数据
+- **数据采集**：Python 脚本批量采集
+  - `collect_national.py` — 安营 API 采集，覆盖全国 337 个地级行政区
+  - `collect_dongyingdi.py` — 懂营地 API 采集，AES 加密解密 + 并发详情/评论
+  - `score_anying.py` / `score_dongyingdi.py` — 过夜友好度评分计算
+  - `merge_to_unified.py` — 双数据源去重合并到 unified_spots 表
+  - `randomize_nicknames.py` — 爬取评论用户昵称随机化
 
 ### 2.3 服务器域名配置 (微信小程序后台)
 
@@ -172,19 +179,21 @@
 
 ## 五、数据字段
 
-### 5.1 营地数据 (camping_spots)
+### 5.1 统一营地表 (unified_spots)
+
+> 前端唯一查询的营地表，由 `merge_to_unified.py` 从 `camping_spots` + `dongyingdi_spots` 合并去重后生成。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| spot_code | text | 营地唯一编码 (PK) |
+| spot_code | text | 营地唯一编码 (PK)，安营原样，懂营地加 `dyd_` 前缀 |
 | name | text | 营地名称 |
 | address | text | 地址 |
 | latitude | numeric | 纬度 |
 | longitude | numeric | 经度 |
 | parking_status | int | 停车收费 (0=免费, 1=收费) |
-| toilet_status | int | 厕所 (0/1/多值) |
+| toilet_status | int | 厕所 |
 | water_status | int | 接水 |
-| power_status | int | 接市电 (0/1/4/12/13) |
+| power_status | int | 接市电 |
 | charging_status | int | 充电桩 |
 | rv_friendly | int | 房车可停 (0/1) |
 | trailer_friendly | int | 拖挂可停 (0/1) |
@@ -197,14 +206,25 @@
 | grocery_status | int | 买菜/超市 |
 | dining_status | int | 餐饮 |
 | accommodation_status | int | 住宿 |
+| overnight_score | numeric | 过夜友好度评分 (0-5.0) |
+| overnight_status | int | 过夜状态 (1=可以过夜, 2=勉强能住, 3=不建议) |
+| noise_level | int | 噪音等级 (1-5，安营格式) |
+| safety_level | int | 安全等级 (1-5，安营格式) |
+| dim_noise | text | 噪音描述 (懂营地格式：较安静/一般/较吵) |
+| dim_safety | text | 安全描述 (懂营地格式：很安全/一般/需注意) |
+| signal_level | int | 手机信号 (0=未知) |
+| ground_type | int | 地面类型 (0=未知) |
+| overnight_data_source | text | 评分来源 |
+| score_source | text | 评分计算方式 (facility_calculated 等) |
+| source_type | text | 数据来源 (anying/dyd/merged) |
+| dyd_id | int | 懂营地原始 ID（用于关联评论，可为空） |
 | price_info | text | 收费备注 |
-| toilet_info | text | 厕所备注 |
-| water_info | text | 加水备注 |
-| power_info | text | 接电备注 |
 | intro | text | 营地简介 |
 | memo | text | 营地备注 |
 
-### 5.2 评论数据 (camp_comments)
+### 5.2 评论数据 (三张表)
+
+**用户自评评论 (camp_comments)**
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -218,6 +238,74 @@
 | type | text | 类型 (comment/checkin) |
 | likes | int | 点赞数 |
 | created_at | timestamptz | 创建时间 |
+
+**安营爬取评论 (anying_comments)**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | bigint | 评论 ID (PK) |
+| spot_code | text | 安营营地编码 |
+| camp_name | text | 营地名称 |
+| user_nickname | text | 用户昵称（已随机化） |
+| content | text | 评论内容 |
+| comment_time | text | 评论时间 |
+| act_type | int | 行为类型 |
+| source | text | 数据来源 (anying) |
+
+**懂营地爬取评论 (dongyingdi_comments)**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | bigint | 评论 ID (PK) |
+| camp_id | int | 懂营地营地 ID（关联 unified_spots.dyf_id） |
+| camp_name | text | 营地名称 |
+| user_nickname | text | 用户昵称（已随机化） |
+| user_score | numeric | 用户评分 |
+| content | text | 评论内容 |
+| likes | int | 点赞数 |
+| comment_time | timestamptz | 评论时间 |
+
+### 5.3 过夜友好度评分系统
+
+**评分公式（第一阶段，设施基础分）**
+
+```
+综合评分 = 基础设施分 + 额外加分
+
+基础设施分（满分 4.0）：
+  厕所 0.8 + 水 0.7 + 电 0.6 + 淋浴 0.5 + 做饭 0.5 + 帐篷 0.5 + 餐饮 0.4
+
+额外加分（最高 1.0）：
+  可停拖挂 + 0.3
+  可钓鱼 + 0.2
+
+注：不做营地类型区分，类型系数统一为 1.0
+```
+
+**评分分级**
+
+| 等级 | 分数范围 | 过夜状态 | 颜色主题 |
+|------|----------|----------|----------|
+| 极佳 | 4.5-5.0 | 可以过夜 (1) | 绿色 |
+| 良好 | 3.5-4.4 | 可以过夜 (1) | 绿色 |
+| 一般 | 2.5-3.4 | 勉强能住 (2) | 橙色 |
+| 较差 | 1.5-2.4 | 不建议过夜 (3) | 灰色 |
+| 很差 | 0-1.4 | 不建议过夜 (3) | 灰色 |
+
+**评分展示 UI（方案A - 环形评分卡片）**
+- 使用 `conic-gradient` 实现环形进度条
+- 三色主题：绿色 (#2d6a4f) / 橙色 (#f4a261) / 灰色 (#adb5bd)
+- 0 分显示"暂无"而非"0.0 / 5.0"
+- 打卡后自动刷新评分（调用 `recalculate_overnight_score` RPC）
+
+### 5.4 数据合并去重策略
+
+- **去重半径**：200 米（GPS 距离）
+- **名称相似度**：Jaccard 相似度 ≥ 0.3
+- **合并规则**：设施取并集，评分取更高的一方，名称/地址取更完整的
+- **合并标记**：`source_type = merged`，保留 `dyd_id` 用于评论关联
+- **执行方式**：Python 脚本 `merge_to_unified.py --apply`，先 TRUNCATE 再批量 INSERT
+- **网格分桶优化**：按经纬度网格分桶，避免 O(n²) 全量比较
 
 ---
 
@@ -451,8 +539,60 @@
 | comment_likes 删除策略 | RLS DELETE 策略 + GRANT DELETE |
 | 序列权限 | camp_comments_id_seq GRANT USAGE |
 | camp_photos 表 | 新增营地照片表 |
+| unified_spots 表 | 新增统一营地表，合并安营 + 懂营地数据 |
+| dongyingdi_spots 表 | 懂营地源数据表（53,643 条） |
+| dongyingdi_comments 表 | 懂营地爬取评论表 |
+| anying_comments 表 | 安营爬取评论表 |
+| overnight_score 等列 | camping_spots / dongyingdi_spots 新增过夜评分相关列 |
+| truncate_unified_spots() | RPC 函数，TRUNCATE 清空 unified_spots 表 |
+| batch_update_anying_score() | RPC 函数，批量更新安营评分 |
+| batch_update_dyd_score() | RPC 函数，批量更新懂营地评分 |
+| recalculate_overnight_score() | RPC 函数，实时重算单个营地评分（打卡后调用） |
+| dongyingdi_spots RLS | allow_read_dyd_spots 策略，anon SELECT |
+| dongyingdi_comments RLS | allow_read_dyd_comments 策略，anon SELECT |
 
-### 7.8 版本历史
+### 7.8 v1.1.0 更新 (2026-09-08 ~ 09-13)
+
+#### 新增功能
+
+| 功能 | 说明 | 日期 |
+|------|------|------|
+| 双数据源整合 | 安营 + 懂营地双数据源，前端单表查询 unified_spots | 09-10 |
+| 过夜友好度评分系统 | 基础设施分 + 额外加分，3 档过夜状态，3 色主题展示 | 09-08 |
+| 环形评分卡片 UI | conic-gradient 环形进度条，0 分显示"暂无" | 09-08 |
+| 实时评分重算 | 打卡后调用 RPC 自动刷新评分 | 09-09 |
+| 懂营地评论展示 | 详情页合并展示本站评论 + 懂营地爬取评论 | 09-09 |
+| 安营评论展示 | 详情页合并展示本站评论 + 安营爬取评论 | 09-09 |
+| 评论昵称随机化 | 爬取评论的用户昵称替换为随机中文名 | 09-13 |
+| 数据合并去重 | 200 米 GPS 距离 + Jaccard 名称相似度去重，网格分桶优化 | 09-10 |
+
+#### Bug 修复
+
+| 问题 | 原因 | 修复方案 | 日期 |
+|------|------|----------|------|
+| 评分显示 0.0 / 5.0 | 评分为 0 时仍显示数字 | 0 分显示"暂无"，隐藏"/5.0"后缀 | 09-09 |
+| 数据来源显示英文 | facility_calculated 等英文标识直接显示 | 添加中文映射（设施评估/用户评价/安营导入） | 09-09 |
+| 懂营地评论不显示 | detail 页判断 camp.source === 'dyd'，但 unified_spots 字段名是 source_type | 直接读 dyd_id 字段查询评论 | 09-12 |
+| 前端未切换到 unified_spots | 合并冲突时 api.js 和 detail/index.js 改动被覆盖 | 重新修改 fetchCampsites/fetchCampDetail/searchCamps 查 unified_spots | 09-12 |
+| DELETE 全表超时 | Supabase 语句超时限制 | 创建 truncate_unified_spots() RPC 函数用 TRUNCATE | 09-12 |
+| score_source 字段不存在 | 安营表没有此字段 | 脚本中去掉该字段引用 | 09-12 |
+| 合并脚本找不到表 | DELETE 缺少 Content-Profile: map header | 改用 RPC 函数清空 | 09-12 |
+| 营地数量偏少 | API limit=100 硬编码 | 改为 limit=5000 | 09-09 |
+| 懂营地表权限不足 | anon 无 SELECT 权限 | fix_dyd_permissions.sql 授权 + RLS 策略 | 09-09 |
+| 去重耗时 20 分钟 | O(n²) 全量比较 | 改用网格分桶优化，1 秒完成 | 09-12 |
+| 合并后 dyd_id 丢失 | 去重合并时未保留 dyd_id 字段 | 合并时保留 dyd_id 用于评论关联 | 09-10 |
+
+#### 架构决策
+
+| 决策 | 原因 | 日期 |
+|------|------|------|
+| 前端单表查询 | 每次打开地图两份请求 + 内存去重性能差；改为 unified_spots 单表，一次请求 | 09-10 |
+| 200 米去重半径 | 用户指定，比 150 米更宽松，合并更多相邻营地 | 09-08 |
+| 评论不显示来源标签 | 避免用户误解数据来源，统一展示 | 09-10 |
+| 昵称随机化 | 爬取评论的原始昵称含用户隐私信息，替换为随机中文名 | 09-13 |
+| TRUNCATE 代替 DELETE | DELETE 全表受 Supabase 语句超时限制，TRUNCATE 瞬间完成 | 09-12 |
+
+### 7.9 版本历史
 
 | 版本 | 日期 | 主要内容 |
 |------|------|----------|
@@ -462,6 +602,7 @@
 | v1.0.4 | 2026-08-16 | 路线搜索还原为原生选择，POI过滤收紧，天气信息，防爬虫措施 |
 | v1.0.5 | 2026-08-17 | 内容安全API接入，隐私协议重写，隐私授权弹窗 |
 | v1.0.6 | 2026-08-19 | 修复tryLocate致命bug，安全检测改fail-open，手机号，筛选按钮优化，设施标签只显示已有 |
+| v1.1.0 | 2026-09-13 | 双数据源整合，unified_spots 统一表，过夜友好度评分系统，评论合并展示，昵称随机化 |
 
 ---
 
@@ -472,8 +613,12 @@
 - [x] ~~营地图片上传~~
 - [x] ~~用户昵称/头像自定义~~
 - [x] ~~地图 POI 搜索补充营地~~
+- [x] ~~营地评分系统（过夜友好度评分）~~
+- [x] ~~双数据源整合（安营 + 懂营地）~~
+- [x] ~~评论合并展示（本站 + 爬取）~~
 - [ ] 积分排行榜
-- [ ] 营地评分系统
+- [ ] 定时采集自动化（Supabase Edge Functions / 本地定时任务）
 - [ ] 离线地图缓存
 - [ ] 营地推荐算法
 - [ ] 用户社区/动态功能
+- [ ] 评分第二阶段（用户评价加权 + 时间衰减）
