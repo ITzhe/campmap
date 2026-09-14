@@ -397,6 +397,7 @@ Page({
       const avatarIsUrl = avatar.startsWith('http');
       const relTime = this.fmtRelTime(c.created_at);
       const isCheckin = (c.type || 'comment') === 'checkin';
+      const hasContent = !!(c.content && c.content.trim() && c.content !== '打卡评价');
       return {
         id: 'own_' + c.id,
         nick: c.nick || '微信用户',
@@ -404,8 +405,9 @@ Page({
         avatarIsUrl: avatarIsUrl,
         date: this.fmtDate(c.created_at),
         relTime: relTime,
-        text: isCheckin ? '打卡过此地' : (c.content || ''),
+        text: isCheckin && !hasContent ? '打卡过此地' : (c.content || ''),
         type: c.type || 'comment',
+        isPureCheckin: isCheckin && !hasContent,
         likes: c.likes || 0,
         liked: likedIds.indexOf(c.id) > -1,
         photo_urls: c.photo_urls ? c.photo_urls.split(',').filter(Boolean) : [],
@@ -431,6 +433,7 @@ Page({
         relTime: this.fmtRelTime(ts),
         text: isCheckin ? '打卡过此地' : content,
         type: isCheckin ? 'checkin' : 'comment',
+        isPureCheckin: isCheckin,
         likes: c.likes || 0,
         liked: false,
         photo_urls: [],
