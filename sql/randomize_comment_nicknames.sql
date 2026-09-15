@@ -1,6 +1,7 @@
--- 随机化爬取评论的用户昵称
--- 直接在数据库端执行，比逐条 API 调用快几百倍
--- 用法: SELECT map.randomize_comment_nicknames('dongyingdi_comments');
+-- 随机化爬取评论的用户昵称（分批版本）
+-- 每次调用只处理一批，避免 statement timeout
+-- 用法: SELECT map.randomize_comment_nicknames_batch('dongyingdi_comments', 0, 20000);
+-- 返回: 本批更新的记录数（0 表示处理完了）
 
 -- 姓氏池
 CREATE OR REPLACE FUNCTION map._random_surname()
@@ -151,16 +152,19 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
--- 主函数：批量随机化指定表的 user_nickname
--- 参数: table_name - 表名 ('dongyingdi_comments' 或 'anying_comments')
--- 返回: 更新的记录数
-CREATE OR REPLACE FUNCTION map.randomize_comment_nicknames(table_name text)
-RETURNS integer AS $$
+-- 分批随机化昵称（每次调用只处理一批，独立事务，不会超时）
+-- 参数:
+--   table_name: 表名 ('dongyingdi_comments' 或 'anying_comments')
+--   offset_val: 起始偏移量
+--   batch_size: 每批数量 (建议 10000~30000)
+-- 返回: 本批实际更新的记录数，0 表示已处理完
+CREATE OR REPLACE FUNCTION map.randomize_comment_nicknames_batch(
+    table_name text,
+    offset_val integer,
+    batch_size integer
+) RETURNS integer AS $$
 DECLARE
-    total_count integer;
-    updated_count integer := 0;
-    batch_size integer := 5000;
-    offset_val integer := 0;
+    updated_count integer;
     sql text;
 BEGIN
     -- 验证表名，防止 SQL 注入
@@ -168,46 +172,56 @@ BEGIN
         RAISE EXCEPTION '无效的表名: %', table_name;
     END IF;
 
-    -- 获取总记录数
-    EXECUTE format('SELECT COUNT(*) FROM map.%I', table_name) INTO total_count;
-    RAISE NOTICE '开始处理表: %, 总记录数: %', table_name, total_count;
+    -- 每批单独一次 UPDATE，在独立事务中执行
+    sql := format(
+        'UPDATE map.%I t ' ||
+        'SET user_nickname = map._generate_random_nickname() ' ||
+        'WHERE id IN ( ' ||
+        '    SELECT id FROM map.%I ' ||
+        '    ORDER BY id ' ||
+        '    LIMIT %s OFFSET %s ' ||
+        ')',
+        table_name, table_name, batch_size, offset_val
+    );
 
-    IF total_count = 0 THEN
-        RETURN 0;
-    END IF;
+    EXECUTE sql;
+    GET DIAGNOSTICS updated_count = ROW_COUNT;
 
-    -- 分批更新
-    WHILE offset_val < total_count LOOP
-        -- 构造批量更新 SQL：用子查询取一批 id，逐条生成随机昵称
-        -- 注意：必须保证每行独立调用 random()，所以用 LATERAL 或子查询
-        sql := format(
-            'UPDATE map.%I t ' ||
-            'SET user_nickname = map._generate_random_nickname() ' ||
-            'WHERE id IN ( ' ||
-            '    SELECT id FROM map.%I ' ||
-            '    ORDER BY id ' ||
-            '    LIMIT %s OFFSET %s ' ||
-            ')',
-            table_name, table_name, batch_size, offset_val
-        );
-
-        EXECUTE sql;
-        GET DIAGNOSTICS updated_count = ROW_COUNT;
-
-        offset_val := offset_val + batch_size;
-        RAISE NOTICE '进度: %/% (%)',
-            LEAST(offset_val, total_count),
-            total_count,
-            ROUND(LEAST(offset_val, total_count)::numeric / total_count * 100, 0)::text || '%';
-
-        -- 提交当前事务（如果在事务块外运行）
-        -- 注意：函数内不能 COMMIT，调用者需自己管理事务
-    END LOOP;
-
-    RAISE NOTICE '表 % 处理完成，共更新 % 条', table_name, total_count;
-    RETURN total_count;
+    RETURN updated_count;
 END;
 $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 -- 授权
+GRANT EXECUTE ON FUNCTION map.randomize_comment_nicknames_batch(text, integer, integer) TO anon, authenticated;
+
+
+-- 兼容旧函数名（内部调分批版本，但仍可能超时，不推荐用）
+CREATE OR REPLACE FUNCTION map.randomize_comment_nicknames(table_name text)
+RETURNS integer AS $$
+DECLARE
+    total_count integer := 0;
+    batch_size integer := 20000;
+    offset_val integer := 0;
+    batch_updated integer;
+BEGIN
+    -- 验证表名
+    IF table_name NOT IN ('dongyingdi_comments', 'anying_comments') THEN
+        RAISE EXCEPTION '无效的表名: %', table_name;
+    END IF;
+
+    -- 注意：整个函数仍在一个事务中，大数据量可能超时
+    -- 推荐使用 randomize_comment_nicknames_batch 在客户端分批调用
+    LOOP
+        batch_updated := map.randomize_comment_nicknames_batch(table_name, offset_val, batch_size);
+        IF batch_updated = 0 THEN
+            EXIT;
+        END IF;
+        total_count := total_count + batch_updated;
+        offset_val := offset_val + batch_size;
+    END LOOP;
+
+    RETURN total_count;
+END;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
+
 GRANT EXECUTE ON FUNCTION map.randomize_comment_nicknames(text) TO anon, authenticated;
