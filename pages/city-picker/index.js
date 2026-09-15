@@ -87,8 +87,22 @@ Page({
         app.globalData.cityChanged = true;
         wx.navigateBack();
       },
-      fail: () => {
-        wx.showToast({ title: '定位失败', icon: 'none' });
+      fail: (err) => {
+        const errMsg = err.errMsg || '';
+        if (errMsg.indexOf('auth deny') >= 0 || errMsg.indexOf('authorize') >= 0) {
+          wx.showModal({
+            title: '需要定位权限',
+            content: '请在设置中开启位置权限，以便定位到当前城市',
+            confirmText: '去设置',
+            success: (modalRes) => {
+              if (modalRes.confirm) {
+                wx.openSetting();
+              }
+            }
+          });
+        } else {
+          wx.showToast({ title: '定位失败，请检查位置服务', icon: 'none' });
+        }
       }
     });
   },

@@ -192,23 +192,25 @@ Page({
       success: (settingRes) => {
         const auth = settingRes.authSetting || {};
         if (auth['scope.userLocation'] === false) {
-          // 用户曾拒绝授权, 需引导重新授权
+          // 用户曾拒绝授权，静默使用默认城市（页面加载时不弹窗打扰）
           console.log('[map] 定位授权曾被拒绝, 使用默认城市');
           this.setData({ cityName: '青岛' });
           return;
         }
         // 未授权或已授权, 都尝试 getLocation
-        this.doGetLocation();
+        this.doGetLocation(false);
       },
       fail: () => {
         // getSetting 失败, 直接尝试定位
-        this.doGetLocation();
+        this.doGetLocation(false);
       }
     });
   },
 
   // ============ 执行定位 ============
-  doGetLocation() {
+  // showTip: 是否在失败时显示引导弹窗（手动点击定位按钮时传 true）
+  doGetLocation(showTip) {
+    const self = this;
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
@@ -222,16 +224,39 @@ Page({
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
-          scale: 12,
+          scale: showTip ? 13 : 12,  // 手动定位时放大一点
           cityName: cityName
         });
         // 定位成功后, 用新坐标重新加载营地
         this._needReload = true;
         this.loadCamps();
+
+        if (showTip) {
+          util.showToast('已定位到 ' + cityName);
+        }
       },
       fail: (err) => {
-        console.log('[map] 定位失败, 使用默认城市中心:', err.errMsg || '');
+        const errMsg = err.errMsg || '';
+        console.log('[map] 定位失败:', errMsg);
         this.setData({ cityName: '青岛' });
+
+        if (showTip) {
+          // 手动点击定位时失败，显示引导
+          if (errMsg.indexOf('auth deny') >= 0 || errMsg.indexOf('authorize') >= 0) {
+            wx.showModal({
+              title: '需要定位权限',
+              content: '请在设置中开启位置权限，以便查看附近的露营地',
+              confirmText: '去设置',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  wx.openSetting();
+                }
+              }
+            });
+          } else {
+            wx.showToast({ title: '定位失败，请检查位置服务', icon: 'none' });
+          }
+        }
       }
     });
   },
@@ -549,21 +574,7 @@ Page({
 
   // ============ 定位 ============
   locateMe() {
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        this.setData({
-          latitude: res.latitude,
-          longitude: res.longitude,
-          scale: 13
-        });
-        this.loadCamps();
-        util.showToast('已定位到当前位置');
-      },
-      fail: () => {
-        util.showToast('定位失败，请检查权限');
-      }
-    });
+    this.doGetLocation(true);
   },
 
   // ============ 地图区域变化 (拖动/缩放后重新加载) ============
