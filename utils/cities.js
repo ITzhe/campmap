@@ -3,13 +3,13 @@
 
 const CITIES = [
   // 北京市
-  { name: '北京', lat: 40.25, lng: 116.45, province: '北京市' },
+  { name: '北京', lat: 39.9042, lng: 116.4074, province: '北京市' },
   // 天津市
-  { name: '天津', lat: 39.4, lng: 117.4, province: '天津市' },
+  { name: '天津', lat: 39.0842, lng: 117.2008, province: '天津市' },
   // 上海市
-  { name: '上海', lat: 31.3, lng: 121.5, province: '上海市' },
+  { name: '上海', lat: 31.2304, lng: 121.4737, province: '上海市' },
   // 重庆市
-  { name: '重庆', lat: 29.3, lng: 106.5, province: '重庆市' },
+  { name: '重庆', lat: 29.5630, lng: 106.5516, province: '重庆市' },
   // 河北省
   { name: '石家庄', lat: 38.2, lng: 114.5, province: '河北省' },
   { name: '唐山', lat: 39.65, lng: 118.15, province: '河北省' },
@@ -139,22 +139,22 @@ const CITIES = [
   { name: '抚州', lat: 27.4, lng: 116.25, province: '江西省' },
   { name: '上饶', lat: 28.65, lng: 117.4, province: '江西省' },
   // 山东省
-  { name: '济南', lat: 36.45, lng: 117.15, province: '山东省' },
-  { name: '青岛', lat: 36.5, lng: 120.5, province: '山东省' },
-  { name: '淄博', lat: 36.6, lng: 118.15, province: '山东省' },
-  { name: '枣庄', lat: 34.75, lng: 117.5, province: '山东省' },
-  { name: '东营', lat: 37.5, lng: 118.25, province: '山东省' },
-  { name: '烟台', lat: 37.2, lng: 121.0, province: '山东省' },
-  { name: '潍坊', lat: 36.35, lng: 119.0, province: '山东省' },
-  { name: '济宁', lat: 35.1, lng: 116.5, province: '山东省' },
-  { name: '泰安', lat: 35.85, lng: 117.0, province: '山东省' },
-  { name: '威海', lat: 37.25, lng: 121.8, province: '山东省' },
-  { name: '日照', lat: 35.5, lng: 119.3, province: '山东省' },
-  { name: '临沂', lat: 35.2, lng: 118.35, province: '山东省' },
-  { name: '德州', lat: 37.1, lng: 116.4, province: '山东省' },
-  { name: '聊城', lat: 36.25, lng: 115.9, province: '山东省' },
-  { name: '滨州', lat: 37.45, lng: 117.65, province: '山东省' },
-  { name: '菏泽', lat: 35.15, lng: 115.35, province: '山东省' },
+  { name: '济南', lat: 36.6512, lng: 117.1201, province: '山东省' },
+  { name: '青岛', lat: 36.0671, lng: 120.3826, province: '山东省' },
+  { name: '淄博', lat: 36.8064, lng: 118.0541, province: '山东省' },
+  { name: '枣庄', lat: 34.8100, lng: 117.3100, province: '山东省' },
+  { name: '东营', lat: 37.4346, lng: 118.6747, province: '山东省' },
+  { name: '烟台', lat: 37.4638, lng: 121.4480, province: '山东省' },
+  { name: '潍坊', lat: 36.7090, lng: 119.1070, province: '山东省' },
+  { name: '济宁', lat: 35.4147, lng: 116.5880, province: '山东省' },
+  { name: '泰安', lat: 36.2000, lng: 117.0833, province: '山东省' },
+  { name: '威海', lat: 37.5140, lng: 122.1140, province: '山东省' },
+  { name: '日照', lat: 35.4150, lng: 119.5270, province: '山东省' },
+  { name: '临沂', lat: 35.1045, lng: 118.3564, province: '山东省' },
+  { name: '德州', lat: 37.4322, lng: 116.3573, province: '山东省' },
+  { name: '聊城', lat: 36.4500, lng: 115.9833, province: '山东省' },
+  { name: '滨州', lat: 37.3800, lng: 117.9700, province: '山东省' },
+  { name: '菏泽', lat: 35.2333, lng: 115.4833, province: '山东省' },
   // 河南省
   { name: '郑州', lat: 34.65, lng: 113.6, province: '河南省' },
   { name: '开封', lat: 34.5, lng: 114.4, province: '河南省' },
