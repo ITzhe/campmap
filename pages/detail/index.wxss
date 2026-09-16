@@ -1126,6 +1126,43 @@
   gap: 16rpx;
 }
 
+.cs-fee-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.cs-fee-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 24rpx 16rpx;
+  border: 2rpx solid var(--line);
+  border-radius: 16rpx;
+  background: #fff;
+}
+
+.cs-fee-item.active {
+  background: var(--green-light);
+  border-color: var(--green-3);
+}
+
+.cs-fee-emoji {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.cs-fee-label {
+  font-size: 26rpx;
+  color: var(--text-2);
+}
+
+.cs-fee-item.active .cs-fee-label {
+  color: var(--green);
+  font-weight: 600;
+}
+
 .cs-fac-item {
   display: flex;
   flex-direction: column;

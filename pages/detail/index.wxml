@@ -313,6 +313,23 @@
             data-key="intro" value="{{correctionData.intro}}" bindinput="onCorrectionInput" maxlength="200" />
         </view>
 
+        <!-- 收费状态 -->
+        <view class="cs-section">
+          <view class="cs-label">停车收费</view>
+          <view class="cs-fee-row">
+            <view class="cs-fee-item {{correctionData.parking_status == 0 ? 'active' : ''}}"
+              data-val="0" bindtap="selectCorrectionFee">
+              <text class="cs-fee-emoji">🆓</text>
+              <text class="cs-fee-label">免费</text>
+            </view>
+            <view class="cs-fee-item {{correctionData.parking_status == 1 ? 'active' : ''}}"
+              data-val="1" bindtap="selectCorrectionFee">
+              <text class="cs-fee-emoji">💰</text>
+              <text class="cs-fee-label">收费</text>
+            </view>
+          </view>
+        </view>
+
         <!-- 设施状态 -->
         <view class="cs-section">
           <view class="cs-label">设施状态（点击修改）</view>

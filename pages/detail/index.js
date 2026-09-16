@@ -1216,6 +1216,7 @@ Page({
     if ((data.name || '') !== (camp.name || '')) return true;
     if ((data.address || '') !== (camp.address || '')) return true;
     if ((data.intro || '') !== (camp.intro || '')) return true;
+    if (Number(data.parking_status) !== Number(camp.parking_status)) return true;
     // 检查设施变化
     for (const item of this.data.correctionFacItems) {
       const original = Number(camp[item.key]) > 0;
@@ -1268,7 +1269,8 @@ Page({
     const correctionData = {
       name: camp.name || '',
       address: camp.address || '',
-      intro: camp.intro || ''
+      intro: camp.intro || '',
+      parking_status: Number(camp.parking_status) || 0
     };
 
     this.setData({
@@ -1298,6 +1300,14 @@ Page({
     const items = this.data.correctionFacItems.slice();
     items[idx].on = !items[idx].on;
     this.setData({ correctionFacItems: items });
+  },
+
+  // 纠错收费选择
+  selectCorrectionFee(e) {
+    const val = Number(e.currentTarget.dataset.val);
+    const data = this.data.correctionData;
+    data.parking_status = val;
+    this.setData({ correctionData: data });
   },
 
   // 纠错照片
@@ -1389,6 +1399,7 @@ Page({
       name: data.name.trim(),
       address: (data.address || '').trim(),
       intro: (data.intro || '').trim(),
+      parking_status: Number(data.parking_status) || 0,
       photo_urls: photoUrls.filter(u => u).join(','),
       status: 'pending',
       ...facFlags
