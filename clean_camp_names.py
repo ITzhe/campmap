@@ -10,16 +10,16 @@
 
 用法：
   python clean_camp_names.py --dry-run    # 预览，不修改
-  python clean_camp_names.py --apply       # 正式执行（RPC 批量更新）
-
-前提：已在 Supabase 执行 sql/batch_update_names.sql
+  python clean_camp_names.py --apply       # 正式执行（线程池并发 PATCH）
 """
 
 import re
 import sys
 import json
+import time
 import httpx
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ============ 配置 ============
 SUPABASE_URL = 'https://drktdyfwawpfughuzqvs.supabase.co'
@@ -36,8 +36,8 @@ BRACKETS = [
     ('（', '）'),    # 中文括号
 ]
 
-# RPC 批量大小
-BATCH_SIZE = 500
+# 并发线程数
+THREADS = 20
 
 
 def is_address(text: str) -> bool:
@@ -130,6 +130,17 @@ def fetch_all_camps(client):
     return unique
 
 
+def update_one(item):
+    """线程函数：更新单条营地名称"""
+    url = f"{SUPABASE_URL}/rest/v1/unified_spots?spot_code=eq.{item['spot_code']}"
+    try:
+        with httpx.Client(timeout=30) as c:
+            r = c.patch(url, headers=get_headers(), json={'name': item['new_name']})
+            return r.status_code in (200, 204)
+    except Exception:
+        return False
+
+
 def main():
     apply = '--apply' in sys.argv
     dry_run = '--dry-run' in sys.argv or not apply
@@ -137,7 +148,7 @@ def main():
     if dry_run:
         log("清理露营点名称 - 预览模式（不修改数据）")
     else:
-        log("清理露营点名称 - 正式运行（RPC 批量更新）")
+        log(f"清理露营点名称 - 正式运行（{THREADS} 线程并发 PATCH）")
 
     with httpx.Client(timeout=60) as client:
         # 1. 查询所有名称带括号的营地
@@ -174,46 +185,44 @@ def main():
         if dry_run:
             print()
             log(f"预览完成，共 {len(to_update)} 条需要清理")
-            log("如需正式执行，请先在 Supabase 执行 sql/batch_update_names.sql")
-            log("然后运行: python clean_camp_names.py --apply")
+            log("如需正式执行，请运行: python clean_camp_names.py --apply")
             return
 
         if not to_update:
             log("无需清理的数据")
             return
 
-        # 4. RPC 批量更新
+        # 4. 线程池并发 PATCH 更新
         print()
-        log(f"开始 RPC 批量更新 {len(to_update)} 条营地名称（每批 {BATCH_SIZE} 条）...")
+        log(f"开始并发更新 {len(to_update)} 条（{THREADS} 线程）...")
 
         total = len(to_update)
         success = 0
         failed = 0
-        total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
+        start_time = time.time()
 
-        for i in range(0, total, BATCH_SIZE):
-            batch = to_update[i:i + BATCH_SIZE]
-            batch_num = i // BATCH_SIZE + 1
+        with ThreadPoolExecutor(max_workers=THREADS) as executor:
+            futures = {executor.submit(update_one, item): i for i, item in enumerate(to_update)}
 
-            # 构造 RPC payload
-            rpc_data = json.dumps([
-                {'spot_code': item['spot_code'], 'new_name': item['new_name']}
-                for item in batch
-            ])
+            for future in as_completed(futures):
+                ok = future.result()
+                if ok:
+                    success += 1
+                else:
+                    failed += 1
 
-            url = f"{SUPABASE_URL}/rest/v1/rpc/batch_update_names"
-            r = client.post(url, headers=get_headers(), json={'updates': rpc_data}, timeout=120)
+                done = success + failed
+                if done % 500 == 0 or done == total:
+                    elapsed = time.time() - start_time
+                    speed = done / elapsed if elapsed > 0 else 0
+                    eta = (total - done) / speed if speed > 0 else 0
+                    log(f"  进度: {done}/{total} ({done/total*100:.0f}%) "
+                        f"成功:{success} 失败:{failed} "
+                        f"速度:{speed:.0f}条/秒 剩余:{eta:.0f}秒")
 
-            if r.status_code == 200:
-                count = r.json() if r.text else len(batch)
-                success += int(count)
-                log(f"  批次 {batch_num}/{total_batches}: 更新 {count} 条 (总计 {success}/{total})")
-            else:
-                failed += len(batch)
-                log(f"  批次 {batch_num}/{total_batches} 失败: {r.status_code} {r.text[:200]}")
-
+        elapsed = time.time() - start_time
         print()
-        log(f"清理完成: 成功 {success} 条, 失败 {failed} 条")
+        log(f"清理完成: 成功 {success} 条, 失败 {failed} 条, 耗时 {elapsed:.0f} 秒")
 
 
 if __name__ == '__main__':
