@@ -124,6 +124,7 @@ Page({
       return {
         spot_code: item.spot_code,
         name: item.name,
+        cleanName: util.cleanDisplayName(item.name, item.address),
         address: item.address,
         parking_status: item.parking_status,
         latitude: item.latitude,

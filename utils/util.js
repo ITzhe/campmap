@@ -419,6 +419,42 @@ function getNearestCity(lat, lng) {
   return nearest ? nearest.name : '当前位置';
 }
 
+/**
+ * 清理营地显示名称：去掉与 address 重复的地址前缀
+ * 用于前端兜底，即使数据库没清理也能正确显示
+ */
+function cleanDisplayName(name, address) {
+  if (!name) return name || '';
+  if (!address) return name;
+
+  // 计算最长公共前缀
+  let lcpLen = 0;
+  const minLen = Math.min(name.length, address.length);
+  for (let i = 0; i < minLen; i++) {
+    if (name[i] === address[i]) {
+      lcpLen = i + 1;
+    } else {
+      break;
+    }
+  }
+
+  // 公共前缀至少 4 字符，且包含行政区划词
+  const lcp = name.substring(0, lcpLen);
+  const addrKeywords = ['省', '市', '区', '县', '自治', '旗', '盟', '地区'];
+  if (lcpLen >= 4) {
+    for (const kw of addrKeywords) {
+      if (lcp.indexOf(kw) >= 0) {
+        const remainder = name.substring(lcpLen).trim();
+        // 去掉后不为空才使用
+        if (remainder) return remainder;
+        break;
+      }
+    }
+  }
+
+  return name;
+}
+
 module.exports = {
   todayStr,
   yesterdayStr,
@@ -438,5 +474,6 @@ module.exports = {
   hideLoading,
   getWeekCalendar,
   getPointsHistory,
-  getNearestCity
+  getNearestCity,
+  cleanDisplayName
 };

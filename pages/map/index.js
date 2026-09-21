@@ -24,6 +24,7 @@ Page({
     // 底部卡片
     showBottomCard: false,
     selectedCamp: null,
+    selectedCampName: '',
     selectedCampDist: 0,
     bottomCardTags: [],
 
@@ -174,6 +175,7 @@ Page({
       this.setData({
         showBottomCard: true,
         selectedCamp: camp,
+        selectedCampName: util.cleanDisplayName(camp.name, camp.address),
         selectedCampDist: camp.distance || dist,
         bottomCardTags: tags,
         weatherInfo: '',
@@ -373,6 +375,7 @@ Page({
     this.setData({
       showBottomCard: true,
       selectedCamp: camp,
+      selectedCampName: util.cleanDisplayName(camp.name, camp.address),
       selectedCampDist: dist,
       bottomCardTags: tags,
       weatherInfo: '',
@@ -667,6 +670,7 @@ Page({
       const allResults = results.map(c => ({
         ...c,
         isFree: c.parking_status === 0,
+        cleanName: util.cleanDisplayName(c.name, c.address),
         tags: this._buildSearchTags(c)
       }));
       this.setData({ searchResults: allResults });

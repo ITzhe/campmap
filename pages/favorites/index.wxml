@@ -19,7 +19,7 @@
     <view class="fav-item" wx:for="{{list}}" wx:key="spot_code"
       data-code="{{item.spot_code}}" bindtap="onItemTap">
       <view class="fav-main">
-        <view class="fav-name">{{item.name}}</view>
+        <view class="fav-name">{{item.cleanName}}</view>
         <view class="fav-addr">
           <text class="fav-pin">📍</text>
           <text class="fav-addr-text">{{item.address || '暂无地址'}}</text>

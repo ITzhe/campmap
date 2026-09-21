@@ -8,7 +8,7 @@
     </view>
     <view class="hero-content">
       <view class="hero-deco">🏕</view>
-      <view class="hero-name">{{camp.name || '营地详情'}}</view>
+      <view class="hero-name">{{displayName || camp.name || '营地详情'}}</view>
     </view>
   </view>
 

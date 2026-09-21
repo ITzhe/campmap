@@ -33,6 +33,7 @@ Page({
     // 营地概述弹窗
     showCampPopup: false,
     popupCamp: null,
+    popupCampName: '',
     popupTags: [],
     popupIsFree: true
   },
@@ -458,7 +459,7 @@ Page({
         height: 32,
         anchor: { x: 0.5, y: 1 },
         callout: {
-          content: c.name || '营地',
+          content: util.cleanDisplayName(c.name, c.address) || '营地',
           color: '#333333',
           fontSize: 10,
           bgColor: '#ffffff',
@@ -614,7 +615,7 @@ Page({
           height: 32,
           anchor: { x: 0.5, y: 1 },
           callout: {
-            content: c.name || '营地',
+            content: util.cleanDisplayName(c.name, c.address) || '营地',
             color: '#333333',
             fontSize: 10,
             bgColor: '#ffffff',
@@ -714,6 +715,7 @@ Page({
       for (const k in c) { result[k] = c[k]; }
       result.distance = Math.round(o.distFromStart * 10) / 10;
       result.offset = Math.round(o.offset * 10) / 10;
+      result.cleanName = util.cleanDisplayName(c.name, c.address);
       return result;
     });
   },
@@ -796,6 +798,7 @@ Page({
     this.setData({
       showCampPopup: true,
       popupCamp: camp,
+      popupCampName: util.cleanDisplayName(camp.name, camp.address),
       popupTags: tags,
       popupIsFree: camp.parking_status == 0
     });

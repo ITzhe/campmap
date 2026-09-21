@@ -301,8 +301,12 @@ Page({
     // 最新动态 (本地模拟)
     const newsList = this.buildNews(camp);
 
+    // 清理显示名称：去掉与 address 重复的地址前缀
+    const displayName = util.cleanDisplayName(camp.name, camp.address);
+
     this.setData({
       camp,
+      displayName,
       facGroups,
       priceInfo,
       parkingText,
@@ -348,7 +352,7 @@ Page({
       // 添加收藏
       favs.unshift({
         spot_code: camp.spot_code,
-        name: camp.name,
+        name: this.data.displayName || camp.name,
         address: camp.address || '',
         parking_status: camp.parking_status,
         latitude: camp.latitude,
@@ -507,10 +511,11 @@ Page({
   navigateCamp() {
     const camp = this.data.camp;
     if (!camp) return;
+    const displayName = this.data.displayName || camp.name || '营地';
     wx.openLocation({
       latitude: Number(camp.latitude),
       longitude: Number(camp.longitude),
-      name: camp.name || '营地',
+      name: displayName,
       address: camp.address || '',
       scale: 14
     });
@@ -520,8 +525,9 @@ Page({
   shareCamp() {
     const camp = this.data.camp;
     if (!camp) return;
+    const displayName = this.data.displayName || camp.name;
     wx.setClipboardData({
-      data: `${camp.name}\n地址：${camp.address || '暂无'}\n坐标：${camp.latitude},${camp.longitude}`,
+      data: `${displayName}\n地址：${camp.address || '暂无'}\n坐标：${camp.latitude},${camp.longitude}`,
       success: () => {
         util.showToast('营地信息已复制，可粘贴分享');
       }

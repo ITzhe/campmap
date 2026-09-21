@@ -56,7 +56,7 @@
     <cover-view wx:if="{{showBottomCard}}" class="bottom-card">
       <cover-view class="bc-head">
         <cover-view class="bc-info">
-          <cover-view class="bc-name">{{selectedCamp.name}}</cover-view>
+          <cover-view class="bc-name">{{selectedCampName}}</cover-view>
           <cover-view class="bc-addr">📍 {{selectedCamp.address || '暂无地址'}}</cover-view>
         </cover-view>
         <cover-view class="bc-close" bindtap="closeBottomCard">✕</cover-view>
@@ -119,7 +119,7 @@
       <view class="sp-result" wx:for="{{searchResults}}" wx:key="spot_code"
         data-spot="{{item}}" bindtap="onTapSearchResult">
         <view class="spr-top">
-          <text class="spr-name">{{item.name}}</text>
+          <text class="spr-name">{{item.cleanName}}</text>
           <text class="spr-badge {{item.isFree ? 'free' : 'paid'}}">{{item.isFree ? '免费' : '收费'}}</text>
         </view>
         <view class="spr-addr" wx:if="{{item.address}}">{{item.address}}</view>

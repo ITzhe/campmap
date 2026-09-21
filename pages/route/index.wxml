@@ -76,7 +76,7 @@
         data-idx="{{index}}" bindtap="onCampTap">
         <view class="cli-icon">🏕</view>
         <view class="cli-info">
-          <view class="cli-name">{{item.name}}</view>
+          <view class="cli-name">{{item.cleanName}}</view>
           <view class="cli-addr">{{item.address || '暂无地址'}}</view>
         </view>
         <view class="cli-dist">
@@ -97,7 +97,7 @@
 <view class="camp-popup {{showCampPopup ? 'camp-popup-show' : ''}}" wx:if="{{popupCamp}}">
   <!-- 营地名称行 -->
   <view class="cp-header">
-    <view class="cp-title">{{popupCamp.name}}</view>
+    <view class="cp-title">{{popupCampName}}</view>
     <view class="cp-close" bindtap="closeCampPopup">✕</view>
   </view>
 
