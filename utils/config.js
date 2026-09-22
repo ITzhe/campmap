@@ -204,7 +204,8 @@ const config = {
     view_detail: -1,    // 查看详情
     camp_submit: 100,   // 营地录入审核通过
     camp_checkin: 5,    // 营地打卡
-    checkin_review: 10  // 打卡带评价额外积分
+    checkin_review: 10, // 打卡带评价额外积分
+    correction: 20      // 提交纠错奖励
   }
 };
 

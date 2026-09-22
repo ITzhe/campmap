@@ -214,7 +214,41 @@ function getWeekCalendar(streak, lastCheckin) {
 /**
  * 获取积分明细 mock 数据
  */
+/**
+ * 增加积分记录（写入本地历史）
+ * @param {string} type - 类型标识 (daily_checkin / correction / camp_checkin ...)
+ * @param {number} delta - 积分变动（正为加，负为扣）
+ * @param {string} [desc] - 描述文字，不传则用默认类型描述
+ */
+function addPointsRecord(type, delta, desc) {
+  const typeLabels = {
+    daily_checkin: '每日签到',
+    view_detail: '查看营地详情',
+    camp_submit: '营地录入审核通过',
+    camp_checkin: '营地打卡',
+    checkin_review: '打卡评价奖励',
+    correction: '营地纠错奖励',
+    initial: '新用户注册'
+  };
+  const label = desc || typeLabels[type] || type;
+  const today = todayStr();
+  const history = wx.getStorageSync('points_history') || [];
+  history.unshift({ d: today, t: label, v: delta });
+  // 最多保留 100 条
+  if (history.length > 100) {
+    history.length = 100;
+  }
+  wx.setStorageSync('points_history', history);
+}
+
+/**
+ * 获取积分历史（优先本地记录，无则返回示例数据）
+ */
 function getPointsHistory() {
+  const history = wx.getStorageSync('points_history');
+  if (Array.isArray(history) && history.length > 0) {
+    return history;
+  }
   return [
     { d: '2026-08-05', t: '每日签到', v: 10 },
     { d: '2026-08-04', t: '每日签到', v: 10 },
@@ -467,6 +501,7 @@ module.exports = {
   wxLogin,
   setUserNick,
   updatePoints,
+  addPointsRecord,
   doCheckin,
   calcJoinDays,
   showToast,

@@ -1414,8 +1414,45 @@ Page({
     try {
       await api.submitCampCorrection(payload);
       util.hideLoading();
-      util.showToast('纠错已提交，感谢您的贡献');
-      this.setData({ showCorrection: false, submittingCorrection: false });
+
+      // 积分奖励
+      const reward = config.POINTS_RULES.correction || 20;
+      const newPoints = util.updatePoints(reward);
+      util.addPointsRecord('correction', reward);
+      this.setData({ userPoints: newPoints });
+
+      // 乐观更新：本地立即应用纠错数据，用户马上看到效果
+      const camp = this.data.camp;
+      const updatedCamp = { ...camp };
+      if (data.name && data.name.trim()) updatedCamp.name = data.name.trim();
+      if (data.address && data.address.trim()) updatedCamp.address = data.address.trim();
+      if (data.intro !== undefined) updatedCamp.intro = data.intro.trim();
+      updatedCamp.parking_status = Number(data.parking_status) || 0;
+      this.data.correctionFacItems.forEach(item => {
+        updatedCamp[item.key] = item.on ? 1 : 0;
+      });
+
+      // 重新计算显示名称和设施分组
+      const newDisplayName = util.cleanDisplayName(updatedCamp.name, updatedCamp.address);
+      const newFacGroups = this.buildFacilityGroups(updatedCamp);
+      const newPriceInfo = this.buildPriceInfo(updatedCamp);
+      const newParkingText = this.buildParkingText(updatedCamp);
+      const newOvernightInfo = this.buildOvernightInfo(updatedCamp);
+      const newHasOvernightData = !!(updatedCamp.overnight_score > 0 || updatedCamp.overnight_status > 0);
+
+      this.setData({
+        camp: updatedCamp,
+        displayName: newDisplayName,
+        facGroups: newFacGroups,
+        priceInfo: newPriceInfo,
+        parkingText: newParkingText,
+        overnightInfo: newOvernightInfo,
+        hasOvernightData: newHasOvernightData,
+        showCorrection: false,
+        submittingCorrection: false
+      });
+
+      util.showToast(`纠错成功 +${reward}积分`);
     } catch (e) {
       util.hideLoading();
       util.showToast('提交失败，请稍后重试');
