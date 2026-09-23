@@ -83,6 +83,25 @@
   font-weight: 400;
 }
 
+/* 过夜评分滑块 */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.slider-label {
+  font-size: 24rpx;
+  color: var(--text-ph);
+  min-width: 32rpx;
+  text-align: center;
+}
+
+.overnight-slider {
+  flex: 1;
+  margin: 0 8rpx;
+}
+
 .fs-foot {
   display: flex;
   gap: 20rpx;

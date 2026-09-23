@@ -58,21 +58,27 @@
     </view>
   </view>
 
-  <!-- 过夜评分 (单选) -->
+  <!-- 过夜评分 (滑块) -->
   <view class="fs-grp">
     <view class="fs-grp-h">
       <text>过夜评分</text>
-      <text class="fs-hint">单选</text>
+      <text class="fs-hint">≥ {{innerFilters.overnight || 0}} 分</text>
     </view>
-    <view class="chip-row">
-      <view
-        wx:for="{{overnightOptions}}"
-        wx:key="value"
-        class="chip {{innerFilters.overnight === item.value ? 'on' : ''}}"
-        data-key="overnight"
-        data-value="{{item.value}}"
-        bindtap="pickSingle"
-      >{{item.label}}</view>
+    <view class="slider-row">
+      <text class="slider-label">0</text>
+      <slider
+        class="overnight-slider"
+        min="0"
+        max="5"
+        step="1"
+        value="{{innerFilters.overnight || 0}}"
+        block-size="22"
+        activeColor="#4a90d9"
+        backgroundColor="#e0e0e0"
+        block-color="#4a90d9"
+        bindchange="onOvernightSlider"
+      />
+      <text class="slider-label">5</text>
     </view>
   </view>
 
