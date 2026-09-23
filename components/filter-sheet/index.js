@@ -6,7 +6,7 @@ Component({
     visible: { type: Boolean, value: false },
     filters: {
       type: Object,
-      value: { fee: 'all', park: [], fac: [] }
+      value: { fee: 'all', park: [], fac: [], overnight: 'all' }
     },
     campCount: { type: Number, value: 0 }
   },
@@ -15,9 +15,10 @@ Component({
     feeOptions: config.FILTER_OPTIONS.fee,
     parkOptions: config.FILTER_OPTIONS.park,
     facOptions: config.FILTER_OPTIONS.fac,
+    overnightOptions: config.FILTER_OPTIONS.overnight,
     matchCount: 0,
     // 内部筛选状态 (避免直接修改 properties)
-    innerFilters: { fee: 'all', park: [], fac: [] },
+    innerFilters: { fee: 'all', park: [], fac: [], overnight: 'all' },
     // 预计算的选中状态 map (WXML 不支持 indexOf)
     parkSelected: {},
     facSelected: {}
@@ -82,6 +83,12 @@ Component({
         if (f.fee !== 'all' && c.parking_status != f.fee) return false;
         if (f.park.length && !f.park.every(k => c[k] == 1)) return false;
         if (f.fac.length && !f.fac.every(k => c[k] == 1)) return false;
+        if (f.overnight && f.overnight !== 'all') {
+          const score = Number(c.overnight_score) || 0;
+          if (f.overnight === 'recommend' && score < 0.7) return false;
+          if (f.overnight === 'ok' && (score < 0.4 || score >= 0.7)) return false;
+          if (f.overnight === 'not' && score >= 0.4) return false;
+        }
         return true;
       });
 
@@ -91,7 +98,7 @@ Component({
     // 确定
     onConfirm() {
       const f = this.data.innerFilters;
-      const count = (f.fee !== 'all' ? 1 : 0) + f.park.length + f.fac.length;
+      const count = (f.fee !== 'all' ? 1 : 0) + f.park.length + f.fac.length + (f.overnight !== 'all' ? 1 : 0);
       this.triggerEvent('confirm', {
         filters: f,
         count: count
@@ -100,7 +107,7 @@ Component({
 
     // 重置
     onReset() {
-      const innerFilters = { fee: 'all', park: [], fac: [] };
+      const innerFilters = { fee: 'all', park: [], fac: [], overnight: 'all' };
       this.setData({ innerFilters });
       this.updateSelectedMaps(innerFilters);
       this.updateMatchCount();

@@ -113,12 +113,12 @@ const config = {
       { label: '有餐饮', value: 'dining_status' },
       { label: '有住宿', value: 'accommodation_status' }
     ],
-    // 过夜友好度筛选
+    // 过夜友好度筛选 (基于 overnight_score)
     overnight: [
       { label: '全部', value: 'all' },
-      { label: '4星以上', value: '4' },
-      { label: '3星以上', value: '3' },
-      { label: '可过夜', value: 'yes' }
+      { label: '推荐过夜', value: 'recommend' },
+      { label: '可过夜', value: 'ok' },
+      { label: '不建议', value: 'not' }
     ]
   },
 

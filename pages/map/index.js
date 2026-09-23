@@ -34,7 +34,7 @@ Page({
 
     // 筛选
     filterVisible: false,
-    filters: { fee: 'all', park: [], fac: [] },
+    filters: { fee: 'all', park: [], fac: [], overnight: 'all' },
     filterCount: 0,
     filterSummaryText: '',
     filteredCount: 0,
@@ -305,7 +305,8 @@ Page({
         camps: allCamps,
         campCount: allCamps.length
       });
-      this.buildMarkers(allCamps);
+      // 加载后应用当前筛选条件（修复拖动地图后筛选失效的 bug）
+      this.applyFilters();
 
       if (allCamps.length === 0) {
         util.showToast('当前区域暂无营地数据');
@@ -531,6 +532,10 @@ Page({
       if (filters.fee !== 'all') parts.push(filters.fee == '0' ? '免费' : '收费');
       filters.park.forEach(k => parts.push(config.FAC_LABELS[k]));
       filters.fac.forEach(k => parts.push('有' + config.FAC_LABELS[k]));
+      if (filters.overnight && filters.overnight !== 'all') {
+        const overnightLabels = { recommend: '推荐过夜', ok: '可过夜', not: '不建议' };
+        parts.push(overnightLabels[filters.overnight] || '过夜筛选');
+      }
       this.setData({ filterSummaryText: parts.join(' · ') });
     }
 
@@ -539,12 +544,12 @@ Page({
 
   onFilterReset() {
     this.setData({
-      filters: { fee: 'all', park: [], fac: [] },
+      filters: { fee: 'all', park: [], fac: [], overnight: 'all' },
       filterCount: 0,
       filterSummaryText: ''
     });
     const app = getApp();
-    app.globalData.filters = { fee: 'all', park: [], fac: [] };
+    app.globalData.filters = { fee: 'all', park: [], fac: [], overnight: 'all' };
     this.loadCamps();
   },
 
@@ -557,6 +562,12 @@ Page({
       if (f.fee !== 'all' && c.parking_status != f.fee) return false;
       if (f.park.length && !f.park.every(k => c[k] == 1)) return false;
       if (f.fac.length && !f.fac.every(k => c[k] == 1)) return false;
+      if (f.overnight && f.overnight !== 'all') {
+        const score = Number(c.overnight_score) || 0;
+        if (f.overnight === 'recommend' && score < 0.7) return false;
+        if (f.overnight === 'ok' && (score < 0.4 || score >= 0.7)) return false;
+        if (f.overnight === 'not' && score >= 0.4) return false;
+      }
       return true;
     });
 
@@ -566,12 +577,12 @@ Page({
 
   clearFilters() {
     this.setData({
-      filters: { fee: 'all', park: [], fac: [] },
+      filters: { fee: 'all', park: [], fac: [], overnight: 'all' },
       filterCount: 0,
       filterSummaryText: ''
     });
     const app = getApp();
-    app.globalData.filters = { fee: 'all', park: [], fac: [] };
+    app.globalData.filters = { fee: 'all', park: [], fac: [], overnight: 'all' };
     this.loadCamps();
   },
 

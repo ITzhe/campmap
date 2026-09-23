@@ -58,6 +58,24 @@
     </view>
   </view>
 
+  <!-- 过夜评分 (单选) -->
+  <view class="fs-grp">
+    <view class="fs-grp-h">
+      <text>过夜评分</text>
+      <text class="fs-hint">单选</text>
+    </view>
+    <view class="chip-row">
+      <view
+        wx:for="{{overnightOptions}}"
+        wx:key="value"
+        class="chip {{innerFilters.overnight === item.value ? 'on' : ''}}"
+        data-key="overnight"
+        data-value="{{item.value}}"
+        bindtap="pickSingle"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
   <!-- 底部按钮 -->
   <view class="fs-foot">
     <view class="fs-btn-reset" bindtap="onReset">重置</view>
