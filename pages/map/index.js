@@ -46,6 +46,8 @@ Page({
     // 状态
     loadingCamps: false,
     campCount: 0,
+    // 加载异常信息 (显示在地图上, 便于线上定位问题)
+    loadError: '',
 
     // 搜索面板
     searchPanelVisible: false,
@@ -82,15 +84,21 @@ Page({
     } catch (e) {}
 
     const app = getApp();
-    this.setData({
-      statusBarHeight: sbh,
-      topbarHeight: sbh + 44,
-      latitude: app.globalData.cityCenter.latitude,
-      longitude: app.globalData.cityCenter.longitude,
-      scale: defaultScale,
-      cityName: app.globalData.cityName,
-      userPoints: app.globalData.points
-    });
+    try {
+      const center = (app.globalData && app.globalData.cityCenter) || config.CITY_CENTER;
+      this.setData({
+        statusBarHeight: sbh,
+        topbarHeight: sbh + 44,
+        latitude: center.latitude,
+        longitude: center.longitude,
+        scale: defaultScale,
+        cityName: (app.globalData && app.globalData.cityName) || config.CITY_NAME,
+        userPoints: app.globalData ? app.globalData.points : 0
+      });
+    } catch (e) {
+      // 初始化异常也要显示出来, 否则线上只会看到一张空地图
+      this.setData({ loadError: '初始化异常：' + (e && e.message ? e.message : String(e)) });
+    }
 
     // 立即用默认中心加载营地 (不等待定位)
     this.loadCamps();
@@ -297,6 +305,7 @@ Page({
 
     util.showLoading('加载营地...');
 
+    let loadErr = '';
     try {
       // 从 unified_spots 单表查询（数据已由 Python 脚本预合并）
       const allCamps = await api.fetchCampsites(this.data.filters, bounds, 5000);
@@ -309,20 +318,29 @@ Page({
       this.applyFilters();
 
       if (allCamps.length === 0) {
-        util.showToast('当前区域暂无营地数据');
+        loadErr = '当前区域暂无营地数据';
       }
     } catch (e) {
-      console.error('[map] loadCamps 异常:', e.message);
-      util.showToast('加载失败，请重试');
+      const msg = (e && e.message) ? e.message : String(e);
+      console.error('[map] loadCamps 异常:', msg);
+      loadErr = '加载失败：' + msg;
     }
+
+    // 先关掉 loading 再提示，否则 toast 会被 loading 遮罩盖住（线上会变成"无任何提示"）
     util.hideLoading();
-    this.setData({ loadingCamps: false });
+    this.setData({ loadingCamps: false, loadError: loadErr });
+    if (loadErr) util.showToast(loadErr);
 
     // 如果在加载期间有新的定位完成, 重新加载一次
     if (this._needReload) {
       this._needReload = false;
       this.loadCamps();
     }
+  },
+
+  // ============ 关闭加载异常提示 ============
+  dismissLoadError() {
+    this.setData({ loadError: '' });
   },
 
   // ============ 构建地图标记 ============

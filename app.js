@@ -10,7 +10,7 @@ App({
     lastCheckin: null,
     joinDate: null,
     selectedCamp: null,
-    filters: { fee: 'all', park: [], fac: [] },
+    filters: { fee: 'all', park: [], fac: [], overnight: 0 },
     cityCenter: { latitude: 36.0671, longitude: 120.3826 },
     cityName: '青岛',
     cityChanged: false

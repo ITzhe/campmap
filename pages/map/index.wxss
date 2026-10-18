@@ -80,6 +80,33 @@
   font-weight: 600;
 }
 
+/* ============ 加载异常提示 ============ */
+.load-error {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  background: rgba(176, 48, 48, 0.94);
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+}
+
+.le-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #fff;
+}
+
+.le-close {
+  margin-left: 16rpx;
+  width: 40rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #fff;
+}
+
 /* ============ 图例 ============ */
 .map-legend {
   position: absolute;

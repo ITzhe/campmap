@@ -75,8 +75,7 @@ function normalizeCamp(camp) {
  */
 async function fetchCampsites(filters, bounds, limit) {
   if (!bounds) {
-    console.warn('[api] 拒绝无 bounds 的全量查询');
-    return [];
+    throw new Error('缺少地理范围(bounds)参数');
   }
 
   let selectFields = 'spot_code,name,longitude,latitude,parking_status,toilet_status,water_status,power_status,charging_status,address,intro,memo,rv_friendly,trailer_friendly,tent_friendly,shower_status,fishing_status,cooking_status,fire_status,repair_status,grocery_status,dining_status,accommodation_status,overnight_score,overnight_status,noise_level,safety_level,signal_level,ground_type,overnight_data_source,score_source,dim_noise,dim_safety,dyd_id,source_type';
@@ -92,16 +91,12 @@ async function fetchCampsites(filters, bounds, limit) {
   }
   url += `&limit=${limit || 5000}`;
 
-  try {
-    const data = await request(url, 'GET');
-    if (!Array.isArray(data) || data.length === 0) {
-      return [];
-    }
-    return data.map(normalizeCamp);
-  } catch (e) {
-    console.error('[Supabase] 营地数据获取失败:', e.message);
-    return [];
+  // 不吞异常：把错误抛给调用方，否则线上请求失败会表现为"空白且无提示"
+  const data = await request(url, 'GET');
+  if (!Array.isArray(data)) {
+    throw new Error('返回数据格式异常: ' + JSON.stringify(data).slice(0, 120));
   }
+  return data.map(normalizeCamp);
 }
 
 /**

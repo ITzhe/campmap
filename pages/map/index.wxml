@@ -32,6 +32,12 @@
       <cover-view class="cc-text">附近 {{campCount}} 个营地</cover-view>
     </cover-view>
 
+    <!-- 加载异常提示 (便于线上定位问题, 点击关闭) -->
+    <cover-view wx:if="{{loadError}}" class="load-error" style="top: {{topbarHeight + 8}}px;" bindtap="dismissLoadError">
+      <cover-view class="le-text">{{loadError}}</cover-view>
+      <cover-view class="le-close">✕</cover-view>
+    </cover-view>
+
     <!-- 地图图例 -->
     <cover-view wx:if="{{!searchPanelVisible}}" class="map-legend" style="top: {{topbarHeight + 52}}px;">
       <cover-view class="lg">
